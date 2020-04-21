@@ -19,7 +19,8 @@
 #' @export
 #' @importFrom ggplot2 theme facet_wrap guides ylab xlab scale_color_manual
 #' scale_fill_manual geom_point labs aes_string ggplot annotate geom_ribbon coord_cartesian
-#' @importFrom dplyr summarise group_by mutate rename filter summarize ungroup tibble
+#' element_blank geom_line
+#' @importFrom dplyr summarise group_by mutate rename filter summarize ungroup tibble as_tibble
 make_projection_plot <- function(models, cumulative = FALSE,
   first_date = "2020-03-01", ylim = c(0, max(out$upr) * 1.03), outer_quantile = c(0.05, 0.95),
   facet = TRUE, ncol = 1, cols = NULL, linetype = c("mu", "obs"),
@@ -47,11 +48,11 @@ make_projection_plot <- function(models, cumulative = FALSE,
       temp %>%
         group_by(day) %>%
         summarise(
-          lwr = quantile(value, probs = outer_quantile[1]),
-          lwr2 = quantile(value, probs = 0.25),
-          upr = quantile(value, probs = outer_quantile[2]),
-          upr2 = quantile(value, probs = 0.75),
-          med = median(value)
+          lwr = stats::quantile(value, probs = outer_quantile[1]),
+          lwr2 = stats::quantile(value, probs = 0.25),
+          upr = stats::quantile(value, probs = outer_quantile[2]),
+          upr2 = stats::quantile(value, probs = 0.75),
+          med = stats::median(value)
         ) %>%
         mutate(day = actual_dates[day])
     }, .id = "Scenario")
@@ -102,17 +103,17 @@ make_projection_plot <- function(models, cumulative = FALSE,
     annotate("rect", xmin = actual_dates[obj$last_day_obs], xmax = max(out$day), ymin = 0, ymax = ylim[2], fill = "grey95") +
     coord_cartesian(expand = FALSE, ylim = ylim, xlim = range(out$day)) +
     geom_ribbon(alpha = 0.2, colour = NA) +
-    geom_ribbon(alpha = 0.2, mapping = aes(ymin = lwr2, ymax = upr2), colour = NA)
+    geom_ribbon(alpha = 0.2, mapping = aes_string(ymin = "lwr2", ymax = "upr2"), colour = NA)
 
   if (linetype == "obs")
     g <- g + geom_line(alpha = 1, lwd = 1)
   if (linetype == "mu")
-    g <- g + geom_line(data = lambdas, aes(x = day, y = med, colour = Scenario), alpha = 1, lwd = 1, inherit.aes = FALSE)
+    g <- g + geom_line(data = lambdas, aes_string(x = "day", y = "med", colour = "Scenario"), alpha = 1, lwd = 1, inherit.aes = FALSE)
 
   g <- g +
     geom_line(
       data = dat,
-      col = "black", inherit.aes = FALSE, aes(x = day, y = value), lwd = 0.35,
+      col = "black", inherit.aes = FALSE, aes_string(x = "day", y = "value"), lwd = 0.35,
       alpha = 0.9
     )
 
@@ -120,16 +121,16 @@ make_projection_plot <- function(models, cumulative = FALSE,
     g <- g +
       geom_point(
         data = dat[omitted_days,,drop=FALSE],
-        col = "grey30", inherit.aes = FALSE, aes(x = day, y = value), pch = 4, fill = "grey95",  size = points_size
+        col = "grey30", inherit.aes = FALSE, aes_string(x = "day", y = "value"), pch = 4, fill = "grey95",  size = points_size
       ) +
       geom_point(
         data = dat[-omitted_days, ,drop=FALSE],
-        col = "grey30", inherit.aes = FALSE, aes(x = day, y = value), pch = 21, fill = "grey95",  size = points_size
+        col = "grey30", inherit.aes = FALSE, aes_string(x = "day", y = "value"), pch = 21, fill = "grey95",  size = points_size
       )
   } else {
     g <- g + geom_point(
       data = dat,
-      col = "grey30", inherit.aes = FALSE, aes(x = day, y = value), pch = 21, fill = "grey95", size = points_size
+      col = "grey30", inherit.aes = FALSE, aes_string(x = "day", y = "value"), pch = 21, fill = "grey95", size = points_size
     )
   }
 

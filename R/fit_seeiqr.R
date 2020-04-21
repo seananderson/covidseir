@@ -226,8 +226,8 @@ fit_seeiqr <- function(daily_cases,
   #   data = stan_data
   # )
   initf <- function(stan_data) {
-    R0 <- rlnorm(1, log(R0_prior[1]), R0_prior[2])
-    f2 <- rbeta(
+    R0 <- stats::rlnorm(1, log(R0_prior[1]), R0_prior[2])
+    f2 <- stats::rbeta(
       1,
       get_beta_params(f2_prior[1], f2_prior[2])$alpha,
       get_beta_params(f2_prior[1], f2_prior[2])$beta

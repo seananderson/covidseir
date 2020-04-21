@@ -19,15 +19,15 @@ getlambd <- function(out,
                      delayShape = 1.73,
                      delayScale = 9.85) {
   meanDelay <- delayScale * gamma(1 + 1 / delayShape)
-  try(if (var(diff(out$time)) > 0.005) {
-    stop("approx integral assumes equal time steps")
-  })
-  try(if (max(out$time) < day) {
-    stop("model simulation is not long enough for the data")
-  })
-  try(if (min(out$time) > day - (2 * meanDelay + 1)) {
-    stop("we need an earlier start time for the model")
-  })
+  # try(if (stats::var(diff(out$time)) > 0.005) {
+  #   stop("approx integral assumes equal time steps")
+  # })
+  # try(if (max(out$time) < day) {
+  #   stop("model simulation is not long enough for the data")
+  # })
+  # try(if (min(out$time) > day - (2 * meanDelay + 1)) {
+  #   stop("we need an earlier start time for the model")
+  # })
   # relevant times to identify new cases
   ii <- which(out$time > day - 45 & out$time <= day)
   dx <- out$time[ii[2]] - out$time[ii[1]]
@@ -40,7 +40,7 @@ getlambd <- function(out,
   }
 
   # each of the past times' contribution to this day's case count
-  ft <- thisSamp * incoming * dweibull(
+  ft <- thisSamp * incoming * stats::dweibull(
     x = max(out$time[ii]) - out$time[ii],
     shape = delayShape,
     scale = delayScale
