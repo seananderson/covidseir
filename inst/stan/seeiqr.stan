@@ -92,10 +92,10 @@ data {
   int<lower=0, upper=1> priors_only; // logical: include likelihood or just priors?
   int<lower=0, upper=1> est_phi; // estimate NB phi?
   int<lower=0, upper=N> n_sampFrac2; // number of sampFrac2
-  int<lower=0, upper=2> obs_model; // observation model: 0 = Poisson, 1 = NB2
-  real<lower=0> rw_sigma;
-  int tests[N];
-  real ode_control[3];
+  int<lower=0, upper=2> obs_model; // observation model: 0 = Poisson, 1 = NB2, 2 = betabinomial
+  real<lower=0> rw_sigma; // specified random walk standard deviation
+  int tests[N]; // vector of tests; only used for betabinomial
+  real ode_control[3]; // vector of ODE control numbers
   int<lower=1> N_lik; // number of days in the likelihood
   int dat_in_lik[N_lik]; // vector of data to include in the likelihood
 }
@@ -109,18 +109,17 @@ parameters {
  real<lower=0, upper=1> sampFrac2[n_sampFrac2];
 }
 transformed parameters {
-  real meanDelay = delayScale * tgamma(1 + 1 / delayShape);
   real dx = time[2] - time[1]; // time increment
-  real ft[T];
-  real lambda_d[N];
-  real sum_ft_inner;
+  real ft[T]; // container for the lambda function at time t
+  real lambda_d[N]; // estimated daily cases for each day
+  real sum_ft_inner; // holds a temporary calculation
   real eta[N]; // expected value on link scale (log)
-  real k2;
-  real E2;
-  real E2d;
-  real theta[2];
-  real y_hat[T,12];
-  real this_samp;
+  real k2; // from ODE
+  real E2; // from ODE
+  real E2d; // from ODE
+  real theta[2]; // gathers up the parameters (which come in with various limits)
+  real y_hat[T,12]; // predicted states for each time t from ODE
+  real this_samp; // holds the sample fraction for a given day
   real<lower=0> alpha[N]; // 1st shape parameter for the beta distribution
   real<lower=0> beta[N]; // 2nd shape parameter for the beta distribution
   theta[1] = R0;
@@ -128,6 +127,7 @@ transformed parameters {
 
   y_hat = integrate_ode_rk45(seeiqr, y0, t0, time, theta, x_r, x_i, ode_control[1], ode_control[2], ode_control[3]);
 
+  // Calculating the expected case counts given the delays in reporting:
   for (n in 1:N) {
     this_samp = sampFrac[n];
     if (n_sampFrac2 > 1) {
@@ -144,6 +144,7 @@ transformed parameters {
     for (t in 1:T) {
       ft[t] = 0; // initialize at 0 across the full 1:T
     }
+    // a fancy way of moving across a window of time:
     for (t in time_day_id0[n]:time_day_id[n]) { // t is an increment here
       k2 = x_r[4];
       E2 = y_hat[t,3];
@@ -161,7 +162,7 @@ transformed parameters {
     eta[n] = log(lambda_d[n]);
   }
 
-  if (obs_model == 2) { // Beta-Binomial
+  if (obs_model == 2) { // Beta-Binomial observation model
     for (n in 1:N) {
       eta[n] = inv_logit(exp(eta[n]));
       alpha[n] = eta[n] * phi[1];
@@ -198,7 +199,7 @@ model {
   }
 
   // data likelihood:
-  if (!priors_only) {
+  if (!priors_only) { // useful to turn off for prior predictive checks
     if (obs_model == 0) {
       daily_cases[dat_in_lik] ~ poisson_log(eta[dat_in_lik]);
     } else if (obs_model == 1) {

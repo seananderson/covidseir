@@ -1,7 +1,7 @@
 # SEEIQR model to estimate physical-distancing effects
 
 SEEIQR: 
-susceptible (\(S\)), exposed to the virus, asymptomatic and not infectious (\(E_1\)), exposed, asymptomatic and infectious (\(E_2\)), infectious (\(I\)), quarantined (\(Q\)), and recovered and deceased (\(R\)).
+susceptible (S), exposed to the virus, asymptomatic and not infectious (E1), exposed, asymptomatic and infectious (E2), infectious (I), quarantined (Q), and recovered and deceased (R).
 
 Install the package with:
 
