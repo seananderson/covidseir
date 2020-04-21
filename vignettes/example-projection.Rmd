@@ -11,7 +11,8 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  warnings = FALSE
+  warnings = FALSE,
+  fig.width = 5
 )
 ```
 
@@ -41,8 +42,8 @@ head(d)
 
 We can fit the Stan model with the function `fit_seeiqr()`. It takes one data input: a vector of case counts. This could also represent new hospital cases. We will only use 250 iterations so that this example runs quickly, but you would likely want more if you want stability in the tails of the posterior distribution. 8000 total iterations should be plenty, broken up across however many chains you can use efficiently on your available cores (e.g. 8 chains, 1000 iterations).
 
-```{r, message=FALSE, results='hide'}
-m <- fit_seeiqr(d$cases, iter = 250, chains = 6)
+```{r fit, message=FALSE, results='hide', cache=TRUE}
+m <- fit_seeiqr(d$cases, iter = 300, chains = 6)
 ```
 
 There are many named elements of the fitted object.
@@ -53,10 +54,19 @@ The posterior samples from `rstan::extract()` are in the element `post` for post
 names(m$post)
 ```
 
-The rstan object itself is in the named element `fit`:
+The rstan object itself is in the named element `fit`. You can do anything with that you can do with the output from an rstan fit.
 
 ```{r}
 print(m$fit, pars  = c('R0', 'f2', 'phi'))
+```
+
+I have named the parameters I want to look up to avoid summarizing many derived values and parameters.
+
+A couple examples of things you could do:
+
+```{r}
+bayesplot::mcmc_areas(m$fit, pars  = c('R0', 'f2', 'phi[1]'))
+bayesplot::mcmc_trace(m$fit, pars  = c('R0', 'f2', 'phi[1]'))
 ```
 
 Posterior predictive replicates are available in `post$y_rep`. We can also build those ourselves afterwards in R.
@@ -69,11 +79,13 @@ The ODE state predictions are only available if `fit_seeiqr()` is fit with the o
 
 The other elements of the output object are mostly information on how the model was fitted. 
 
-It's helpful to know that the data, exactly as it was passed to Stan, are in the element `stan_data`:
+It's helpful for debugging purposes, to know that the data, exactly as it was passed to Stan, are in the element `stan_data`:
 
 ```{r}
 names(m$stan_data)
 ```
+
+# Making projections directly in R
 
 There is a helper function `project_fit()`, which allows you to take the parameter estimates from the fitted function and pass them through similar functions in R to get output from the ODE solver and predicted case counts. This is particularly useful if you want to project into the future while manipulating the `f2` values in the future (and you don't want to bog down Stan or have to refit the model every time you want to make a different type of projection). 
 
@@ -93,6 +105,8 @@ ggplot(proj$cases, aes(day, lambda_d, group = iterations)) +
 ggplot(proj$cases, aes(day, y_rep, group = iterations)) + 
   geom_line(alpha = 0.3)
 ```
+
+By default, `project_fit()` his only working with 50 samples from the posterior. This may be enough for some purposes, but probably isn't enough for case projections. 
 
 The function `project_fit()` also takes an argument `f_vec`, which should be a vector of `f` values of at least the same length as the number of days that will be predicted (starting from day 1).
 

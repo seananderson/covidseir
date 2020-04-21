@@ -4,3 +4,4 @@ inst/doc
 *.h
 .Rhistory
 *.so
+*_cache*
