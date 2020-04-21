@@ -1,0 +1,181 @@
+---
+title: "Example model fitting and projections"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{example-projection}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warnings = FALSE
+)
+```
+
+Load some libraries and set up parallel processing:
+
+```{r setup}
+library(seeiqr)
+library(ggplot2)
+library(dplyr)
+options(mc.cores = parallel::detectCores() / 2) # Stan parallel processing
+```
+
+Let's read in the data:
+
+```{r}
+d <- structure(list(date = structure(c(18322, 18323, 18324, 18325, 
+18326, 18327, 18328, 18329, 18330, 18331, 18332, 18333, 18334, 
+18335, 18336, 18337, 18338, 18339, 18340, 18341, 18342, 18343, 
+18344, 18345, 18346, 18347, 18348, 18349, 18350, 18351, 18352, 
+18353, 18354, 18355, 18356, 18357, 18358, 18359, 18360, 18361, 
+18362, 18363), class = "Date"), cases = c(0, 0, 1, 3, 1, 8, 0, 
+6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40, 77, 76, 48, 67, 78, 
+42, 66, 67, 92, 16, 70, 43, 53, 55, 53, 29, 26, 37, 25, 45, 34, 
+40, 35)), class = "data.frame", row.names = c(NA, -42L))
+head(d)
+```
+
+We can fit the Stan model with the function `fit_seeiqr()`. It takes one data input: a vector of case counts. This could also represent new hospital cases. We will only use 250 iterations so that this example runs quickly, but you would likely want more if you want stability in the tails of the posterior distribution. 8000 total iterations should be plenty, broken up across however many chains you can use efficiently on your available cores (e.g. 8 chains, 1000 iterations).
+
+```{r, message=FALSE, results='hide'}
+m <- fit_seeiqr(d$cases, iter = 250, chains = 6)
+```
+
+There are many named elements of the fitted object.
+
+The posterior samples from `rstan::extract()` are in the element `post` for posterior:
+
+```{r}
+names(m$post)
+```
+
+The rstan object itself is in the named element `fit`:
+
+```{r}
+print(m$fit, pars  = c('R0', 'f2', 'phi'))
+```
+
+Posterior predictive replicates are available in `post$y_rep`. We can also build those ourselves afterwards in R.
+
+```{r}
+dim(m$post$y_rep)
+```
+
+The ODE state predictions are only available if `fit_seeiqr()` is fit with the option `save_state_predictions = TRUE`. This will make the resulting model object considerably larger in the model will take a little bit longer to fit. By default it is false.
+
+The other elements of the output object are mostly information on how the model was fitted. 
+
+It's helpful to know that the data, exactly as it was passed to Stan, are in the element `stan_data`:
+
+```{r}
+names(m$stan_data)
+```
+
+There is a helper function `project_fit()`, which allows you to take the parameter estimates from the fitted function and pass them through similar functions in R to get output from the ODE solver and predicted case counts. This is particularly useful if you want to project into the future while manipulating the `f2` values in the future (and you don't want to bog down Stan or have to refit the model every time you want to make a different type of projection). 
+
+Aside: most of the submitted pre-print just uses Stan for all the predictions and fits the model over and over. That is just because I didn't have time to step back and think about this.
+
+Let's start by using the R functions to generate the same predictions that we could have got out of our fit to the historical data:
+
+```{r}
+proj <- project_fit(m)
+head(proj$states)
+head(proj$cases)
+
+ggplot(proj$states, aes(time, I + Id, group = iterations)) + 
+  geom_line(alpha = 0.3)
+ggplot(proj$cases, aes(day, lambda_d, group = iterations)) + 
+  geom_line(alpha = 0.3)
+ggplot(proj$cases, aes(day, y_rep, group = iterations)) + 
+  geom_line(alpha = 0.3)
+```
+
+The function `project_fit()` also takes an argument `f_vec`, which should be a vector of `f` values of at least the same length as the number of days that will be predicted (starting from day 1).
+
+Here's an example of cycling between f = 0.8 and f = 0.3 at 4-week intervals:
+
+```{r}
+f_vec <- c(rep(NA, m$last_day_obs),
+  rep(c(rep(0.8, 7 * 4), rep(0.3, 7 * 4)), 3))
+f_vec
+proj2 <- project_fit(m, f_vec = f_vec, proj_days = 90)
+
+ggplot(proj2$states, aes(time, I + Id, group = iterations)) + 
+  geom_line(alpha = 0.3)
+ggplot(proj2$cases, aes(day, lambda_d, group = iterations)) + 
+  geom_line(alpha = 0.3)
+ggplot(proj2$cases, aes(day, y_rep, group = iterations)) + 
+  geom_line(alpha = 0.3)
+```
+
+# Using the projection plot function
+
+You can obviously use the output data to make whatever plots you would like.
+
+However, there's also a function for making some of the projection plots from the pre-print:
+
+```{r}
+make_projection_plot(list(m))
+```
+
+Note that it takes a list object. This is so that you can provided a list of multiple models and it will arrange them as multiple panels in one plot. The names of the list elements become the facet labels. If you only have one model, you will need to provide it as a list.
+
+For example:
+
+```{r}
+make_projection_plot(list("One model" = m, "Another model" = m))
+```
+
+(Obviously these are both actually the same model.)
+
+By default it takes the projections directly from the Stan object.
+
+You can also override that if you want to provide your own predictions:
+
+(Sorry I haven't wrapped up these functions yet.)
+
+```{r}
+prep_dat <- function(.dat, Scenario = "") {
+  actual_dates <- seq(d$date[1], d$date[1] + 90, by = "1 day")
+  outer_quantile <- c(0.05, 0.95)
+  y_rep <- .dat %>%
+    mutate(value = y_rep) %>%
+    group_by(day) %>%
+    summarise(
+      lwr = quantile(value, probs = outer_quantile[1]),
+      lwr2 = quantile(value, probs = 0.25),
+      upr = quantile(value, probs = outer_quantile[2]),
+      upr2 = quantile(value, probs = 0.75),
+      med = median(value)
+    ) %>%
+    mutate(day = actual_dates[day], Scenario = Scenario)
+  lambdas <- .dat %>%
+    group_by(day) %>%
+    mutate(value = lambda_d) %>%
+    summarise(
+      med = median(value)
+    ) %>%
+    mutate(day = actual_dates[day], Scenario = Scenario)
+  list(y_rep = y_rep, mu = lambdas)
+}
+# Re-sample the observation component for smoother credible intervals:
+proj_replicated <- purrr::map_dfr(1:20, function(i) {
+  temp <- proj$cases
+  temp$y_rep <- MASS::rnegbin(length(temp$y_rep),
+    temp$lambda_d,
+    theta = temp$phi
+  )
+  temp
+})
+x <- prep_dat(proj_replicated)
+```
+
+```{r, warnings = FALSE}
+make_projection_plot(list(m), 
+  mu_dat = x$mu,
+  y_rep_dat = x$y_rep)
+```

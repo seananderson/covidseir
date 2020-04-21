@@ -1,0 +1,6 @@
+.Rproj.user
+inst/doc
+*.o
+*.h
+.Rhistory
+*.so

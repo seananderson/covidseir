@@ -1,0 +1,121 @@
+---
+output:
+  md_document:
+    variant: markdown_github
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+### Estimating the impact of COVID-19 control measures using a Bayesian model of physical distancing
+
+This repository contains code associated with a manuscript investigating the impact of COVID-19 control measures in British Columbia, Canada.
+
+The main statistical model written in [Stan](https://mc-stan.org/) is available [here](analysis/seeiqr.stan) and the main R function that calls this model for a vector of daily case counts is available [here](analysis/fit_seeiqr.R). A function to make projection plots is available [here](analysis/make_projection_plot.R). This model may be released at a later date in a proper R package form.
+
+Generally, any part of the analysis can be re-created by running one of the numbered R files starting with `01-...R` in the [`analysis`](analysis) folder. Alternatively, the file [`00-run-all.R`](analysis/00-run-all.R) can be sourced to run the entire analysis.
+
+You will need the following packages installed:
+
+```{r, eval=FALSE}
+install.packages(c("tidyverse", "remotes", "rstan", "here", 
+  "future", "deSolve", "furrr", "cowplot", "reshape2"))
+remotes::install_github("seananderson/ggsidekick")
+```
+
+An example of how to run the model:
+
+```{r options, echo = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "README-figs/",
+  cache.path = "README-cache/"
+)
+```
+
+```{r load-data, message=FALSE, warning=FALSE}
+library("rstan")
+library("dplyr")
+library("ggplot2")
+options(mc.cores = parallel::detectCores() / 2) # Stan parallel processing
+# seeiqr_model <- rstan::stan_model("analysis/seeiqr.stan")
+# 
+# source("analysis/fit_seeiqr.R")
+# source("analysis/make_projection_plot.R")
+
+d <- structure(list(date = structure(c(18322, 18323, 18324, 18325, 
+18326, 18327, 18328, 18329, 18330, 18331, 18332, 18333, 18334, 
+18335, 18336, 18337, 18338, 18339, 18340, 18341, 18342, 18343, 
+18344, 18345, 18346, 18347, 18348, 18349, 18350, 18351, 18352, 
+18353, 18354, 18355, 18356, 18357, 18358, 18359, 18360, 18361, 
+18362, 18363), class = "Date"), cases = c(0, 0, 1, 3, 1, 8, 0, 
+6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40, 77, 76, 48, 67, 78, 
+42, 66, 67, 92, 16, 70, 43, 53, 55, 53, 29, 26, 37, 25, 45, 34, 
+40, 35)), class = "data.frame", row.names = c(NA, -42L))
+d
+```
+
+```{r fit-model, results='hide', message=FALSE, warning=FALSE}
+# Using fewer iterations for a quick example:
+fit3 <- fit_seeiqr(d$cases, seeiqr_model = seeiqr_model,
+  iter = 200, chains = 1, control = list(adapt_delta = 0.7), forecast_days = 0)
+
+sdtiming0.7 <- function(t, start_decline = 15, end_decline = 22,
+                        last_obs = 42,
+                        f_val = 0.7,
+                        f1 = pars$f1,
+                        f2 = pars$f2) {
+  if (t < start_decline) {
+    return(f1)
+  }
+  if (t >= start_decline & t < end_decline) {
+    return(f2 + (end_decline - t) * (f1 - f2) / (end_decline - start_decline))
+  }
+  floor_t <- floor(t)
+  if (t >= end_decline & floor_t <= last_obs) {
+    return(f2)
+  }
+  if (t >= end_decline & floor_t > last_obs) {
+    return(f_val)
+  }
+}
+
+library(future)
+plan(multisession, workers = 2)
+system.time({
+  r <- project_fit(fit3, sdfunc = sdtiming0.7)
+})
+```
+
+```{r summary}
+print(fit$fit, pars = c("R0", "f2", "phi"))
+print(fit2$fit, pars = c("R0", "f2", "phi"))
+print(fit3$fit, pars = c("R0", "f2", "phi"))
+```
+
+```{r proj-plot}
+make_projection_plot(list(fit)) + theme_light()
+```
+
+```{r}
+sdtiming0.7 <- function(t, start_decline = 15, end_decline = 22,
+                        last_obs = 42,
+                        f_val = 0.7,
+                        f1 = pars$f1,
+                        f2 = pars$f2) {
+  if (t < start_decline) {
+    return(f1)
+  }
+  if (t >= start_decline & t < end_decline) {
+    return(f2 + (end_decline - t) * (f1 - f2) / (end_decline - start_decline))
+  }
+  floor_t <- floor(t)
+  if (t >= end_decline & floor_t <= last_obs) {
+    return(f2)
+  }
+  if (t >= end_decline & floor_t > last_obs) {
+    return(f_val)
+  }
+}
+```
+
