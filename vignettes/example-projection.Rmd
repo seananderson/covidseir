@@ -12,7 +12,8 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
   warnings = FALSE,
-  fig.width = 5
+  fig.width = 5,
+  dpi = 125
 )
 ```
 
@@ -48,7 +49,13 @@ Stan will run in parallel assuming `options(mc.cores = parallel::detectCores() /
 m <- fit_seeiqr(d$cases, iter = 500, chains = 1)
 ```
 
-There are many named elements of the fitted object.
+If we wanted to control the number of projected days within the Stan fitting function, we could do it like this:
+
+```{r fit, message=FALSE, results='hide', eval=FALSE}
+m_forecast <- fit_seeiqr(d$cases, iter = 500, chains = 1, forecast_days = 60)
+```
+
+There are many named elements of the fitted object. Examples follow.
 
 The posterior samples from `rstan::extract()` are in the element `post` for posterior:
 
@@ -89,9 +96,9 @@ names(m$stan_data)
 
 # Making projections directly in R
 
-There is a helper function `project_fit()`, which allows you to take the parameter estimates from the fitted function and pass them through similar functions in R to get output from the ODE solver and predicted case counts. This is particularly useful if you want to project into the future while manipulating the `f2` values in the future (and you don't want to bog down Stan or have to refit the model every time you want to make a different type of projection). 
+There is a helper function `project_fit()`, which allows you to take the parameter estimates from the fitted function and pass them through similar functions in R to get output from the ODE solver and predicted case counts. This is particularly useful if you want to project into the future while manipulating the `f2` values in the future (and you don't want to bog down Stan or have to refit the model every time you want to make a different type of projection). Plus, this gives you a lot more flexibility but what you want to do with `f` in the projections.
 
-Aside: most of the submitted pre-print just uses Stan for all the predictions and fits the model over and over. That is just because I didn't have time to step back and think about this.
+Aside: most of the submitted pre-print just uses Stan for all the predictions and fits the model over and over. That's fine too, but just takes longer.
 
 Let's start by using the R functions to generate the same predictions that we could have got out of our fit to the historical data:
 
@@ -108,7 +115,7 @@ ggplot(proj$cases, aes(day, y_rep, group = iterations)) +
   geom_line(alpha = 0.3)
 ```
 
-By default, `project_fit()` his only working with 50 samples from the posterior. This may be enough for some purposes, but probably isn't enough for case projections. 
+By default, `project_fit()` only uses 50 samples from the posterior. This may be enough for some visualizations, but probably isn't enough for coming up with consistent credible intervals on projections.
 
 The function `project_fit()` also takes an argument `f_vec`, which should be a vector of `f` values of at least the same length as the number of days that will be predicted (starting from day 1).
 
@@ -130,15 +137,13 @@ ggplot(proj2$cases, aes(day, y_rep, group = iterations)) +
 
 # Using the projection plot function
 
-You can obviously use the output data to make whatever plots you would like.
-
-However, there's also a function for making some of the projection plots from the pre-print:
+You can use the output data to make whatever plots you would like. However, there's also a function for making some of the projection plots from the pre-print:
 
 ```{r}
 make_projection_plot(list(m))
 ```
 
-Note that it takes a list object. This is so that you can provided a list of multiple models and it will arrange them as multiple panels in one plot. The names of the list elements become the facet labels. If you only have one model, you will need to provide it as a list.
+Note that it takes a list object. This is so that you can provide a list of multiple models and it will arrange them as multiple panels in one plot. The names of the list elements become the facet labels. If you only have one model, you will need to provide it as a list.
 
 For example:
 
@@ -148,9 +153,7 @@ make_projection_plot(list("One model" = m, "Another model" = m))
 
 (Obviously these are both actually the same model.)
 
-By default it takes the projections directly from the Stan object.
-
-You can also override that if you want to provide your own predictions:
+By default it takes the projections directly from the Stan object. You can also override that if you want to provide your own predictions:
 
 (Sorry I haven't wrapped up these functions yet.)
 
