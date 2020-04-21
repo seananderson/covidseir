@@ -42,8 +42,10 @@ head(d)
 
 We can fit the Stan model with the function `fit_seeiqr()`. It takes one data input: a vector of case counts. This could also represent new hospital cases. We will only use 250 iterations so that this example runs quickly, but you would likely want more if you want stability in the tails of the posterior distribution. 8000 total iterations should be plenty, broken up across however many chains you can use efficiently on your available cores (e.g. 8 chains, 1000 iterations).
 
+Stan will run in parallel assuming `options(mc.cores = parallel::detectCores() / 2)` was set. For the purposes of this vignette, we will just run one chain.
+
 ```{r fit, message=FALSE, results='hide', cache=TRUE}
-m <- fit_seeiqr(d$cases, iter = 300, chains = 6)
+m <- fit_seeiqr(d$cases, iter = 500, chains = 1)
 ```
 
 There are many named elements of the fitted object.
