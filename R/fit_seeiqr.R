@@ -5,7 +5,6 @@
 #'   assumed tests for the forecast. I.e. `length(daily_cases) + forecast_days =
 #'   length(daily_tests)`. Only used in the case of the beta-binomial (which
 #'   isn't working very well).
-#' @param Model from `rstan::stan_model(seeiqr_model)`.
 #' @param obs_model Type of observation model
 #' @param forecast_days Number of days into the future to forecast. The model
 #'   will run slightly faster with fewer forecasted days.
@@ -36,6 +35,7 @@
 #' @param sampled_fraction_vec An optional vector of sampled fractions. Should
 #'   be of length: `length(daily_cases) + forecast_days`.
 #' @param fixed_f_forecast Optional fixed `f` for forecast.
+#' @param day_start_fixed_f_forecast Data start using `fixed_f_forecast`.
 #' @param pars A named numeric vector of fixed parameter values
 #' @param i0 A scaling factor FIXME
 #' @param fsi Fraction socially distancing. Derived parameter.
@@ -57,7 +57,6 @@
 
 fit_seeiqr <- function(daily_cases,
   daily_tests = NULL,
-  seeiqr_model,
   obs_model = c("NB2", "Poisson", "beta-binomial"),
   forecast_days = 0,
   time_increment = 0.1,

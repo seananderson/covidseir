@@ -7,7 +7,6 @@
 fit_seeiqr(
   daily_cases,
   daily_tests = NULL,
-  seeiqr_model,
   obs_model = c("NB2", "Poisson", "beta-binomial"),
   forecast_days = 0,
   time_increment = 0.1,
@@ -99,6 +98,8 @@ be of length: `length(daily_cases) + forecast_days`.}
 
 \item{fixed_f_forecast}{Optional fixed `f` for forecast.}
 
+\item{day_start_fixed_f_forecast}{Data start using `fixed_f_forecast`.}
+
 \item{pars}{A named numeric vector of fixed parameter values}
 
 \item{i0}{A scaling factor FIXME}
@@ -124,8 +125,6 @@ values here are the Stan defaults.}
 likelihood.}
 
 \item{...}{Other arguments to pass to [rstan::sampling()].}
-
-\item{Model}{from `rstan::stan_model(seeiqr_model)`.}
 }
 \value{
 A named list object

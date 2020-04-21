@@ -14,10 +14,10 @@ E1: Exposed but not infectious, E2: Exposed and Infectious, I: Infectious,
 can be quarantined, R: Removed. The d compartments denote socially
 distanced individuals.}
 
-\item{sdtiming_function}{timing of social distancing function}
-
-\item{pars}{(N, D, R0, k1, k2, q, r, ur, f) f: strength of social distancing,
+\item{parms}{(N, D, R0, k1, k2, q, r, ur, f) f: strength of social distancing,
 r/(r+ur): frac of population who are distancing}
+
+\item{sdtiming_function}{timing of social distancing function}
 }
 \value{
 Time derivatives for input to ODE solver

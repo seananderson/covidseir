@@ -62,7 +62,7 @@ getlambd <- function(out,
 #'   E1: Exposed but not infectious, E2: Exposed and Infectious, I: Infectious,
 #'   can be quarantined, R: Removed. The d compartments denote socially
 #'   distanced individuals.
-#' @param pars (N, D, R0, k1, k2, q, r, ur, f) f: strength of social distancing,
+#' @param parms (N, D, R0, k1, k2, q, r, ur, f) f: strength of social distancing,
 #'   r/(r+ur): frac of population who are distancing
 #' @param sdtiming_function timing of social distancing function
 #'
