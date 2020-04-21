@@ -21,6 +21,7 @@
 #' scale_fill_manual geom_point labs aes_string ggplot annotate geom_ribbon coord_cartesian
 #' element_blank geom_line
 #' @importFrom dplyr summarise group_by mutate rename filter summarize ungroup tibble as_tibble
+#' @importFrom deSolve ode
 make_projection_plot <- function(models, cumulative = FALSE,
   first_date = "2020-03-01", ylim = c(0, max(out$upr) * 1.03), outer_quantile = c(0.05, 0.95),
   facet = TRUE, ncol = 1, cols = NULL, linetype = c("mu", "obs"),

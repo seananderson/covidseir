@@ -174,7 +174,7 @@ project_fit_i <- function(obj, max_day = max(obj$time),
   .pars$phi <- obj$post$phi[.i]
   .pars$last_day_obs <- obj$last_day_obs
   time <- seq(min(obj$time), max_day, by = obj$time[2] - obj$time[1])
-  .d <- as.data.frame(deSolve::ode(
+  .d <- as.data.frame(ode(
     y = obj$state_0,
     times = time,
     func = socdistmodel,
@@ -206,6 +206,7 @@ project_fit_i <- function(obj, max_day = max(obj$time),
 #'   value will be used in the projection
 #'
 #' @return A named list with states and cases as data frames.
+#' @importFrom stats median
 #' @export
 project_fit <- function(obj,
                         proj_days = 0,
@@ -224,8 +225,8 @@ project_fit <- function(obj,
           f1 = f1,
           f2 = f2,
           f_vec = f_vec,
-          start_decline = m$pars[["start_decline"]],
-          end_decline = m$pars[["end_decline"]]
+          start_decline = obj$pars[["start_decline"]],
+          end_decline = obj$pars[["end_decline"]]
         )
       },
       max_day = max_day,

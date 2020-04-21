@@ -14,3 +14,11 @@
 #' Stan Development Team (2020). RStan: the R interface to Stan. R package version 2.19.3. https://mc-stan.org
 #'
 NULL
+
+
+if (getRversion() >= "2.15.1") {
+  utils::globalVariables(c(
+   "value", "Var2", "iterations", "date", "day"
+  ))
+}
+
