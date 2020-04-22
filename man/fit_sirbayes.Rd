@@ -25,7 +25,7 @@ fit_sirbayes(
   sampled_fraction_day_change = 14,
   sampled_fraction_vec = NULL,
   fixed_f_forecast = NULL,
-  day_start_fixed_f_forecast = length(daily_cases) + 1,
+  day_start_fixed_f_forecast = nrow(daily_cases) + 1,
   pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f1 = 1,
     start_decline = 15, end_decline = 22),
   i0 = 8,
@@ -35,8 +35,8 @@ fit_sirbayes(
     = 0.5 * nsi * i0, Q = 0, R = 0, Sd = fsi * (pars[["N"]] - i0), E1d = 0.4 * fsi * i0,
     E2d = 0.1 * fsi * i0, Id = 0.5 * fsi * i0, Qd = 0, Rd = 0),
   save_state_predictions = FALSE,
-  delayScale = 9.85,
-  delayShape = 1.73,
+  delayScale = array(rep(9.85, ncol(daily_cases))),
+  delayShape = array(rep(1.73, ncol(daily_cases))),
   ode_control = c(1e-06, 1e-05, 1e+05),
   daily_cases_omit = NULL,
   ...
@@ -46,7 +46,7 @@ fit_sirbayes(
 \item{daily_cases}{A vector of daily new cases}
 
 \item{daily_tests}{An optional vector of daily test numbers. Should include
-assumed tests for the forecast. I.e. \code{length(daily_cases) + forecast_days = length(daily_tests)}. Only used in the case of the beta-binomial (which
+assumed tests for the forecast. I.e. \code{nrow(daily_cases) + forecast_days = nrow(daily_tests)}. Only used in the case of the beta-binomial (which
 isn't working very well).}
 
 \item{obs_model}{Type of observation model}
@@ -93,7 +93,7 @@ a constrained random walk.}
 \item{sampled_fraction_day_change}{Date fraction sample changes}
 
 \item{sampled_fraction_vec}{An optional vector of sampled fractions. Should
-be of length: \code{length(daily_cases) + forecast_days}.}
+be of length: \code{nrow(daily_cases) + forecast_days}.}
 
 \item{fixed_f_forecast}{Optional fixed \code{f} for forecast.}
 

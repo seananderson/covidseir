@@ -2,8 +2,8 @@
 #'
 #' @param daily_cases A vector of daily new cases
 #' @param daily_tests An optional vector of daily test numbers. Should include
-#'   assumed tests for the forecast. I.e. `length(daily_cases) + forecast_days =
-#'   length(daily_tests)`. Only used in the case of the beta-binomial (which
+#'   assumed tests for the forecast. I.e. `nrow(daily_cases) + forecast_days =
+#'   nrow(daily_tests)`. Only used in the case of the beta-binomial (which
 #'   isn't working very well).
 #' @param obs_model Type of observation model
 #' @param forecast_days Number of days into the future to forecast. The model
@@ -33,7 +33,7 @@
 #'   `sampled_fraction_day_change`
 #' @param sampled_fraction_day_change Date fraction sample changes
 #' @param sampled_fraction_vec An optional vector of sampled fractions. Should
-#'   be of length: `length(daily_cases) + forecast_days`.
+#'   be of length: `nrow(daily_cases) + forecast_days`.
 #' @param fixed_f_forecast Optional fixed `f` for forecast.
 #' @param day_start_fixed_f_forecast Data start using `fixed_f_forecast`.
 #' @param pars A named numeric vector of fixed parameter values
@@ -75,7 +75,7 @@ fit_sirbayes <- function(daily_cases,
   sampled_fraction_day_change = 14,
   sampled_fraction_vec = NULL,
   fixed_f_forecast = NULL,
-  day_start_fixed_f_forecast = length(daily_cases) + 1,
+  day_start_fixed_f_forecast = nrow(daily_cases) + 1,
   pars = c(
     N = 5.1e6, D = 5, k1 = 1 / 5,
     k2 = 1, q = 0.05,
@@ -101,8 +101,8 @@ fit_sirbayes <- function(daily_cases,
     Rd = 0
   ),
   save_state_predictions = FALSE,
-  delayScale = 9.85,
-  delayShape = 1.73,
+  delayScale = array(rep(9.85, ncol(daily_cases))),
+  delayShape = array(rep(1.73, ncol(daily_cases))),
   ode_control = c(1e-6, 1e-5, 1e5),
   daily_cases_omit = NULL,
   ...) {
@@ -124,11 +124,11 @@ fit_sirbayes <- function(daily_cases,
     } else if (sampFrac2_type == "estimated") {
       1L
     } else { # random walk:
-      length(daily_cases) - sampled_fraction_day_change + 1L
+      nrow(daily_cases) - sampled_fraction_day_change + 1L
     }
 
   if (!is.null(daily_tests)) {
-    stopifnot(length(daily_cases) + forecast_days == length(daily_tests))
+    stopifnot(nrow(daily_cases) + forecast_days == nrow(daily_tests))
     if (min(daily_tests) == 0) {
       warning("Replacing 0 daily tests with 1.")
       daily_tests[daily_tests == 0] <- 1
@@ -142,8 +142,8 @@ fit_sirbayes <- function(daily_cases,
     names(state_0) == c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
   )
 
-  days <- seq(1, length(daily_cases) + forecast_days)
-  last_day_obs <- length(daily_cases)
+  days <- seq(1, nrow(daily_cases) + forecast_days)
+  last_day_obs <- nrow(daily_cases)
   time <- seq(-30, max(days), time_increment)
   x_r <- c(x_r, if (!is.null(fixed_f_forecast)) fixed_f_forecast else 0)
   names(x_r)[length(x_r)] <- "fixed_f_forecast"
@@ -172,7 +172,7 @@ fit_sirbayes <- function(daily_cases,
     sampFrac <- ifelse(days < sampled_fraction_day_change,
       sampled_fraction1, sampled_fraction2)
   } else {
-    stopifnot(length(sampled_fraction_vec) == length(days))
+    stopifnot(nrow(sampled_fraction_vec) == length(days))
     sampFrac <- sampled_fraction_vec
   }
 
@@ -195,6 +195,7 @@ fit_sirbayes <- function(daily_cases,
     days = days,
     daily_cases = daily_cases,
     tests = if (is.null(daily_tests)) rep(log(1), length(days)) else daily_tests,
+    J = ncol(daily_cases),
     N = length(days),
     y0 = state_0,
     t0 = min(time) - 0.000001,
@@ -216,7 +217,7 @@ fit_sirbayes <- function(daily_cases,
     last_day_obs = last_day_obs,
     obs_model = obs_model,
     ode_control = ode_control,
-    est_phi = if (obs_model %in% c(1L, 2L)) 1L else 0L,
+    est_phi = if (obs_model %in% c(1L, 2L)) ncol(daily_cases) else 0L,
     dat_in_lik = dat_in_lik,
     N_lik = length(dat_in_lik)
   )

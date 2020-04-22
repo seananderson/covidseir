@@ -70,18 +70,19 @@ functions{
   }
 }
 data {
-  int<lower=0> T;     // number of time steps
-  int<lower=0> N;     // number of days
+  int<lower=1> T;     // number of time steps
+  int<lower=1> N;     // number of days
+  int<lower=1> J;     // number of response data timeseries
   real y0[12];        // initial state
   real t0;            // first time step
   real time[T];       // time increments
   int days[N];        // day increments
   int last_day_obs;   // last day of observed data; days after this are projections
-  int daily_cases[last_day_obs]; // daily new case counts
+  int daily_cases[last_day_obs,J]; // daily new case counts
   real x_r[13];       // data for ODEs (real numbers)
-  real sampFrac[N];   // fraction of cases sampled per time step
-  real delayScale;    // Weibull parameter for delay in becoming a case count
-  real delayShape;    // Weibull parameter for delay in becoming a case count
+  real sampFrac[N,J];   // fraction of cases sampled per time step
+  real delayScale[J];    // Weibull parameter for delay in becoming a case count
+  real delayShape[J];    // Weibull parameter for delay in becoming a case count
   int time_day_id[N]; // last time increment associated with each day
   int time_day_id0[N];// first time increment for Weibull integration of case counts
   real R0_prior[2];   // lognormal log mean and SD for R0 prior
@@ -90,9 +91,9 @@ data {
   int day_inc_sampling;   // day to switch to sampFrac2
   real sampFrac2_prior[2];   // beta prior for sampFrac2
   int<lower=0, upper=1> priors_only; // logical: include likelihood or just priors?
-  int<lower=0, upper=1> est_phi; // estimate NB phi?
+  int<lower=0, upper=J> est_phi; // estimate NB phi?
   int<lower=0, upper=N> n_sampFrac2; // number of sampFrac2
-  int<lower=0, upper=2> obs_model; // observation model: 0 = Poisson, 1 = NB2, 2 = betabinomial
+  int<lower=0, upper=1> obs_model; // observation model: 0 = Poisson, 1 = NB2, 2 = betabinomial
   real<lower=0> rw_sigma; // specified random walk standard deviation
   int tests[N]; // vector of tests; only used for betabinomial
   real ode_control[3]; // vector of ODE control numbers
@@ -111,25 +112,26 @@ parameters {
 transformed parameters {
   real dx = time[2] - time[1]; // time increment
   real ft[T]; // container for the lambda function at time t
-  real lambda_d[N]; // estimated daily cases for each day
+  real lambda_d[N,J]; // estimated daily cases for each day
   real sum_ft_inner; // holds a temporary calculation
-  real eta[N]; // expected value on link scale (log)
+  real eta[N,J]; // expected value on link scale (log)
   real k2; // from ODE
   real E2; // from ODE
   real E2d; // from ODE
   real theta[2]; // gathers up the parameters (which come in with various limits)
   real y_hat[T,12]; // predicted states for each time t from ODE
   real this_samp; // holds the sample fraction for a given day
-  real<lower=0> alpha[N]; // 1st shape parameter for the beta distribution
-  real<lower=0> beta[N]; // 2nd shape parameter for the beta distribution
+  // real<lower=0> alpha[N]; // 1st shape parameter for the beta distribution
+  // real<lower=0> beta[N]; // 2nd shape parameter for the beta distribution
   theta[1] = R0;
   theta[2] = f2;
 
   y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i, ode_control[1], ode_control[2], ode_control[3]);
 
   // Calculating the expected case counts given the delays in reporting:
+  for (j in 1:J) {
   for (n in 1:N) {
-    this_samp = sampFrac[n];
+    this_samp = sampFrac[n,j];
     if (n_sampFrac2 > 1) {
       if (n >= day_inc_sampling && n <= last_day_obs) {
         this_samp = sampFrac2[n - day_inc_sampling + 1];
@@ -157,35 +159,37 @@ transformed parameters {
     for (t in (time_day_id0[n] + 1):(time_day_id[n] - 1)) {
       sum_ft_inner += ft[t];
     }
-    lambda_d[n] = 0.5 * dx *
+    lambda_d[n,j] = 0.5 * dx *
                  (ft[time_day_id0[n]] + 2 * sum_ft_inner + ft[time_day_id[n]]);
-    eta[n] = log(lambda_d[n]);
+    eta[n,j] = log(lambda_d[n,j]);
   }
 
-  if (obs_model == 2) { // Beta-Binomial observation model
-    for (n in 1:N) {
-      eta[n] = inv_logit(exp(eta[n]));
-      alpha[n] = eta[n] * phi[1];
-      beta[n] = (1 - eta[n]) * phi[1];
-    }
-  } else {
-    for (n in 1:N) {
-      alpha[n] = 0;
-      beta[n] = 0;
-    }
+  // if (obs_model == 2) { // Beta-Binomial observation model
+  //   for (n in 1:N) {
+  //     eta[n] = inv_logit(exp(eta[n]));
+  //     alpha[n] = eta[n,j] * phi[1];
+  //     beta[n] = (1 - eta[n,j]) * phi[1];
+  //   }
+  // } else {
+  //   for (n in 1:N) {
+  //     alpha[n] = 0;
+  //     beta[n] = 0;
+  //   }
+  // }
   }
-
 }
 model {
   // priors:
-  if (est_phi && obs_model == 1) { // NB2
+  if (est_phi > 0 && obs_model == 1) { // NB2
     // https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations
     // D(expression(1/sqrt(x)), "x"); log(0.5 * x^-0.5/sqrt(x)^2
-    1/sqrt(phi[1]) ~ normal(0, phi_prior);
-    target += log(0.5) - 1.5 * log(phi[1]); // Jacobian adjustment
+    for (j in 1:J) {
+      1/sqrt(phi[j]) ~ normal(0, phi_prior);
+      target += log(0.5) - 1.5 * log(phi[j]); // Jacobian adjustment
+    }
   }
-  if (est_phi && obs_model == 2) { // Beta-Binomial
-    phi[1] ~ normal(0, phi_prior);
+  if (est_phi > 0 && obs_model == 2) { // Beta-Binomial
+    for (j in 1:J) phi[j] ~ normal(0, phi_prior);
   }
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
   f2 ~ beta(f2_prior[1], f2_prior[2]);
@@ -200,25 +204,25 @@ model {
 
   // data likelihood:
   if (!priors_only) { // useful to turn off for prior predictive checks
+  for (j in 1:J) {
     if (obs_model == 0) {
-      daily_cases[dat_in_lik] ~ poisson_log(eta[dat_in_lik]);
+      daily_cases[dat_in_lik,j] ~ poisson_log(eta[dat_in_lik,j]);
     } else if (obs_model == 1) {
-      daily_cases[dat_in_lik] ~ neg_binomial_2_log(eta[dat_in_lik], phi[1]);
-    } else {
-      daily_cases[dat_in_lik] ~ beta_binomial(tests[dat_in_lik], alpha[dat_in_lik], beta[dat_in_lik]);
+      daily_cases[dat_in_lik,j] ~ neg_binomial_2_log(eta[dat_in_lik,j], phi[j]);
     }
+  }
   }
 }
 generated quantities{
-  int y_rep[N]; // posterior predictive replicates
+  int y_rep[N,J]; // posterior predictive replicates
+  for (j in 1:J) {
   for (n in 1:N) {
     if (obs_model == 0) {
-      y_rep[n] = poisson_log_rng(eta[n]);
+      y_rep[n,j] = poisson_log_rng(eta[n,j]);
     } else if (obs_model == 1) {
-      y_rep[n] = neg_binomial_2_log_rng(eta[n], phi[1]);
-    } else {
-      y_rep[n] = beta_binomial_rng(tests[n], alpha[n], beta[n]);
+      y_rep[n,j] = neg_binomial_2_log_rng(eta[n,j], phi[1]);
     }
+  }
   }
 }
 

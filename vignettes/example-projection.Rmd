@@ -47,6 +47,33 @@ Stan will run in parallel assuming `options(mc.cores = parallel::detectCores() /
 
 ```{r fit, message=FALSE, results='hide', cache=TRUE}
 m <- fit_sirbayes(d$cases, iter = 200, chains = 6)
+
+hosp <- c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 11, 9, 4, 
+7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6, 
+11, 8, 11, 8, 7, 6, 6, 7, 6)
+hosp <- hosp[seq_along(d$cases)]
+
+plot(d$cases/hosp)
+mean(hosp[-c(1:10)]/d$cases[-c(1:10)])
+
+length(hosp)
+s1 <- c(rep(0.1, 13), rep(0.2, 42-13))
+s2 <- rep(0.05, 42)
+
+m2 <- fit_sirbayes(cbind(d$cases, hosp), iter = 125, chains = 6,
+  sampled_fraction_vec = cbind(s1, s2))
+
+m2$fit
+
+dat <- data.frame(data_type = c(rep(1, 42), rep(2, 42)), 
+  y = c(d$cases, hosp), day = c(1:42, 1:42))
+library(dplyr)
+library(ggplot2)
+post <- m2$fit %>% tidybayes::spread_draws(lambda_d[day, data_type])
+ggplot(post, aes(day, lambda_d, group = paste(.iteration, .draw))) +
+  geom_line(alpha = 0.05) +
+  facet_wrap(~data_type) +
+  geom_point(data = dat, aes(x = day, y = y), inherit.aes = FALSE)
 ```
 
 We can make a quick plot of the model fit:
