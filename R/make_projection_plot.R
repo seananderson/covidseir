@@ -1,6 +1,6 @@
 #' Make a projection plot
 #'
-#' @param models A list of models from [fit_sirbayes()]. If there are multiple elements than the names of the list elements will be used for the facet labels.
+#' @param models A list of models from [fit_seir()]. If there are multiple elements than the names of the list elements will be used for the facet labels.
 #' @param cumulative Logical for whether or not it should be a cumulative plot.
 #' @param first_date The first date in the plot.
 #' @param ylim The y-axis limits.

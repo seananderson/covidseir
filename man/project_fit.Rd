@@ -7,7 +7,7 @@
 project_fit(obj, proj_days = 0, i = seq_len(50), f_vec = NULL)
 }
 \arguments{
-\item{obj}{An object from \code{\link[=fit_sirbayes]{fit_sirbayes()}}.}
+\item{obj}{An object from \code{\link[=fit_seir]{fit_seir()}}.}
 
 \item{proj_days}{The number of days to project beyond the last day of fitted
 data.}

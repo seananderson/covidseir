@@ -7,14 +7,14 @@
 using namespace Rcpp;
 
 
-RcppExport SEXP _rcpp_module_boot_stan_fit4sirbayes_mod();
+RcppExport SEXP _rcpp_module_boot_stan_fit4seir_mod();
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_rcpp_module_boot_stan_fit4sirbayes_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4sirbayes_mod, 0},
+    {"_rcpp_module_boot_stan_fit4seir_mod", (DL_FUNC) &_rcpp_module_boot_stan_fit4seir_mod, 0},
     {NULL, NULL, 0}
 };
 
-RcppExport void R_init_sirbayes(DllInfo *dll) {
+RcppExport void R_init_covidseir(DllInfo *dll) {
     R_registerRoutines(dll, NULL, CallEntries, NULL, NULL);
     R_useDynamicSymbols(dll, FALSE);
 }

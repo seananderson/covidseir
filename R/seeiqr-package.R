@@ -1,11 +1,11 @@
-#' The 'sirbayes' package.
+#' The 'covidseir' package.
 #'
 #' @description A DESCRIPTION OF THE PACKAGE
 #'
 #' @docType package
-#' @name sirbayes-package
-#' @aliases sirbayes
-#' @useDynLib sirbayes, .registration = TRUE
+#' @name covidseir-package
+#' @aliases covidseir
+#' @useDynLib covidseir, .registration = TRUE
 #' @import methods
 #' @import Rcpp
 #' @importFrom rstan sampling

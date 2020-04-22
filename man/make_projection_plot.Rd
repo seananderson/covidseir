@@ -22,7 +22,7 @@ make_projection_plot(
 )
 }
 \arguments{
-\item{models}{A list of models from \code{\link[=fit_sirbayes]{fit_sirbayes()}}. If there are multiple elements than the names of the list elements will be used for the facet labels.}
+\item{models}{A list of models from \code{\link[=fit_seir]{fit_seir()}}. If there are multiple elements than the names of the list elements will be used for the facet labels.}
 
 \item{cumulative}{Logical for whether or not it should be a cumulative plot.}
 

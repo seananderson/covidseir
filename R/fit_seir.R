@@ -1,4 +1,4 @@
-#' Fit the Stan SEEIQR model
+#' Fit the Stan SEIR model
 #'
 #' @param daily_cases A vector of daily new cases
 #' @param daily_tests An optional vector of daily test numbers. Should include
@@ -55,7 +55,7 @@
 #' @export
 #' @return A named list object
 
-fit_sirbayes <- function(daily_cases,
+fit_seir <- function(daily_cases,
   daily_tests = NULL,
   obs_model = c("NB2", "Poisson", "beta-binomial"),
   forecast_days = 0,
@@ -234,7 +234,7 @@ fit_sirbayes <- function(daily_cases,
   pars_save <- c("R0", "f2", "phi", "lambda_d", "y_rep", "sampFrac2")
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   fit <- rstan::sampling(
-    stanmodels$sirbayes,
+    stanmodels$covidseir,
     data = stan_data,
     iter = iter,
     chains = chains,
