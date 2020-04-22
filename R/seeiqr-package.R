@@ -1,11 +1,11 @@
-#' The 'seeiqr' package.
+#' The 'sirbayes' package.
 #'
 #' @description A DESCRIPTION OF THE PACKAGE
 #'
 #' @docType package
-#' @name seeiqr-package
-#' @aliases seeiqr
-#' @useDynLib seeiqr, .registration = TRUE
+#' @name sirbayes-package
+#' @aliases sirbayes
+#' @useDynLib sirbayes, .registration = TRUE
 #' @import methods
 #' @import Rcpp
 #' @importFrom rstan sampling

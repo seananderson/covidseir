@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 Load some libraries and set up parallel processing:
 
 ```{r setup}
-library(seeiqr)
+library(sirbayes)
 library(ggplot2)
 library(dplyr)
 options(mc.cores = parallel::detectCores() / 2) # Stan parallel processing
@@ -46,13 +46,19 @@ We can fit the Stan model with the function `fit_seeiqr()`. It takes one data in
 Stan will run in parallel assuming `options(mc.cores = parallel::detectCores() / 2)` was set. For the purposes of this vignette, we will just run one chain.
 
 ```{r fit, message=FALSE, results='hide', cache=TRUE}
-m <- fit_seeiqr(d$cases, iter = 500, chains = 1)
+m <- fit_sirbayes(d$cases, iter = 200, chains = 6)
+```
+
+We can make a quick plot of the model fit:
+
+```{r plot2}
+make_projection_plot(list(m))
 ```
 
 If we wanted to control the number of projected days within the Stan fitting function, we could do it like this:
 
-```{r fit, message=FALSE, results='hide', eval=FALSE}
-m_forecast <- fit_seeiqr(d$cases, iter = 500, chains = 1, forecast_days = 60)
+```{r fit2, message=FALSE, results='hide', eval=FALSE}
+m_forecast <- fit_sirbayes(d$cases, iter = 500, chains = 1, forecast_days = 60)
 ```
 
 There are many named elements of the fitted object. Examples follow.
@@ -76,6 +82,10 @@ A couple examples of things you could do:
 ```{r}
 bayesplot::mcmc_areas(m$fit, pars  = c('R0', 'f2', 'phi[1]'))
 bayesplot::mcmc_trace(m$fit, pars  = c('R0', 'f2', 'phi[1]'))
+```
+
+```{r, eval=FALSE}
+shinystan::launch_shinystan(m$fit)
 ```
 
 Posterior predictive replicates are available in `post$y_rep`. We can also build those ourselves afterwards in R.

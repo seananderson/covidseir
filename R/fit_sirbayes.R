@@ -55,7 +55,7 @@
 #' @export
 #' @return A named list object
 
-fit_seeiqr <- function(daily_cases,
+fit_sirbayes <- function(daily_cases,
   daily_tests = NULL,
   obs_model = c("NB2", "Poisson", "beta-binomial"),
   forecast_days = 0,
@@ -220,10 +220,6 @@ fit_seeiqr <- function(daily_cases,
     dat_in_lik = dat_in_lik,
     N_lik = length(dat_in_lik)
   )
-  # map_estimate <- optimizing(
-  #   seeiqr_model,
-  #   data = stan_data
-  # )
   initf <- function(stan_data) {
     R0 <- stats::rlnorm(1, log(R0_prior[1]), R0_prior[2])
     f2 <- stats::rbeta(
@@ -237,7 +233,7 @@ fit_seeiqr <- function(daily_cases,
   pars_save <- c("R0", "f2", "phi", "lambda_d", "y_rep", "sampFrac2")
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   fit <- rstan::sampling(
-    stanmodels$seeiqr,
+    stanmodels$sirbayes,
     data = stan_data,
     iter = iter,
     chains = chains,

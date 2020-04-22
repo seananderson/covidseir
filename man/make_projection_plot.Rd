@@ -22,7 +22,7 @@ make_projection_plot(
 )
 }
 \arguments{
-\item{models}{A list of models from [fit_seeiqr()]. If there are multiple elements than the names of the list elements will be used for the facet labels.}
+\item{models}{A list of models from \code{\link[=fit_sirbayes]{fit_sirbayes()}}. If there are multiple elements than the names of the list elements will be used for the facet labels.}
 
 \item{cumulative}{Logical for whether or not it should be a cumulative plot.}
 
@@ -42,13 +42,13 @@ make_projection_plot(
 
 \item{omitted_days}{An optional vector of days to omit from the plot.}
 
-\item{y_rep_dat}{An optional posterior predictive replicate data frame to override the input from `models`.}
+\item{y_rep_dat}{An optional posterior predictive replicate data frame to override the input from \code{models}.}
 
-\item{mu_dat}{An optional expected value data frame to override the input from `models`.}
+\item{mu_dat}{An optional expected value data frame to override the input from \code{models}.}
 
 \item{points_size}{The point size of dots.}
 
-\item{sc_order}{An optional vector of scenario names to force the order of the panels. This character vector should match the named elements of `models`.}
+\item{sc_order}{An optional vector of scenario names to force the order of the panels. This character vector should match the named elements of \code{models}.}
 }
 \value{
 A ggplot

@@ -7,15 +7,15 @@
 project_fit(obj, proj_days = 0, i = seq_len(50), f_vec = NULL)
 }
 \arguments{
-\item{obj}{An object from [fit_seeiqr()].}
+\item{obj}{An object from \code{\link[=fit_sirbayes]{fit_sirbayes()}}.}
 
 \item{proj_days}{The number of days to project beyond the last day of fitted
 data.}
 
 \item{i}{A vector of posterior samples to use.}
 
-\item{f_vec}{An optional vector of `f` values to use after the last day of
-fitted data. If left as the default of `NULL`, then the estimated `f2`
+\item{f_vec}{An optional vector of \code{f} values to use after the last day of
+fitted data. If left as the default of \code{NULL}, then the estimated \code{f2}
 value will be used in the projection}
 }
 \value{

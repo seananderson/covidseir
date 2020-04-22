@@ -1,9 +1,9 @@
 functions{
-  real[] seeiqr(real t,        // time (actual time; not an increment starting at 1)
-                real[] state,  // state
-                real[] theta,  // parameters
-                real[] x_r,    // data (real)
-                int[]  x_i) {  // data (integer)
+  real[] sir(real t,        // time (actual time; not an increment starting at 1)
+             real[] state,  // state
+             real[] theta,  // parameters
+             real[] x_r,    // data (real)
+             int[]  x_i) {  // data (integer)
     real S     = state[1];
     real E1    = state[2];
     real E2    = state[3];
@@ -125,7 +125,7 @@ transformed parameters {
   theta[1] = R0;
   theta[2] = f2;
 
-  y_hat = integrate_ode_rk45(seeiqr, y0, t0, time, theta, x_r, x_i, ode_control[1], ode_control[2], ode_control[3]);
+  y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i, ode_control[1], ode_control[2], ode_control[3]);
 
   // Calculating the expected case counts given the delays in reporting:
   for (n in 1:N) {

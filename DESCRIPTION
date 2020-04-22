@@ -1,4 +1,4 @@
-Package: seeiqr
+Package: sirbayes
 Title: What the Package Does (One Line, Title Case)
 Version: 0.0.0.9000
 Authors@R: 
@@ -38,5 +38,7 @@ RoxygenNote: 7.1.0
 Suggests: 
     knitr,
     rmarkdown,
-    bayesplot
+    bayesplot,
+    shinystan
 VignetteBuilder: knitr
+Roxygen: list(markdown = TRUE)

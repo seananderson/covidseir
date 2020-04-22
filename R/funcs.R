@@ -197,7 +197,7 @@ project_fit_i <- function(obj, max_day = max(obj$time),
 
 #' Make projections with a fitted object
 #'
-#' @param obj An object from [fit_seeiqr()].
+#' @param obj An object from [fit_sirbayes()].
 #' @param proj_days The number of days to project beyond the last day of fitted
 #'   data.
 #' @param i A vector of posterior samples to use.
