@@ -1,6 +1,6 @@
 # Bayesian SEIR model to estimate physical-distancing effects
 
-The model includes the following components: susceptible (S), exposed to the virus, asymptomatic and not infectious (E1), exposed, asymptomatic and infectious (E2), infectious (I), quarantined (Q), and recovered or deceased (R).
+This is a work in progress based on the model in the preprint [Estimating the impact of COVID-19 control measures using a Bayesian model of physical distancing](https://www.medrxiv.org/content/10.1101/2020.04.17.20070086v1).
 
 Install the package with:
 
