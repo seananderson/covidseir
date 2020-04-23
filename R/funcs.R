@@ -18,27 +18,17 @@ getlambd <- function(out,
                      sampFrac,
                      delayShape = 1.73,
                      delayScale = 9.85) {
-  meanDelay <- delayScale * gamma(1 + 1 / delayShape)
-  # try(if (stats::var(diff(out$time)) > 0.005) {
-  #   stop("approx integral assumes equal time steps")
-  # })
-  # try(if (max(out$time) < day) {
-  #   stop("model simulation is not long enough for the data")
-  # })
-  # try(if (min(out$time) > day - (2 * meanDelay + 1)) {
-  #   stop("we need an earlier start time for the model")
-  # })
   # relevant times to identify new cases
   ii <- which(out$time > day - 45 & out$time <= day)
   dx <- out$time[ii[2]] - out$time[ii[1]]
   # all new cases arising at each of those times
   incoming <- pars$k2 * (out$E2[ii] + out$E2d[ii])
+  print(mean(incoming))
   if (day <= length(sampFrac)) {
     thisSamp <- sampFrac[day]
   } else {
     thisSamp <- sampFrac[length(sampFrac)]
   }
-
   # each of the past times' contribution to this day's case count
   ft <- thisSamp * incoming * stats::dweibull(
     x = max(out$time[ii]) - out$time[ii],
@@ -145,8 +135,8 @@ socdistmodel <- function(t,
 # can use any other arguments it wants:
 # It must match what was done in the model up to the last observation
 # After that the sky is the limit.
-fixed_projection <- function(t, last_day_obs, f1, f2,
-                             start_decline = 15, end_decline = 22, f_vec) {
+return_f <- function(t, last_day_obs, f1, f2,
+                     start_decline = 15, end_decline = 22, f_vec) {
   if (t < start_decline) {
     return(f1)
   }
@@ -167,11 +157,11 @@ fixed_projection <- function(t, last_day_obs, f1, f2,
 }
 
 project_fit_i <- function(obj, max_day = max(obj$time),
-                          .i, sdfunc) {
+                          .i, sdfunc, data_col = 1L) {
   .pars <- as.list(obj$pars)
   .pars$R0 <- obj$post$R0[.i]
   .pars$f2 <- obj$post$f2[.i]
-  .pars$phi <- obj$post$phi[.i]
+  .pars$phi <- obj$post$phi[.i, data_col]
   .pars$last_day_obs <- obj$last_day_obs
   time <- seq(min(obj$time), max_day, by = obj$time[2] - obj$time[1])
   .d <- as.data.frame(ode(
@@ -183,7 +173,7 @@ project_fit_i <- function(obj, max_day = max(obj$time),
     sdtiming_func = sdfunc
   ))
   mu <- vapply(seq_len(max_day), function(x) {
-    getlambd(.d, pars = .pars, sampFrac = obj$sampFrac, day = x)
+    getlambd(.d, pars = .pars, sampFrac = obj$sampFrac[, data_col, drop = TRUE], day = x)
   }, FUN.VALUE = numeric(1L))
   out <- data.frame(
     day = seq(1, max_day),
@@ -209,9 +199,10 @@ project_fit_i <- function(obj, max_day = max(obj$time),
 #' @importFrom stats median
 #' @export
 project_fit <- function(obj,
-                        proj_days = 0,
-                        i = seq_len(50),
-                        f_vec = NULL) {
+                        proj_days = 0L,
+                        i = seq_len(50L),
+                        f_vec = NULL,
+                        data_col = 1L) {
   max_day <- obj$last_day_obs + proj_days
   # out <- future.apply::future_lapply(i, function(x) {
   # out <- furrr::future_map(i, function(x) {
@@ -219,7 +210,7 @@ project_fit <- function(obj,
     project_fit_i(
       obj = obj,
       sdfunc = function(t, last_day_obs, f1, f2) {
-        fixed_projection(
+        return_f(
           t = t,
           last_day_obs = last_day_obs,
           f1 = f1,
@@ -230,7 +221,8 @@ project_fit <- function(obj,
         )
       },
       max_day = max_day,
-      .i = x
+      .i = x,
+      data_col = data_col
     )
   })
   states <- purrr::map_dfr(out, "states")
@@ -238,65 +230,48 @@ project_fit <- function(obj,
   list(states = states, cases = cases)
 }
 
-
-# get_prevalence_slope <- function(obj, f_val) {
-#   post <- obj$post
-#   variables_df <- dplyr::tibble(
-#     variable = names(obj$state_0),
-#     variable_num = seq_along(obj$state_0)
-#   )
-#   ts_df <- dplyr::tibble(time = obj$time, time_num = seq_along(obj$time))
-#   states <- reshape2::melt(post$y_hat) %>%
-#     dplyr::rename(time_num = Var2, variable_num = Var3) %>%
-#     dplyr::left_join(variables_df, by = "variable_num") %>%
-#     dplyr::left_join(ts_df, by = "time_num") %>%
-#     as_tibble()
-#   temp <- states %>%
-#     dplyr::filter(time > max(states$time) - 30, variable %in% c("I", "Id")) %>%
-#     group_by(iterations, time) %>%
-#     summarize(
-#       I = value[variable == "I"], Id = value[variable == "Id"],
-#       prevalence = I + Id
-#     )
-#   iters <- temp %>%
-#     group_by(iterations) %>%
-#     summarise(iter = iterations[[1]])
-#   temp %>%
-#     group_by(iterations) %>%
-#     group_split() %>%
-#     purrr::map(~ lm(log(prevalence) ~ time, data = .x)) %>%
-#     purrr::map_df(~ tibble(slope = coef(.x)[[2]])) %>%
-#     mutate(f = f_val) %>%
-#     ungroup() %>%
-#     mutate(iterations = iters$iter)
-# }
-
-# get_prevalence <- function(obj, draws = 1:100,
-#   start = lubridate::ymd_hms("2020-03-01 00:00:00")) {
-#   post <- obj$post
-#
-#   ts_df <- dplyr::tibble(time = obj$time, time_num = seq_along(obj$time))
-#   variables_df <- dplyr::tibble(
-#     variable = names(obj$state_0),
-#     variable_num = seq_along(obj$state_0)
-#   )
-#   if (!"y_hat" %in% names(post)) {
-#     stop("`obj` must be run with `save_state_predictions = TRUE`")
-#   }
-#   states <- reshape2::melt(post$y_hat) %>%
-#     dplyr::rename(time_num = Var2, variable_num = Var3) %>%
-#     dplyr::filter(iterations %in% draws) %>%
-#     dplyr::left_join(variables_df, by = "variable_num") %>%
-#     dplyr::left_join(ts_df, by = "time_num")
-#   prevalence <- states %>%
-#     dplyr::filter(variable %in% c("I", "Id")) %>%
-#     group_by(iterations, time) %>%
-#     summarize(
-#       I = value[variable == "I"], Id = value[variable == "Id"],
-#       prevalence = I + Id
-#     ) %>%
-#     mutate(day = start + lubridate::ddays(time), start = start)
-#   prevalence
-# }
-
 getu <- function(f, r) (r - f * r) / f
+
+# J <- ncol(obj$post$phi)
+# N <- max_day
+# time_day_id0 <- obj$stan_data$time_day_id0
+# time_day_id <- obj$stan_data$time_day_id
+# y_hat <- .d
+# x_r <- obj$stan_data$x_r
+# sampFrac <- obj$stan_data$sampFrac
+# .T <- obj$stan_data$T
+# ft <- rep(0, .T)
+# lambda_d <- matrix(nrow = N, ncol = J)
+# delayShape <- obj$stan_data$delayShape
+# delayScale <- obj$stan_data$delayScale
+# dx <- obj$time[2] - obj$time[1]
+#
+# for (j in 1:J) {
+#   for (n in 1:N) {
+#     this_samp = sampFrac[n,j]
+#     for (t in 1:.T) {
+#       ft[t] = 0 # initialize at 0 across the full 1:T
+#     }
+#     # a fancy way of moving across a window of time:
+#       for (t in time_day_id0[n]:time_day_id[n]) { # t is an increment here
+#         k2 = x_r[4]
+#         E2 = y_hat[t,3]
+#         E2d = y_hat[t,9]
+#         ft[t] = this_samp * k2 * (E2 + E2d) *
+#           dweibull(time[time_day_id[n]] - time[t], delayShape[j], delayScale[j])
+#       }
+#     sum_ft_inner = 0 # initialize at 0
+#     for (t in (time_day_id0[n] + 1):(time_day_id[n] - 1)) {
+#       sum_ft_inner = sum_ft_inner + ft[t]
+#     }
+#     lambda_d[n,j] = 0.5 * dx *
+#       (ft[time_day_id0[n]] + 2 * sum_ft_inner + ft[time_day_id[n]])
+#   }
+# }
+# out <- data.frame(
+#   day = seq(1, max_day),
+#   lambda_d = lambda_d[,data_col],
+#   y_rep = MASS::rnegbin(max_day, lambda_d[,data_col], theta = .pars$phi),
+#   iterations = .i,
+#   R0 = .pars$R0, f2 = .pars$f2, phi = .pars$phi
+# )

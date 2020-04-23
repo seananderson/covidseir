@@ -234,7 +234,7 @@ fit_seir <- function(daily_cases,
   pars_save <- c("R0", "f2", "phi", "lambda_d", "y_rep", "sampFrac2")
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   fit <- rstan::sampling(
-    stanmodels$covidseir,
+    stanmodels$seir,
     data = stan_data,
     iter = iter,
     chains = chains,
