@@ -24,6 +24,8 @@ library(covidseir)
 library(ggplot2)
 library(dplyr)
 options(mc.cores = parallel::detectCores() / 2) # Stan parallel processing
+library(future)
+plan(multisession, workers = parallel::detectCores() / 2)
 ```
 
 Let's read in the data:
@@ -67,108 +69,133 @@ s2 <- rep(0.05, 42)
 # m <- fit_seir(matrix(d$cases, ncol = 1), iter = 100, chains = 1, 
 #   sampled_fraction_vec = cbind(s1))
 
-m <- fit_seir(cbind(d$cases, hosp), iter = 100, chains = 2,
-  sampled_fraction_vec = cbind(s1, s2))
-saveRDS(m, file = "~/Desktop/m.rds")
+# m <- fit_seir(cbind(d$cases, hosp), iter = 100, chains = 2,
+#   sampled_fraction_vec = cbind(s1, s2))
+# saveRDS(m, file = "~/Desktop/m.rds")
+# 
+# m1 <- fit_seir(cbind(d$cases), iter = 50, chains = 1,
+#   sampled_fraction_vec = cbind(s1), save_state_predictions = T)
 
-m1 <- fit_seir(cbind(d$cases), iter = 50, chains = 1,
-  sampled_fraction_vec = cbind(s1), save_state_predictions = T)
+m0 <- fit_seir(cbind(d$cases, hosp), iter = 150, chains = 8,
+  sampled_fraction_vec = cbind(s1, s2), 
+  delayScale = array(c(9.85, 10.15)),
+  delayShape = array(c(1.73, 1.93)),
+)
 
-m0 <- fit_seir(cbind(d$cases, hosp), iter = 50, chains = 1,
-  sampled_fraction_vec = cbind(s1, s2), save_state_predictions = TRUE)
 # post <- m0$fit %>% tidybayes::spread_draws(y_hat[time, state])
 
+# obj <- m0
+# draws <- 1:1
+# ts_df <- dplyr::tibble(time = obj$time, time_num = seq_along(obj$time))
+# variables_df <- dplyr::tibble(
+#   variable = names(obj$state_0),
+#   variable_num = seq_along(obj$state_0)
+# )
+# states <- reshape2::melt(m0$post$y_hat) %>%
+#   dplyr::rename(time_num = Var2, variable_num = Var3) %>%
+#   dplyr::filter(iterations %in% draws) %>%
+#   dplyr::left_join(variables_df, by = "variable_num") %>%
+#   dplyr::left_join(ts_df, by = "time_num")
+# prevalence <- states %>%
+#   dplyr::filter(variable %in% c("I", "Id")) %>%
+#   group_by(iterations, time) %>%
+#   summarize(
+#     I = value[variable == "I"], Id = value[variable == "Id"],
+#     prevalence = I + Id
+# )
+# ggplot(prevalence, aes(time, I + Id, group = iterations)) +
+#   geom_line(alpha = 0.3)
+# ggplot(states, aes(time, value, group = iterations)) + facet_wrap(~variable, scales = "free_y") +geom_line()
+# 
+# 
+# post <- m0$fit %>% tidybayes::spread_draws(lambda_d[day, data_type])
+# 
+# dat <- data.frame(data_type = c(rep(1, 42), rep(2, 42)),
+#   y = c(d$cases, hosp), day = c(1:42, 1:42))
+# ggplot(post, aes(day, lambda_d, group = paste(.iteration, .draw))) +
+#   geom_line(alpha = 0.05) +
+#   facet_wrap(~data_type) +
+#   geom_point(data = dat, aes(x = day, y = y), inherit.aes = FALSE)
+# 
+# ggplot(post, aes(day, lambda_d, group = paste(.iteration, .draw))) +
+#   geom_line(alpha = 0.05) +
+#   facet_wrap(~data_type) +
+#   geom_point(data = dat, aes(x = day, y = y), inherit.aes = FALSE)
+# 
+# p <- project_fit(m0, proj_days = 0, i = 1:5, data_col = 1L)
+# 
+# dat <- data.frame(data_type = c(rep(1, 42), rep(2, 42)),
+#   y = c(d$cases, hosp), day = c(1:42, 1:42))
+# ggplot(p$cases, aes(day, lambda_d, group = iterations)) +
+#   geom_line(alpha = 0.3) +
+#   geom_point(data = filter(dat, data_type == 1), aes(x = day, y = y), 
+#     inherit.aes = FALSE)
+# ggplot(p$states, aes(time, I + Id, group = iterations)) + 
+#   geom_line(alpha = 0.3)
+# 
+# ggplot(p$states, aes(time, E2d, group = iterations)) + 
+#   geom_line(alpha = 0.3)
+
+# test <- function(obj) {
 obj <- m0
-draws <- 1:1
-ts_df <- dplyr::tibble(time = obj$time, time_num = seq_along(obj$time))
-variables_df <- dplyr::tibble(
-  variable = names(obj$state_0),
-  variable_num = seq_along(obj$state_0)
-)
-states <- reshape2::melt(m0$post$y_hat) %>%
-  dplyr::rename(time_num = Var2, variable_num = Var3) %>%
-  dplyr::filter(iterations %in% draws) %>%
-  dplyr::left_join(variables_df, by = "variable_num") %>%
-  dplyr::left_join(ts_df, by = "time_num")
-prevalence <- states %>%
-  dplyr::filter(variable %in% c("I", "Id")) %>%
-  group_by(iterations, time) %>%
-  summarize(
-    I = value[variable == "I"], Id = value[variable == "Id"],
-    prevalence = I + Id
-)
-ggplot(prevalence, aes(time, I + Id, group = iterations)) +
-  geom_line(alpha = 0.3)
-ggplot(states, aes(time, value, group = iterations)) + facet_wrap(~variable, scales = "free_y") +geom_line()
-
-
-post <- m0$fit %>% tidybayes::spread_draws(lambda_d[day, data_type])
-
-dat <- data.frame(data_type = c(rep(1, 42), rep(2, 42)),
-  y = c(d$cases, hosp), day = c(1:42, 1:42))
-ggplot(post, aes(day, lambda_d, group = paste(.iteration, .draw))) +
-  geom_line(alpha = 0.05) +
-  facet_wrap(~data_type) +
-  geom_point(data = dat, aes(x = day, y = y), inherit.aes = FALSE)
-
-ggplot(post, aes(day, lambda_d, group = paste(.iteration, .draw))) +
-  geom_line(alpha = 0.05) +
-  facet_wrap(~data_type) +
-  geom_point(data = dat, aes(x = day, y = y), inherit.aes = FALSE)
-
-p <- project_fit(m0, proj_days = 0, i = 1:5, data_col = 1L)
-
-dat <- data.frame(data_type = c(rep(1, 42), rep(2, 42)),
-  y = c(d$cases, hosp), day = c(1:42, 1:42))
-ggplot(p$cases, aes(day, lambda_d, group = iterations)) +
-  geom_line(alpha = 0.3) +
-  geom_point(data = filter(dat, data_type == 1), aes(x = day, y = y), 
-    inherit.aes = FALSE)
-ggplot(p$states, aes(time, I + Id, group = iterations)) + 
-  geom_line(alpha = 0.3)
-
-ggplot(p$states, aes(time, E2d, group = iterations)) + 
-  geom_line(alpha = 0.3)
-
-
-
-
-
-f_vec <- c(rep(NA, m$last_day_obs), c(rep(0.8, 7)))
-
+days_between <- 3L
+set.seed(1029)
+draws <- sample(seq_along(obj$post$R0), 50L)
+lower_f <- 0.3
+upper_f <- 0.7
+f_vec <- c(rep(NA, obj$last_day_obs), c(rep(upper_f, days_between)))
 p <- list()
-p[[1]] <- project_fit(m, f_vec = f_vec, 
-  proj_days = sum(!is.na(f_vec)), i = 1:10, data_col = 2L)
-
+p[[1]] <- project_fit(obj, f_vec = f_vec,
+  proj_days = sum(!is.na(f_vec)), i = draws, data_col = 2L)
+p[[1]]$f <- f_vec[length(f_vec)]
+p[[1]]$f_vec <- f_vec
 ggplot(p[[1]]$cases, aes(day, lambda_d, group = iterations)) +
-  geom_line(alpha = 0.3)
-
-for (i in 2:5) {
+    geom_line(alpha = 0.3) +
+    geom_point(data = filter(dat, data_type == 2), 
+      aes(x = day, y = y), inherit.aes = FALSE)
+for (i in 2:30) {
   cat(i, "\n")
   mean_lamb <- dplyr::filter(p[[i-1]]$cases, day == max(day)) %>% 
     pull(lambda_d) %>% mean()
-  if (mean_lamb > 70) {
-    f_vec <- c(f_vec, rep(0.18, 7))
+  if (mean_lamb > 12) {
+    f_vec <- c(f_vec, rep(lower_f, days_between))
   } else {
-    f_vec <- c(f_vec, rep(0.8, 7))
+    f_vec <- c(f_vec, rep(upper_f, days_between))
   }
-  p[[i]] <- project_fit(m, f_vec = f_vec, proj_days = sum(!is.na(f_vec)), i = 1:10)
+  p[[i]] <- project_fit(obj, f_vec = f_vec, 
+    proj_days = sum(!is.na(f_vec)), i = draws, data_col = 2L)
+  # ggplot(p[[i]]$cases, aes(day, lambda_d, group = iterations)) +
+  #   geom_line(alpha = 0.3) +
+  #   geom_point(data = filter(dat, data_type == 2), aes(x = day, y = y), inherit.aes = FALSE)
+  p[[i]]$f <- f_vec[length(f_vec)]
+  p[[i]]$f_vec <- f_vec
 }
+# p
+# }
 
-library(ggplot2)
-ggplot(p[[5]]$states, aes(time, I + Id, group = iterations)) + 
-  geom_line(alpha = 0.3)
+# p <- test(m0)
+f <- purrr::map_dbl(p, "f")
+f_vec <- purrr::map(p, "f_vec")
+max_day <- length(f_vec[[length(f_vec)]])
+# days_between <- 4
+f
+fs <- data.frame(
+  day = seq(m0$last_day_obs + 1, max_day, by = days_between), 
+  f = f)
+dat <- data.frame(data_type = c(rep(1, 42), rep(2, 42)), 
+  y = c(d$cases, hosp), day = c(1:42, 1:42))
 
-ggplot(p[[5]]$cases, aes(day, lambda_d, group = iterations)) + 
-  geom_line(alpha = 0.3)
+ggplot(p[[length(p)]]$cases, aes(day, lambda_d, group = iterations)) +
+  # ggplot(p[[2]]$cases, aes(day, lambda_d, group = iterations)) + 
+  geom_line(alpha = 0.3) + 
+  geom_vline(xintercept = m0$last_day_obs) +
+  geom_vline(data = fs, aes(xintercept = day, colour = as.factor(f))) +
+  geom_point(data = filter(dat, data_type == 2), aes(x = day, y = y), inherit.aes = FALSE)
 
-
-
-
-
-
-
-
+# library(ggplot2)
+# ggplot(p[[length(p)]]$states, aes(time, I + Id, group = iterations)) + 
+#   geom_line(alpha = 0.3)
+# 
 
 m2$fit
 
@@ -184,39 +211,6 @@ ggplot(post, aes(day, lambda_d, group = paste(.iteration, .draw))) +
 ```
 
 We can make a quick plot of the model fit:
-
-distimer
-distestr
-
-distestmtr
-
-distest
-
-physical distance estimator
-
-bpder
-
-bphdr
-
-bpder
-
-pder
-
-bsde
-
-bpdr
-
-bsirr
-
-bseircov
-covbseir
-
-covsir
-
-covsier
-
-
-
 
 ```{r plot2}
 make_projection_plot(list(m))

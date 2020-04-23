@@ -23,7 +23,6 @@ getlambd <- function(out,
   dx <- out$time[ii[2]] - out$time[ii[1]]
   # all new cases arising at each of those times
   incoming <- pars$k2 * (out$E2[ii] + out$E2d[ii])
-  print(mean(incoming))
   if (day <= length(sampFrac)) {
     thisSamp <- sampFrac[day]
   } else {
@@ -157,13 +156,14 @@ return_f <- function(t, last_day_obs, f1, f2,
 }
 
 project_fit_i <- function(obj, max_day = max(obj$time),
-                          .i, sdfunc, data_col = 1L) {
+                          .i, sdfunc, data_col = 1L,
+                          start_time = min(obj$time)) {
   .pars <- as.list(obj$pars)
   .pars$R0 <- obj$post$R0[.i]
   .pars$f2 <- obj$post$f2[.i]
   .pars$phi <- obj$post$phi[.i, data_col]
   .pars$last_day_obs <- obj$last_day_obs
-  time <- seq(min(obj$time), max_day, by = obj$time[2] - obj$time[1])
+  time <- seq(start_time, max_day, by = obj$time[2] - obj$time[1])
   .d <- as.data.frame(ode(
     y = obj$state_0,
     times = time,
@@ -173,7 +173,11 @@ project_fit_i <- function(obj, max_day = max(obj$time),
     sdtiming_func = sdfunc
   ))
   mu <- vapply(seq_len(max_day), function(x) {
-    getlambd(.d, pars = .pars, sampFrac = obj$sampFrac[, data_col, drop = TRUE], day = x)
+    getlambd(
+      .d,
+      pars = .pars,
+      sampFrac = obj$sampFrac[, data_col, drop = TRUE],
+      day = x)
   }, FUN.VALUE = numeric(1L))
   out <- data.frame(
     day = seq(1, max_day),
@@ -202,11 +206,13 @@ project_fit <- function(obj,
                         proj_days = 0L,
                         i = seq_len(50L),
                         f_vec = NULL,
-                        data_col = 1L) {
+                        data_col = 1L,
+                        start_time = min(obj$time)) {
   max_day <- obj$last_day_obs + proj_days
   # out <- future.apply::future_lapply(i, function(x) {
   # out <- furrr::future_map(i, function(x) {
-  out <- lapply(i, function(x) {
+
+  do_projection <- function(x) {
     project_fit_i(
       obj = obj,
       sdfunc = function(t, last_day_obs, f1, f2) {
@@ -222,9 +228,12 @@ project_fit <- function(obj,
       },
       max_day = max_day,
       .i = x,
-      data_col = data_col
+      data_col = data_col,
+      start_time = start_time
     )
-  })
+  }
+  # out <- purrr::map(i, do_projection)
+  out <- furrr::future_map(i, do_projection)
   states <- purrr::map_dfr(out, "states")
   cases <- purrr::map_dfr(out, "cases")
   list(states = states, cases = cases)
