@@ -46,8 +46,6 @@ We can fit the Stan model with the function `fit_seeiqr()`. It takes one data in
 Stan will run in parallel assuming `options(mc.cores = parallel::detectCores() / 2)` was set. For the purposes of this vignette, we will just run one chain.
 
 ```{r fit, message=FALSE, results='hide', cache=TRUE}
-m <- fit_seir(d$cases, iter = 200, chains = 6)
-
 hosp <- c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 11, 9, 4, 
 7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6, 
 11, 8, 11, 8, 7, 6, 6, 7, 6)
@@ -60,8 +58,117 @@ length(hosp)
 s1 <- c(rep(0.1, 13), rep(0.2, 42-13))
 s2 <- rep(0.05, 42)
 
-m2 <- fit_seir(cbind(d$cases, hosp), iter = 125, chains = 6,
+
+# ggplot(p$cases, aes(day, lambda_d, group = iterations)) + 
+#   geom_line(alpha = 0.3)
+# 
+# library(dplyr)
+
+# m <- fit_seir(matrix(d$cases, ncol = 1), iter = 100, chains = 1, 
+#   sampled_fraction_vec = cbind(s1))
+
+m <- fit_seir(cbind(d$cases, hosp), iter = 100, chains = 2,
   sampled_fraction_vec = cbind(s1, s2))
+saveRDS(m, file = "~/Desktop/m.rds")
+
+m1 <- fit_seir(cbind(d$cases), iter = 50, chains = 1,
+  sampled_fraction_vec = cbind(s1), save_state_predictions = T)
+
+m0 <- fit_seir(cbind(d$cases, hosp), iter = 50, chains = 1,
+  sampled_fraction_vec = cbind(s1, s2), save_state_predictions = TRUE)
+# post <- m0$fit %>% tidybayes::spread_draws(y_hat[time, state])
+
+obj <- m0
+draws <- 1:1
+ts_df <- dplyr::tibble(time = obj$time, time_num = seq_along(obj$time))
+variables_df <- dplyr::tibble(
+  variable = names(obj$state_0),
+  variable_num = seq_along(obj$state_0)
+)
+states <- reshape2::melt(m0$post$y_hat) %>%
+  dplyr::rename(time_num = Var2, variable_num = Var3) %>%
+  dplyr::filter(iterations %in% draws) %>%
+  dplyr::left_join(variables_df, by = "variable_num") %>%
+  dplyr::left_join(ts_df, by = "time_num")
+prevalence <- states %>%
+  dplyr::filter(variable %in% c("I", "Id")) %>%
+  group_by(iterations, time) %>%
+  summarize(
+    I = value[variable == "I"], Id = value[variable == "Id"],
+    prevalence = I + Id
+)
+ggplot(prevalence, aes(time, I + Id, group = iterations)) +
+  geom_line(alpha = 0.3)
+ggplot(states, aes(time, value, group = iterations)) + facet_wrap(~variable, scales = "free_y") +geom_line()
+
+
+post <- m0$fit %>% tidybayes::spread_draws(lambda_d[day, data_type])
+
+dat <- data.frame(data_type = c(rep(1, 42), rep(2, 42)),
+  y = c(d$cases, hosp), day = c(1:42, 1:42))
+ggplot(post, aes(day, lambda_d, group = paste(.iteration, .draw))) +
+  geom_line(alpha = 0.05) +
+  facet_wrap(~data_type) +
+  geom_point(data = dat, aes(x = day, y = y), inherit.aes = FALSE)
+
+ggplot(post, aes(day, lambda_d, group = paste(.iteration, .draw))) +
+  geom_line(alpha = 0.05) +
+  facet_wrap(~data_type) +
+  geom_point(data = dat, aes(x = day, y = y), inherit.aes = FALSE)
+
+p <- project_fit(m0, proj_days = 0, i = 1:5, data_col = 1L)
+
+dat <- data.frame(data_type = c(rep(1, 42), rep(2, 42)),
+  y = c(d$cases, hosp), day = c(1:42, 1:42))
+ggplot(p$cases, aes(day, lambda_d, group = iterations)) +
+  geom_line(alpha = 0.3) +
+  geom_point(data = filter(dat, data_type == 1), aes(x = day, y = y), 
+    inherit.aes = FALSE)
+ggplot(p$states, aes(time, I + Id, group = iterations)) + 
+  geom_line(alpha = 0.3)
+
+ggplot(p$states, aes(time, E2d, group = iterations)) + 
+  geom_line(alpha = 0.3)
+
+
+
+
+
+f_vec <- c(rep(NA, m$last_day_obs), c(rep(0.8, 7)))
+
+p <- list()
+p[[1]] <- project_fit(m, f_vec = f_vec, 
+  proj_days = sum(!is.na(f_vec)), i = 1:10, data_col = 2L)
+
+ggplot(p[[1]]$cases, aes(day, lambda_d, group = iterations)) +
+  geom_line(alpha = 0.3)
+
+for (i in 2:5) {
+  cat(i, "\n")
+  mean_lamb <- dplyr::filter(p[[i-1]]$cases, day == max(day)) %>% 
+    pull(lambda_d) %>% mean()
+  if (mean_lamb > 70) {
+    f_vec <- c(f_vec, rep(0.18, 7))
+  } else {
+    f_vec <- c(f_vec, rep(0.8, 7))
+  }
+  p[[i]] <- project_fit(m, f_vec = f_vec, proj_days = sum(!is.na(f_vec)), i = 1:10)
+}
+
+library(ggplot2)
+ggplot(p[[5]]$states, aes(time, I + Id, group = iterations)) + 
+  geom_line(alpha = 0.3)
+
+ggplot(p[[5]]$cases, aes(day, lambda_d, group = iterations)) + 
+  geom_line(alpha = 0.3)
+
+
+
+
+
+
+
+
 
 m2$fit
 
@@ -118,7 +225,7 @@ make_projection_plot(list(m))
 If we wanted to control the number of projected days within the Stan fitting function, we could do it like this:
 
 ```{r fit2, message=FALSE, results='hide', eval=FALSE}
-m_forecast <- fit_sirbayes(d$cases, iter = 500, chains = 1, forecast_days = 60)
+m_forecast <- fit_seir(d$cases, iter = 500, chains = 1, forecast_days = 60)
 ```
 
 There are many named elements of the fitted object. Examples follow.
