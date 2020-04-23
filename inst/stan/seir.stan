@@ -130,66 +130,66 @@ transformed parameters {
 
   // Calculating the expected case counts given the delays in reporting:
   for (j in 1:J) {
-  for (n in 1:N) {
-    this_samp = sampFrac[n,j];
-    if (n_sampFrac2 > 1) {
-      if (n >= day_inc_sampling && n <= last_day_obs) {
-        this_samp = sampFrac2[n - day_inc_sampling + 1];
+    for (n in 1:N) {
+      this_samp = sampFrac[n,j];
+      if (n_sampFrac2 > 1) {
+        if (n >= day_inc_sampling && n <= last_day_obs) {
+          this_samp = sampFrac2[n - day_inc_sampling + 1];
+        }
+        if (n >= day_inc_sampling && n > last_day_obs) {
+          this_samp = sampFrac2[n_sampFrac2]; // forecast with last value
+        }
       }
-      if (n >= day_inc_sampling && n > last_day_obs) {
-        this_samp = sampFrac2[n_sampFrac2]; // forecast with last value
+      if (n_sampFrac2 == 1) {
+        this_samp = sampFrac2[1];
       }
-    }
-    if (n_sampFrac2 == 1) {
-      this_samp = sampFrac2[1];
-    }
-    for (t in 1:T) {
-      ft[t] = 0; // initialize at 0 across the full 1:T
-    }
-    // a fancy way of moving across a window of time:
-    for (t in time_day_id0[n]:time_day_id[n]) { // t is an increment here
+      for (t in 1:T) {
+        ft[t] = 0; // initialize at 0 across the full 1:T
+      }
+      // a fancy way of moving across a window of time:
+      for (t in time_day_id0[n]:time_day_id[n]) { // t is an increment here
       k2 = x_r[4];
       E2 = y_hat[t,3];
       E2d = y_hat[t,9];
 
       ft[t] = this_samp * k2 * (E2 + E2d) *
-      exp(weibull_lpdf(time[time_day_id[n]] - time[t] | delayShape, delayScale));
+      exp(weibull_lpdf(time[time_day_id[n]] - time[t] | delayShape[j], delayScale[j]));
+      }
+      sum_ft_inner = 0; // initialize at 0
+      for (t in (time_day_id0[n] + 1):(time_day_id[n] - 1)) {
+        sum_ft_inner += ft[t];
+      }
+      lambda_d[n,j] = 0.5 * dx *
+      (ft[time_day_id0[n]] + 2 * sum_ft_inner + ft[time_day_id[n]]);
+      eta[n,j] = log(lambda_d[n,j]);
     }
-    sum_ft_inner = 0;
-    for (t in (time_day_id0[n] + 1):(time_day_id[n] - 1)) {
-      sum_ft_inner += ft[t];
-    }
-    lambda_d[n,j] = 0.5 * dx *
-                 (ft[time_day_id0[n]] + 2 * sum_ft_inner + ft[time_day_id[n]]);
-    eta[n,j] = log(lambda_d[n,j]);
-  }
 
-  // if (obs_model == 2) { // Beta-Binomial observation model
-  //   for (n in 1:N) {
-  //     eta[n] = inv_logit(exp(eta[n]));
-  //     alpha[n] = eta[n,j] * phi[1];
-  //     beta[n] = (1 - eta[n,j]) * phi[1];
-  //   }
-  // } else {
-  //   for (n in 1:N) {
-  //     alpha[n] = 0;
-  //     beta[n] = 0;
-  //   }
-  // }
+    // if (obs_model == 2) { // Beta-Binomial observation model
+    //   for (n in 1:N) {
+      //     eta[n] = inv_logit(exp(eta[n]));
+      //     alpha[n] = eta[n,j] * phi[1];
+      //     beta[n] = (1 - eta[n,j]) * phi[1];
+      //   }
+      // } else {
+        //   for (n in 1:N) {
+          //     alpha[n] = 0;
+          //     beta[n] = 0;
+          //   }
+          // }
   }
 }
 model {
   // priors:
   if (est_phi > 0 && obs_model == 1) { // NB2
-    // https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations
-    // D(expression(1/sqrt(x)), "x"); log(0.5 * x^-0.5/sqrt(x)^2
-    for (j in 1:J) {
-      1/sqrt(phi[j]) ~ normal(0, phi_prior);
-      target += log(0.5) - 1.5 * log(phi[j]); // Jacobian adjustment
-    }
+  // https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations
+  // D(expression(1/sqrt(x)), "x"); log(0.5 * x^-0.5/sqrt(x)^2
+  for (j in 1:J) {
+    1/sqrt(phi[j]) ~ normal(0, phi_prior);
+    target += log(0.5) - 1.5 * log(phi[j]); // Jacobian adjustment
+  }
   }
   if (est_phi > 0 && obs_model == 2) { // Beta-Binomial
-    for (j in 1:J) phi[j] ~ normal(0, phi_prior);
+  for (j in 1:J) phi[j] ~ normal(0, phi_prior);
   }
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
   f2 ~ beta(f2_prior[1], f2_prior[2]);
@@ -216,13 +216,13 @@ model {
 generated quantities{
   int y_rep[N,J]; // posterior predictive replicates
   for (j in 1:J) {
-  for (n in 1:N) {
-    if (obs_model == 0) {
-      y_rep[n,j] = poisson_log_rng(eta[n,j]);
-    } else if (obs_model == 1) {
-      y_rep[n,j] = neg_binomial_2_log_rng(eta[n,j], phi[1]);
+    for (n in 1:N) {
+      if (obs_model == 0) {
+        y_rep[n,j] = poisson_log_rng(eta[n,j]);
+      } else if (obs_model == 1) {
+        y_rep[n,j] = neg_binomial_2_log_rng(eta[n,j], phi[1]);
+      }
     }
-  }
   }
 }
 
