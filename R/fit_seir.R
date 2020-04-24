@@ -1,4 +1,4 @@
-#' Fit the Stan SEIR model
+#' Fit a Stan SEIR model
 #'
 #' @param daily_cases Either a vector of daily new cases if fit into a single
 #'   data type or a matrix of case data is fitting to multiple data types. Each
@@ -21,13 +21,14 @@
 #'   two values correspond to the mean and SD of a Beta distribution. If there
 #'   are multiple input data types then `sampFrac2_prior` should be a matrix
 #'   with columns for the different data types and rows for the means and SDs.
+#'   (Currently disabled!)
 #' @param sampFrac2_type How to treat the sample fraction. Fixed, estimated, or
 #'   a constrained random walk (Currently disabled!).
 #'   Only applies to the first data type column if
 #'   there are multiple data types. The other data types always have a fixed
 #'   sample fraction.
 #' @param rw_sigma The standard deviation on the optional `sampFrac2` random
-#'   walk on the first data type.
+#'   walk on the first data type. (Currently disabled!)
 #' @param seed MCMC seed
 #' @param chains Number of MCMC chains
 #' @param iter MCMC iterations per chain
@@ -56,7 +57,6 @@
 #' @param daily_cases_omit An optional vector of days to omit from the data
 #'   likelihood. If `daily_cases` is a matrix then they should also be a matrix.
 #' @param ... Other arguments to pass to [rstan::sampling()].
-#' @author Sean Anderson
 #' @export
 #' @return A named list object
 
@@ -73,7 +73,7 @@ fit_seir <- function(daily_cases,
   rw_sigma = 0.1,
   seed = 42,
   chains = 4,
-  iter = 1000,
+  iter = 2000,
   sampled_fraction_day_change = 14,
   sampled_fractions = NULL,
   fixed_f_forecast = NULL,

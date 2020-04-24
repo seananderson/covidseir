@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_seir.R
 \name{fit_seir}
 \alias{fit_seir}
-\title{Fit the Stan SEIR model}
+\title{Fit a Stan SEIR model}
 \usage{
 fit_seir(
   daily_cases,
@@ -18,7 +18,7 @@ fit_seir(
   rw_sigma = 0.1,
   seed = 42,
   chains = 4,
-  iter = 1000,
+  iter = 2000,
   sampled_fraction_day_change = 14,
   sampled_fractions = NULL,
   fixed_f_forecast = NULL,
@@ -68,7 +68,8 @@ phi) and \code{Var(Y) = mu + mu^2 / phi}.
 In the case of the random walk, this specifies the initial state prior. The
 two values correspond to the mean and SD of a Beta distribution. If there
 are multiple input data types then \code{sampFrac2_prior} should be a matrix
-with columns for the different data types and rows for the means and SDs.}
+with columns for the different data types and rows for the means and SDs.
+(Currently disabled!)}
 
 \item{sampFrac2_type}{How to treat the sample fraction. Fixed, estimated, or
 a constrained random walk (Currently disabled!).
@@ -77,7 +78,7 @@ there are multiple data types. The other data types always have a fixed
 sample fraction.}
 
 \item{rw_sigma}{The standard deviation on the optional \code{sampFrac2} random
-walk on the first data type.}
+walk on the first data type. (Currently disabled!)}
 
 \item{seed}{MCMC seed}
 
@@ -129,8 +130,5 @@ likelihood. If \code{daily_cases} is a matrix then they should also be a matrix.
 A named list object
 }
 \description{
-Fit the Stan SEIR model
-}
-\author{
-Sean Anderson
+Fit a Stan SEIR model
 }
