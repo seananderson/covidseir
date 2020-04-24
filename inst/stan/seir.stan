@@ -146,12 +146,12 @@ transformed parameters {
       }
       // a fancy way of moving across a window of time:
       for (t in time_day_id0[n]:time_day_id[n]) { // t is an increment here
-      k2 = x_r[4];
-      E2 = y_hat[t,3];
-      E2d = y_hat[t,9];
+        k2 = x_r[4];
+        E2 = y_hat[t,3];
+        E2d = y_hat[t,9];
 
-      ft[t] = this_samp * k2 * (E2 + E2d) *
-      exp(weibull_lpdf(time[time_day_id[n]] - time[t] | delayShape[j], delayScale[j]));
+        ft[t] = this_samp * k2 * (E2 + E2d) *
+        exp(weibull_lpdf(time[time_day_id[n]] - time[t] | delayShape[j], delayScale[j]));
       }
       sum_ft_inner = 0; // initialize
       for (t in (time_day_id0[n] + 1):(time_day_id[n] - 1)) {
