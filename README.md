@@ -1,4 +1,11 @@
-# Bayesian SEIR model to estimate physical-distancing effects
+# covidseir
+
+> Bayesian SEIR model to estimate physical-distancing effects
+
+<!-- badges: start -->
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+[![CRAN status](https://www.r-pkg.org/badges/version/covidseir)](https://CRAN.R-project.org/package=covidseir)
+<!-- badges: end -->
 
 This is a work in progress based on the model in the preprint [Estimating the impact of COVID-19 control measures using a Bayesian model of physical distancing](https://www.medrxiv.org/content/10.1101/2020.04.17.20070086v1) with extensions to include multiple data types and user-friendly helper functions.
 
