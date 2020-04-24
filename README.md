@@ -27,6 +27,12 @@ distancing](https://www.medrxiv.org/content/10.1101/2020.04.17.20070086v1).
 
 Before installation, you will need a [C++ compiler installed to compile the Stan model](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
 
+In particular, the following must return `TRUE` before continuing:
+
+```r
+pkgbuild::has_build_tools(debug = TRUE)
+```
+
 Then, install the package with:
 
 ```r
