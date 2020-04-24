@@ -4,7 +4,14 @@
 \alias{project_fit}
 \title{Make projections with a fitted object}
 \usage{
-project_fit(obj, proj_days = 0L, i = seq_len(50L), f_vec = NULL, data_col = 1L)
+project_fit(
+  obj,
+  proj_days = 0L,
+  i = seq_len(50L),
+  f_vec = NULL,
+  data_col = 1L,
+  start_time = min(obj$time)
+)
 }
 \arguments{
 \item{obj}{An object from \code{\link[=fit_seir]{fit_seir()}}.}

@@ -27,7 +27,8 @@ Imports:
     MASS,
     lubridate,
     reshape2, 
-    furrr
+    furrr, 
+    tidybayes
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),

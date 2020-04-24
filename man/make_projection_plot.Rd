@@ -11,14 +11,14 @@ make_projection_plot(
   ylim = c(0, max(out$upr) * 1.03),
   outer_quantile = c(0.05, 0.95),
   facet = TRUE,
-  ncol = 1,
   cols = NULL,
   linetype = c("mu", "obs"),
   omitted_days = NULL,
   y_rep_dat = NULL,
   mu_dat = NULL,
   points_size = 1.25,
-  sc_order = NULL
+  sc_order = NULL,
+  data_col = 1
 )
 }
 \arguments{
@@ -34,10 +34,6 @@ make_projection_plot(
 
 \item{facet}{Logical for whether or not to facet the panels. If false, then will put multiple ribbons on the same axes.}
 
-\item{ncol}{The number of facet panel columns.}
-
-\item{cols}{An optional vector of colours.}
-
 \item{linetype}{Whether or not the line should represent the mean of the expectation or the median of the observation distribution.}
 
 \item{omitted_days}{An optional vector of days to omit from the plot.}
@@ -49,6 +45,8 @@ make_projection_plot(
 \item{points_size}{The point size of dots.}
 
 \item{sc_order}{An optional vector of scenario names to force the order of the panels. This character vector should match the named elements of \code{models}.}
+
+\item{ncol}{The number of facet panel columns.}
 }
 \value{
 A ggplot

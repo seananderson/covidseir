@@ -44,12 +44,15 @@ hosp <- c(
 stopifnot(length(cases) == length(hosp))
 dat <- tibble(
   cases = c(cases, hosp),
-  type = rep(c("daily_cases", "daily_hospital"), each=length(hosp)),
-  day = c(1:length(hosp), 1:length(hosp)), 
-  date = rep(seq(lubridate::ymd("2020-03-01"), 
-    lubridate::ymd("2020-03-01") + length(hosp) - 1, by=  "1 day"), 2))
+  type = rep(c("daily_cases", "daily_hospital"), each = length(hosp)),
+  day = c(1:length(hosp), 1:length(hosp)),
+  date = rep(seq(lubridate::ymd("2020-03-01"),
+    lubridate::ymd("2020-03-01") + length(hosp) - 1,
+    by = "1 day"
+  ), 2)
+)
 
-s1 <- c(rep(0.1, 13), rep(0.2, length(cases)-13)) # example sample fractions
+s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13)) # example sample fractions
 s2 <- rep(0.05, length(hosp)) # example sample fractions
 ```
 
@@ -59,10 +62,10 @@ Stan will run in parallel assuming `options(mc.cores = parallel::detectCores() /
 
 ```{r fit, message=FALSE, results='hide', cache=TRUE}
 m1 <- fit_seir(
-  cases, 
-  iter = 200, 
+  cases,
+  iter = 200,
   chains = 1,
-  sampled_fractions = s1, 
+  sampled_fractions = s1,
   delayScale = 9.85,
   delayShape = 1.73
 )
@@ -77,7 +80,7 @@ m1 <- fit_seir(
 # ts_df <- dplyr::tibble(time = m1$time, time_num = seq_along(m1$time))
 # post_state <- left_join(post_state, variables_df)
 # post_state <- left_join(post_state, ts_df)
-# 
+#
 # ggplot(post_state, aes(time, y_hat, group = paste(.iteration, .draw))) +
 #   geom_line(alpha = 0.25) +
 #   facet_wrap(~state, scales = "free_y")
@@ -94,14 +97,18 @@ post_y_rep <- m1$fit %>% tidybayes::spread_draws(y_rep[day, data_type])
 ggplot(post_mu, aes(day, lambda_d, group = paste(.iteration, .draw))) +
   geom_line(alpha = 0.05) +
   facet_wrap(~data_type) +
-  geom_point(data = filter(dat, type == "daily_cases"), aes(x = day, y = cases),
-    inherit.aes = FALSE)
+  geom_point(
+    data = filter(dat, type == "daily_cases"), aes(x = day, y = cases),
+    inherit.aes = FALSE
+  )
 
 ggplot(post_y_rep, aes(day, y_rep, group = paste(.iteration, .draw))) +
   geom_line(alpha = 0.07) +
   facet_wrap(~data_type) +
-  geom_line(data = filter(dat, type == "daily_cases"), aes(x = day, y = cases),
-    inherit.aes = FALSE)
+  geom_line(
+    data = filter(dat, type == "daily_cases"), aes(x = day, y = cases),
+    inherit.aes = FALSE
+  )
 ```
 
 We can make a quick plot of the model fit:
@@ -127,7 +134,7 @@ names(m1$post)
 The rstan object itself is in the named element `fit`. You can do anything with that you can do with the output from an rstan fit.
 
 ```{r}
-print(m1$fit, pars  = c('R0', 'f2', 'phi'))
+print(m1$fit, pars = c("R0", "f2", "phi"))
 ```
 
 I have named the parameters I want to look up to avoid summarizing many derived values and parameters.
@@ -135,8 +142,8 @@ I have named the parameters I want to look up to avoid summarizing many derived 
 A couple examples of things you could do:
 
 ```{r}
-bayesplot::mcmc_areas(m1$fit, pars  = c('R0', 'f2', 'phi[1]'))
-bayesplot::mcmc_trace(m1$fit, pars  = c('R0', 'f2', 'phi[1]'))
+bayesplot::mcmc_areas(m1$fit, pars = c("R0", "f2", "phi[1]"))
+bayesplot::mcmc_trace(m1$fit, pars = c("R0", "f2", "phi[1]"))
 ```
 
 ```{r, eval=FALSE}
@@ -165,16 +172,17 @@ proj <- project_fit(m1)
 head(proj$states)
 head(proj$cases)
 
-ggplot(proj$states, aes(time, I + Id, group = iterations)) + 
+ggplot(proj$states, aes(time, I + Id, group = iterations)) +
   geom_line(alpha = 0.3)
-ggplot(proj$cases, aes(day, lambda_d, group = iterations)) + 
+ggplot(proj$cases, aes(day, lambda_d, group = iterations)) +
   geom_line(alpha = 0.3)
-ggplot(proj$cases, aes(day, y_rep, group = iterations)) + 
+ggplot(proj$cases, aes(day, y_rep, group = iterations)) +
   geom_line(alpha = 0.3)
 
-proj$states %>% tidyr::pivot_longer(-c(time, iterations)) %>% 
-  ggplot(aes(time, value, group = iterations)) + 
-  geom_line(alpha = 0.2) + 
+proj$states %>%
+  tidyr::pivot_longer(-c(time, iterations)) %>%
+  ggplot(aes(time, value, group = iterations)) +
+  geom_line(alpha = 0.2) +
   facet_wrap(~name, scales = "free_y")
 ```
 
@@ -185,16 +193,18 @@ The function `project_fit()` also takes an argument `f_vec`, which should be a v
 Here's an example of cycling between f = 0.8 and f = 0.3 at 4-week intervals:
 
 ```{r}
-f_vec <- c(rep(NA, m1$last_day_obs),
-  rep(c(rep(0.8, 7 * 4), rep(0.3, 7 * 4)), 3))
+f_vec <- c(
+  rep(NA, m1$last_day_obs),
+  rep(c(rep(0.8, 7 * 4), rep(0.3, 7 * 4)), 3)
+)
 f_vec
 proj2 <- project_fit(m1, f_vec = f_vec, proj_days = 90, i = 1:20)
 
-ggplot(proj2$states, aes(time, I + Id, group = iterations)) + 
+ggplot(proj2$states, aes(time, I + Id, group = iterations)) +
   geom_line(alpha = 0.3)
-ggplot(proj2$cases, aes(day, lambda_d, group = iterations)) + 
+ggplot(proj2$cases, aes(day, lambda_d, group = iterations)) +
   geom_line(alpha = 0.3)
-ggplot(proj2$cases, aes(day, y_rep, group = iterations)) + 
+ggplot(proj2$cases, aes(day, y_rep, group = iterations)) +
   geom_line(alpha = 0.3)
 ```
 
@@ -233,14 +243,14 @@ prep_dat <- function(.dat, Scenario = "") {
       upr = quantile(value, probs = outer_quantile[2]),
       upr2 = quantile(value, probs = 0.75),
       med = median(value)
-    ) %>% 
+    ) %>%
     mutate(day = actual_dates[day], Scenario = Scenario)
   lambdas <- .dat %>%
     group_by(day) %>%
     mutate(value = lambda_d) %>%
     summarise(
       med = median(value)
-    ) %>% 
+    ) %>%
     mutate(day = actual_dates[day], Scenario = Scenario)
   list(y_rep = y_rep, mu = lambdas)
 }
@@ -257,9 +267,10 @@ x <- prep_dat(proj_replicated)
 ```
 
 ```{r, warnings = FALSE, include=FALSE, eval=FALSE}
-make_projection_plot(list(m1), 
+make_projection_plot(list(m1),
   mu_dat = x$mu,
-  y_rep_dat = x$y_rep)
+  y_rep_dat = x$y_rep
+)
 ```
 
 # Multiple data types
@@ -267,14 +278,14 @@ make_projection_plot(list(m1),
 We can extend the model to include multiple response data types (e.g., daily case counts and daily hospitalizations) by including a matrix of daily cases. We also then have to include a matrix of sampled fractions and a vector of delay scale and shape parameters to match:
 
 ```{r fit2types, message=FALSE, results='hide', cache=TRUE}
-s1 <- c(rep(0.1, 13), rep(0.2, length(cases)-13)) # example sample fractions
+s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13)) # example sample fractions
 s2 <- rep(0.05, length(hosp)) # example sample fractions
 
 m2 <- fit_seir(
-  daily_cases = cbind(cases, hosp), 
-  iter = 200, 
+  daily_cases = cbind(cases, hosp),
+  iter = 200,
   chains = 1,
-  sampled_fractions = cbind(s1, s2), 
+  sampled_fractions = cbind(s1, s2),
   delayScale = c(9.85, 10.15),
   delayShape = c(1.73, 1.93),
 )
@@ -283,4 +294,3 @@ m2 <- fit_seir(
 ```{r}
 make_projection_plot(list("Scenario 1" = m2))
 ```
-

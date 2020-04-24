@@ -7,7 +7,7 @@
 fit_seir(
   daily_cases,
   daily_tests = NULL,
-  obs_model = c("NB2", "Poisson", "beta-binomial"),
+  obs_model = c("NB2", "Poisson"),
   forecast_days = 0,
   time_increment = 0.1,
   days_back = 45,
@@ -23,7 +23,7 @@ fit_seir(
   sampled_fraction1 = 0.1,
   sampled_fraction2 = 0.3,
   sampled_fraction_day_change = 14,
-  sampled_fraction_vec = NULL,
+  sampled_fractions = NULL,
   fixed_f_forecast = NULL,
   day_start_fixed_f_forecast = nrow(daily_cases) + 1,
   pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f1 = 1,
@@ -35,24 +35,22 @@ fit_seir(
     = 0.5 * nsi * i0, Q = 0, R = 0, Sd = fsi * (pars[["N"]] - i0), E1d = 0.4 * fsi * i0,
     E2d = 0.1 * fsi * i0, Id = 0.5 * fsi * i0, Qd = 0, Rd = 0),
   save_state_predictions = FALSE,
-  delayScale = array(rep(9.85, ncol(daily_cases))),
-  delayShape = array(rep(1.73, ncol(daily_cases))),
+  delayScale = 9.85,
+  delayShape = 1.73,
   ode_control = c(1e-06, 1e-05, 1e+05),
   daily_cases_omit = NULL,
   ...
 )
 }
 \arguments{
-\item{daily_cases}{A vector of daily new cases}
-
-\item{daily_tests}{An optional vector of daily test numbers. Should include
-assumed tests for the forecast. I.e. \code{nrow(daily_cases) + forecast_days = nrow(daily_tests)}. Only used in the case of the beta-binomial (which
-isn't working very well).}
+\item{daily_cases}{Either a vector of daily new cases if fit into a single
+data type or a matrix of case data is fitting to multiple data types. Each
+data type should be in its own column. There should be no missing values.}
 
 \item{obs_model}{Type of observation model}
 
 \item{forecast_days}{Number of days into the future to forecast. The model
-will run slightly faster with fewer forecasted days.}
+will run faster with fewer forecasted days.}
 
 \item{time_increment}{Time increment for ODEs and Weibull delay-model
 integration}
@@ -68,15 +66,21 @@ phi) and \code{Var(Y) = mu + mu^2 / phi}.
 
 \item{f2_prior}{Beta mean and SD for \code{f2} parameter}
 
-\item{sampFrac2_prior}{\code{sampFrac} prior starting on
+\item{sampFrac2_prior}{\code{sampFrac2} prior starting on
 \code{sampled_fraction_day_change} if \code{sampFrac2_type} is "estimated" or "rw".
 In the case of the random walk, this specifies the initial state prior. The
-two values correspond to the mean and SD of a Beta distribution.}
+two values correspond to the mean and SD of a Beta distribution. If there
+are multiple input data types then \code{sampFrac2_prior} should be a matrix
+with columns for the different data types and rows for the means and SDs.}
 
 \item{sampFrac2_type}{How to treat the sample fraction. Fixed, estimated, or
-a constrained random walk.}
+a constrained random walk (Currently disabled!).
+Only applies to the first data type column if
+there are multiple data types. The other data types always have a fixed
+sample fraction.}
 
-\item{rw_sigma}{The standard deviation on the sampFrac2 random walk.}
+\item{rw_sigma}{The standard deviation on the optional \code{sampFrac2} random
+walk on the first data type.}
 
 \item{seed}{MCMC seed}
 
@@ -84,20 +88,16 @@ a constrained random walk.}
 
 \item{iter}{MCMC iterations per chain}
 
-\item{sampled_fraction1}{Fraction sampled before
-\code{sampled_fraction_day_change}}
-
-\item{sampled_fraction2}{Fraction sampled at and after
-\code{sampled_fraction_day_change}}
-
 \item{sampled_fraction_day_change}{Date fraction sample changes}
 
-\item{sampled_fraction_vec}{An optional vector of sampled fractions. Should
-be of length: \code{nrow(daily_cases) + forecast_days}.}
+\item{sampled_fractions}{A vector (or matrix) of sampled fractions. Should
+be of dimensions: \code{nrow(daily_cases) + forecast_days} (rows) by
+\verb{ncol(daily_cases} (columns). A vector will be turned into a one column matrix.}
 
-\item{fixed_f_forecast}{Optional fixed \code{f} for forecast.}
+\item{fixed_f_forecast}{Optional fixed \code{f} (fraction of normal distancing) for
+the forecast.}
 
-\item{day_start_fixed_f_forecast}{Data start using \code{fixed_f_forecast}.}
+\item{day_start_fixed_f_forecast}{Day to start using \code{fixed_f_forecast}.}
 
 \item{pars}{A named numeric vector of fixed parameter values}
 
@@ -112,16 +112,19 @@ be of length: \code{nrow(daily_cases) + forecast_days}.}
 \item{save_state_predictions}{Include the state predictions? \code{y_hat} Will
 make the resulting model object much larger.}
 
-\item{delayScale}{Weibull scale parameter for the delay in reporting.}
+\item{delayScale}{Weibull scale parameter for the delay in reporting. If
+there are multiple datatypes then this should be a vector of the same
+length as the data types.}
 
-\item{delayShape}{Weibull shape parameter for the delay in reporting.}
+\item{delayShape}{Weibull shape parameter for the delay in reporting. Same
+format as for \code{delayScale}.}
 
 \item{ode_control}{Control options for the Stan ODE solver. First is relative
-difference, that absolute difference, and then maximum iterations. The
-values here are the Stan defaults.}
+difference, that absolute difference, and then maximum iterations. You
+probably don't need to touch these.}
 
 \item{daily_cases_omit}{An optional vector of days to omit from the data
-likelihood.}
+likelihood. If \code{daily_cases} is a matrix then they should also be a matrix.}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}}.}
 }
