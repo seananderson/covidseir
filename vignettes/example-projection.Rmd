@@ -171,7 +171,7 @@ names(m1$stan_data)
 
 # Making projections directly in R
 
-There is a helper function `project_fit()`, which allows you to take the parameter estimates from the fitted function and pass them through similar functions in R to get output from the ODE solver and predicted case counts. This is particularly useful if you want to project into the future while manipulating the `f2` values in the future (and you don't want to bog down Stan or have to refit the model every time you want to make a different type of projection). Plus, this gives you a lot more flexibility but what you want to do with `f` in the projections.
+There is a helper function `project_fit()`, which allows you to take the parameter estimates from the fitted function and pass them through similar functions in R to get output from the ODE solver and predicted case counts. This is particularly useful if you want to project into the future while manipulating the `f2` values (the fraction of normal people encountered by people physical distancing) in the future (and you don't want to bog down Stan or have to refit the model every time you want to make a different type of projection, although that's fine too). Plus, this gives you a lot more flexibility but what you want to do with `f2` in the projections.
 
 Aside: most of the submitted pre-print just uses Stan for all the predictions and fits the model over and over. That's fine too, but just takes longer.
 
