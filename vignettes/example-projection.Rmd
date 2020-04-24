@@ -118,7 +118,7 @@ ggplot(post_y_rep, aes(day, y_rep, group = paste(.iteration, .draw))) +
 We can make a quick plot of the model fit:
 
 ```{r plot2}
-plot_projection(list(m1))
+plot_projection(m1)
 ```
 
 If we wanted to control the number of projected days within the Stan fitting function, we could do it like this:
