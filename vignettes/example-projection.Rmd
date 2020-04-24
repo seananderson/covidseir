@@ -114,7 +114,7 @@ ggplot(post_y_rep, aes(day, y_rep, group = paste(.iteration, .draw))) +
 We can make a quick plot of the model fit:
 
 ```{r plot2}
-make_projection_plot(list(m1))
+plot_projection(list(m1))
 ```
 
 If we wanted to control the number of projected days within the Stan fitting function, we could do it like this:
@@ -213,7 +213,7 @@ ggplot(proj2$cases, aes(day, y_rep, group = iterations)) +
 You can use the output data to make whatever plots you would like. However, there's also a function for making some of the projection plots from the pre-print:
 
 ```{r}
-make_projection_plot(list(m1))
+plot_projection(m1)
 ```
 
 Note that it takes a list object. This is so that you can provide a list of multiple models and it will arrange them as multiple panels in one plot. The names of the list elements become the facet labels. If you only have one model, you will need to provide it as a list.
@@ -221,7 +221,7 @@ Note that it takes a list object. This is so that you can provide a list of mult
 For example:
 
 ```{r}
-make_projection_plot(list("One model" = m1, "Another model" = m1))
+plot_projection(list("One model" = m1, "Another model" = m1))
 ```
 
 Obviously these are both actually the same model in this case, but they could be named list output from `purrr::map()` or `lapply()`.
@@ -267,7 +267,8 @@ x <- prep_dat(proj_replicated)
 ```
 
 ```{r, warnings = FALSE, include=FALSE, eval=FALSE}
-make_projection_plot(list(m1),
+plot_projection(
+  m1,
   mu_dat = x$mu,
   y_rep_dat = x$y_rep
 )
@@ -292,5 +293,5 @@ m2 <- fit_seir(
 ```
 
 ```{r}
-make_projection_plot(list("Scenario 1" = m2))
+plot_projection(m2)
 ```

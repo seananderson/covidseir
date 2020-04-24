@@ -21,13 +21,14 @@
 #' element_blank geom_line facet_grid
 #' @importFrom dplyr summarise group_by mutate rename filter summarize ungroup tibble as_tibble
 #' @importFrom deSolve ode
-make_projection_plot <- function(models, cumulative = FALSE,
+plot_projection <- function(models, cumulative = FALSE,
   first_date = "2020-03-01", ylim = c(0, max(out$upr) * 1.03), outer_quantile = c(0.05, 0.95),
   facet = TRUE, cols = NULL, linetype = c("mu", "obs"),
   omitted_days = NULL, y_rep_dat = NULL, mu_dat = NULL, points_size = 1.25,
   sc_order = NULL
   ) {
 
+  if (!is.list(models)) models <- list(models)
   linetype <- match.arg(linetype)
   obj <- models[[1]]
   actual_dates <- seq(lubridate::ymd(first_date),

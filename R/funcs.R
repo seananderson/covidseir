@@ -198,6 +198,8 @@ project_fit_i <- function(obj, max_day = max(obj$time),
 #' @param f_vec An optional vector of `f` values to use after the last day of
 #'   fitted data. If left as the default of `NULL`, then the estimated `f2`
 #'   value will be used in the projection
+#' @param data_col The data type column from the `daily_cases` matrix to use in
+#'   the projection
 #'
 #' @return A named list with states and cases as data frames.
 #' @importFrom stats median
@@ -206,8 +208,8 @@ project_fit <- function(obj,
                         proj_days = 0L,
                         i = seq_len(50L),
                         f_vec = NULL,
-                        data_col = 1L,
-                        start_time = min(obj$time)) {
+                        data_col = 1L) {
+  start_time = min(obj$time)
   max_day <- obj$last_day_obs + proj_days
   # out <- future.apply::future_lapply(i, function(x) {
   # out <- furrr::future_map(i, function(x) {

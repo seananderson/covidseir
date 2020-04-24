@@ -42,6 +42,7 @@ Suggests:
     knitr,
     rmarkdown,
     bayesplot,
-    shinystan
+    shinystan,
+    future
 VignetteBuilder: knitr
 Roxygen: list(markdown = TRUE)

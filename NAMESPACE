@@ -3,7 +3,7 @@
 export("%>%")
 export(fit_seir)
 export(getlambd)
-export(make_projection_plot)
+export(plot_projection)
 export(project_fit)
 export(socdistmodel)
 import(Rcpp)
