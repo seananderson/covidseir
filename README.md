@@ -1,7 +1,3 @@
----
-output: github_document
----
-
 # covidseir
 
 > Bayesian SEIR model to estimate physical-distancing effects
