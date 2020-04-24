@@ -1,3 +1,7 @@
+---
+output: github_document
+---
+
 # covidseir
 
 > Bayesian SEIR model to estimate physical-distancing effects
@@ -7,9 +11,20 @@
 [![CRAN status](https://www.r-pkg.org/badges/version/covidseir)](https://CRAN.R-project.org/package=covidseir)
 <!-- badges: end -->
 
-This is a work in progress based on the model in the preprint [Estimating the impact of COVID-19 control measures using a Bayesian model of physical distancing](https://www.medrxiv.org/content/10.1101/2020.04.17.20070086v1) with extensions to include multiple data types and user-friendly helper functions.
+## Overview
 
-### The model is very much a work in progress. Arguments and output format may still change.
+*covidseir* fits a Bayesian SEIR (Susceptible, Exposed, Infectious, Recovered)
+model to daily COVID-19 case data. The package focuses on estimating the
+fraction of usual contacts encountered for individuals participating in physical
+distancing (social distancing). The model is coded in 'Stan'. The model can
+accommodate multiple types of case data at once (e.g., reported cases,
+hospitalizations, ICU admissions) and accounts for delays between symptom onset
+and case appearance. This model is a continuation of the one described in the
+preprint [Estimating the impact of COVID-19 control measures using a Bayesian model of physical distancing](https://www.medrxiv.org/content/10.1101/2020.04.17.20070086v1).
+
+### The model is very much a work in progress. Arguments and output format may still change and not all functionality has been tested yet. ###
+
+## Installation
 
 Before installation, you will need a [C++ compiler installed to compile the Stan model](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
 
