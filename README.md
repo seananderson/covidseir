@@ -2,7 +2,7 @@
 
 This is a work in progress based on the model in the preprint [Estimating the impact of COVID-19 control measures using a Bayesian model of physical distancing](https://www.medrxiv.org/content/10.1101/2020.04.17.20070086v1) with extensions to include multiple data types and user-friendly helper functions.
 
-### The model is currently unusable.
+### The model is very much a work in progress. Arguments and output format may still change.
 
 Install the package with:
 
@@ -13,8 +13,7 @@ remotes::install_github("seananderson/covidseir")
 
 You will need to have a C++ compiler installed.
 
-<!--
-If you also want to read the vignette:
+If you also want to read the vignette (slower):
 
 ```r
 remotes::install_github("seananderson/covidseir", build_vignettes = TRUE)
@@ -31,4 +30,3 @@ browseVignettes("covidseir")
 # without vignettes (faster):
 devtools::install("covidseir")
 ```
--->
