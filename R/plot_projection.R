@@ -28,7 +28,9 @@ plot_projection <- function(models, cumulative = FALSE,
   sc_order = NULL
   ) {
 
-  if (!is.list(models)) models <- list(models)
+  if (is.list(models) && "fit" %in% names(models) && "post" %in% names(models)) {
+    models <- list(models)
+  }
   linetype <- match.arg(linetype)
   obj <- models[[1]]
   actual_dates <- seq(lubridate::ymd(first_date),

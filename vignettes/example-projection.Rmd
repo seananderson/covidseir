@@ -216,7 +216,7 @@ You can use the output data to make whatever plots you would like. However, ther
 plot_projection(m1)
 ```
 
-Note that it takes a list object. This is so that you can provide a list of multiple models and it will arrange them as multiple panels in one plot. The names of the list elements become the facet labels. If you only have one model, you will need to provide it as a list.
+Note that it can take a list object as input. This is so that you can provide a list of multiple models and it will arrange them as multiple panels in one plot. The names of the list elements become the facet labels. If you only have one model, you will need to provide it as a list.
 
 For example:
 
