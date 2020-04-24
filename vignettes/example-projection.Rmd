@@ -143,7 +143,13 @@ print(m1$fit, pars = c("R0", "f2", "phi"))
 
 I have named the parameters I want to look up to avoid summarizing many derived values and parameters.
 
-A couple examples of things you could do:
+If you don't do that you would get this:
+
+```{r}
+print(m1$fit)
+```
+
+A few examples of things you could do:
 
 ```{r}
 bayesplot::mcmc_areas(m1$fit, pars = c("R0", "f2", "phi[1]"))
@@ -157,7 +163,7 @@ shinystan::launch_shinystan(m1$fit)
 The ODE state predictions are only available if `fit_seeiqr()` is fit with the option `save_state_predictions = TRUE`. This will make the resulting model object considerably larger in the model will take a little bit longer to fit. By default it is false.
 
 The other elements of the output object are mostly information on how the model was fitted. 
-It's helpful for debugging purposes, to know that the data, exactly as it was passed to Stan, are in the element `stan_data`:
+It's helpful for debugging purposes to know that the data, exactly as it was passed to Stan, are in the element `stan_data`:
 
 ```{r}
 names(m1$stan_data)
