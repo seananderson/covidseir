@@ -1,13 +1,11 @@
 #' Fit the Stan SEIR model
 #'
-#' @param daily_cases A vector of daily new cases
-#' @param daily_tests An optional vector of daily test numbers. Should include
-#'   assumed tests for the forecast. I.e. `nrow(daily_cases) + forecast_days =
-#'   nrow(daily_tests)`. Only used in the case of the beta-binomial (which
-#'   isn't working very well).
+#' @param daily_cases Either a vector of daily new cases if fit into a single
+#'   data type or a matrix of case data is fitting to multiple data types. Each
+#'   data type should be in its own column. There should be no missing values.
 #' @param obs_model Type of observation model
 #' @param forecast_days Number of days into the future to forecast. The model
-#'   will run slightly faster with fewer forecasted days.
+#'   will run faster with fewer forecasted days.
 #' @param time_increment Time increment for ODEs and Weibull delay-model
 #'   integration
 #' @param days_back Number of days to go back for Weibull delay-model
@@ -17,25 +15,29 @@
 #'   phi) and `Var(Y) = mu + mu^2 / phi`.
 #'   <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations>
 #' @param f2_prior Beta mean and SD for `f2` parameter
-#' @param sampFrac2_prior `sampFrac` prior starting on
+#' @param sampFrac2_prior `sampFrac2` prior starting on
 #'   `sampled_fraction_day_change` if `sampFrac2_type` is "estimated" or "rw".
 #'   In the case of the random walk, this specifies the initial state prior. The
-#'   two values correspond to the mean and SD of a Beta distribution.
+#'   two values correspond to the mean and SD of a Beta distribution. If there
+#'   are multiple input data types then `sampFrac2_prior` should be a matrix
+#'   with columns for the different data types and rows for the means and SDs.
 #' @param sampFrac2_type How to treat the sample fraction. Fixed, estimated, or
-#'   a constrained random walk.
-#' @param rw_sigma The standard deviation on the sampFrac2 random walk.
+#'   a constrained random walk (Currently disabled!).
+#'   Only applies to the first data type column if
+#'   there are multiple data types. The other data types always have a fixed
+#'   sample fraction.
+#' @param rw_sigma The standard deviation on the optional `sampFrac2` random
+#'   walk on the first data type.
 #' @param seed MCMC seed
 #' @param chains Number of MCMC chains
 #' @param iter MCMC iterations per chain
-#' @param sampled_fraction1 Fraction sampled before
-#'   `sampled_fraction_day_change`
-#' @param sampled_fraction2 Fraction sampled at and after
-#'   `sampled_fraction_day_change`
 #' @param sampled_fraction_day_change Date fraction sample changes
-#' @param sampled_fraction_vec An optional vector of sampled fractions. Should
-#'   be of length: `nrow(daily_cases) + forecast_days`.
-#' @param fixed_f_forecast Optional fixed `f` for forecast.
-#' @param day_start_fixed_f_forecast Data start using `fixed_f_forecast`.
+#' @param sampled_fractions A vector (or matrix) of sampled fractions. Should
+#'   be of dimensions: `nrow(daily_cases) + forecast_days` (rows) by
+#'   `ncol(daily_cases` (columns). A vector will be turned into a one column matrix.
+#' @param fixed_f_forecast Optional fixed `f` (fraction of normal distancing) for
+#'   the forecast.
+#' @param day_start_fixed_f_forecast Day to start using `fixed_f_forecast`.
 #' @param pars A named numeric vector of fixed parameter values
 #' @param i0 A scaling factor FIXME
 #' @param fsi Fraction socially distancing. Derived parameter.
@@ -43,13 +45,16 @@
 #' @param state_0 Initial state: a named numeric vector
 #' @param save_state_predictions Include the state predictions? `y_hat` Will
 #'   make the resulting model object much larger.
-#' @param delayScale Weibull scale parameter for the delay in reporting.
-#' @param delayShape Weibull shape parameter for the delay in reporting.
+#' @param delayScale Weibull scale parameter for the delay in reporting. If
+#'   there are multiple datatypes then this should be a vector of the same
+#'   length as the data types.
+#' @param delayShape Weibull shape parameter for the delay in reporting. Same
+#'   format as for `delayScale`.
 #' @param ode_control Control options for the Stan ODE solver. First is relative
-#'   difference, that absolute difference, and then maximum iterations. The
-#'   values here are the Stan defaults.
+#'   difference, that absolute difference, and then maximum iterations. You
+#'   probably don't need to touch these.
 #' @param daily_cases_omit An optional vector of days to omit from the data
-#'   likelihood.
+#'   likelihood. If `daily_cases` is a matrix then they should also be a matrix.
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #' @author Sean Anderson
 #' @export
@@ -57,7 +62,7 @@
 
 fit_seir <- function(daily_cases,
   daily_tests = NULL,
-  obs_model = c("NB2", "Poisson", "beta-binomial"),
+  obs_model = c("NB2", "Poisson"),
   forecast_days = 0,
   time_increment = 0.1,
   days_back = 45,
@@ -73,7 +78,7 @@ fit_seir <- function(daily_cases,
   sampled_fraction1 = 0.1,
   sampled_fraction2 = 0.3,
   sampled_fraction_day_change = 14,
-  sampled_fraction_vec = NULL,
+  sampled_fractions = NULL,
   fixed_f_forecast = NULL,
   day_start_fixed_f_forecast = nrow(daily_cases) + 1,
   pars = c(
@@ -101,8 +106,8 @@ fit_seir <- function(daily_cases,
     Rd = 0
   ),
   save_state_predictions = FALSE,
-  delayScale = array(rep(9.85, ncol(daily_cases))),
-  delayShape = array(rep(1.73, ncol(daily_cases))),
+  delayScale = 9.85,
+  delayShape = 1.73,
   ode_control = c(1e-6, 1e-5, 1e5),
   daily_cases_omit = NULL,
   ...) {
@@ -112,8 +117,6 @@ fit_seir <- function(daily_cases,
       0L
     } else if (obs_model == "NB2") {
       1L
-    } else {
-      2L
     }
   x_r <- pars
 
@@ -123,8 +126,10 @@ fit_seir <- function(daily_cases,
       0L
     } else if (sampFrac2_type == "estimated") {
       1L
+      stop("Estimated sample fraction is currently disabled.")
     } else { # random walk:
       nrow(daily_cases) - sampled_fraction_day_change + 1L
+      stop("Random walk is currently disabled.")
     }
 
   if (!is.null(daily_tests)) {
@@ -141,6 +146,13 @@ fit_seir <- function(daily_cases,
   stopifnot(
     names(state_0) == c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
   )
+
+  # Checks and type conversions:
+  if (!is.matrix(daily_cases)) daily_cases <- matrix(daily_cases, ncol = 1)
+  if (!is.matrix(sampFrac2_prior)) sampFrac2_prior <- matrix(sampFrac2_prior, ncol = 1)
+  if (!is.matrix(sampled_fractions)) sampled_fractions <- matrix(sampled_fractions, ncol = 1)
+  stopifnot(length(delayScale) == ncol(daily_cases))
+  stopifnot(length(delayShape) == ncol(daily_cases))
 
   days <- seq(1, nrow(daily_cases) + forecast_days)
   last_day_obs <- nrow(daily_cases)
@@ -168,23 +180,25 @@ fit_seir <- function(daily_cases,
     time = time, days_back = days_back
   )
 
-  if (is.null(sampled_fraction_vec)) {
-    sampFrac <- ifelse(days < sampled_fraction_day_change,
-      sampled_fraction1, sampled_fraction2)
-  } else {
-    stopifnot(nrow(sampled_fraction_vec) == length(days))
-    sampFrac <- sampled_fraction_vec
-  }
+  stopifnot(nrow(sampled_fractions) == length(days))
+  stopifnot(ncol(sampled_fractions) == ncol(daily_cases))
+  sampFrac <- sampled_fractions
 
   beta_sd <- f2_prior[2]
   beta_mean <- f2_prior[1]
   beta_shape1 <- get_beta_params(beta_mean, beta_sd)$alpha
   beta_shape2 <- get_beta_params(beta_mean, beta_sd)$beta
 
-  sampFrac2_beta_sd <- sampFrac2_prior[2]
-  sampFrac2_beta_mean <- sampFrac2_prior[1]
-  sampFrac2_beta_shape1 <- get_beta_params(sampFrac2_beta_mean, sampFrac2_beta_sd)$alpha
-  sampFrac2_beta_shape2 <- get_beta_params(sampFrac2_beta_mean, sampFrac2_beta_sd)$beta
+  if (sampFrac2_type == "fixed") {
+    sampFrac2_prior <- matrix(1, ncol = ncol(daily_cases), nrow = 2) # fake
+  }
+  sampFrac2_prior_trans <- matrix(nrow = 2, ncol = ncol(daily_cases))
+  for (i in seq_len(ncol(daily_cases))) {
+    sampFrac2_prior_trans[1,i] <-
+      get_beta_params(sampFrac2_prior[1,i], sampFrac2_prior[2,i])$alpha
+    sampFrac2_prior_trans[2,i] <-
+      get_beta_params(sampFrac2_prior[1,i], sampFrac2_prior[2,i])$beta
+  }
 
   dat_in_lik <- seq(1, last_day_obs)
   if (!is.null(daily_cases_omit)) {
@@ -194,22 +208,21 @@ fit_seir <- function(daily_cases,
     T = length(time),
     days = days,
     daily_cases = daily_cases,
-    tests = if (is.null(daily_tests)) rep(log(1), length(days)) else daily_tests,
     J = ncol(daily_cases),
     N = length(days),
     y0 = state_0,
     t0 = min(time) - 0.000001,
     time = time,
     x_r = x_r,
-    delayShape = delayShape,
-    delayScale = delayScale,
+    delayShape = array(delayShape),
+    delayScale = array(delayScale),
     sampFrac = sampFrac,
     time_day_id = time_day_id,
     time_day_id0 = time_day_id0,
     R0_prior = R0_prior,
     phi_prior = phi_prior,
     f2_prior = c(beta_shape1, beta_shape2),
-    sampFrac2_prior = c(sampFrac2_beta_shape1, sampFrac2_beta_shape2),
+    sampFrac2_prior = sampFrac2_prior_trans,
     day_inc_sampling = sampled_fraction_day_change,
     n_sampFrac2 = n_sampFrac2,
     rw_sigma = rw_sigma,
@@ -217,7 +230,7 @@ fit_seir <- function(daily_cases,
     last_day_obs = last_day_obs,
     obs_model = obs_model,
     ode_control = ode_control,
-    est_phi = if (obs_model %in% c(1L, 2L)) ncol(daily_cases) else 0L,
+    est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L,
     dat_in_lik = dat_in_lik,
     N_lik = length(dat_in_lik)
   )

@@ -7,7 +7,6 @@
 #' @param outer_quantile A vector representing the lower and upper outer quantiles of the credible interval.
 #' @param facet Logical for whether or not to facet the panels. If false, then will put multiple ribbons on the same axes.
 #' @param ncol The number of facet panel columns.
-#' @param cols An optional vector of colours.
 #' @param linetype Whether or not the line should represent the mean of the expectation or the median of the observation distribution.
 #' @param omitted_days An optional vector of days to omit from the plot.
 #' @param y_rep_dat An optional posterior predictive replicate data frame to override the input from `models`.
@@ -24,9 +23,11 @@
 #' @importFrom deSolve ode
 make_projection_plot <- function(models, cumulative = FALSE,
   first_date = "2020-03-01", ylim = c(0, max(out$upr) * 1.03), outer_quantile = c(0.05, 0.95),
-  facet = TRUE, ncol = 1, cols = NULL, linetype = c("mu", "obs"),
+  facet = TRUE, cols = NULL, linetype = c("mu", "obs"),
   omitted_days = NULL, y_rep_dat = NULL, mu_dat = NULL, points_size = 1.25,
-  sc_order = NULL) {
+  sc_order = NULL,
+  data_col = 1
+  ) {
 
   linetype <- match.arg(linetype)
   obj <- models[[1]]
@@ -35,46 +36,44 @@ make_projection_plot <- function(models, cumulative = FALSE,
 
   if (is.null(y_rep_dat) || is.null(mu_dat)) {
     out <- purrr::map_df(models, function(.x) {
-      temp <- .x$post$y_rep %>%
-        reshape2::melt() %>%
-        dplyr::rename(day = Var2)
 
+      temp <- tidybayes::spread_draws(obj$fit, y_rep[day, data_type])
       if (cumulative) {
         temp <- temp %>%
-          group_by(iterations) %>%
-          mutate(value = cumsum(value)) %>%
+          group_by(iterations, data_type) %>%
+          mutate(y_rep = cumsum(y_rep)) %>%
           ungroup()
       }
 
       temp %>%
-        group_by(day) %>%
+        group_by(day, data_type) %>%
         summarise(
-          lwr = stats::quantile(value, probs = outer_quantile[1]),
-          lwr2 = stats::quantile(value, probs = 0.25),
-          upr = stats::quantile(value, probs = outer_quantile[2]),
-          upr2 = stats::quantile(value, probs = 0.75),
-          med = stats::median(value)
+          lwr = stats::quantile(y_rep , probs = outer_quantile[1]),
+          lwr2 = stats::quantile(y_rep , probs = 0.25),
+          upr = stats::quantile(y_rep , probs = outer_quantile[2]),
+          upr2 = stats::quantile(y_rep , probs = 0.75),
+          med = stats::median(y_rep )
         ) %>%
+        ungroup() %>%
         mutate(day = actual_dates[day])
     }, .id = "Scenario")
 
     lambdas <- purrr::map_df(models, function(.x) {
-      temp <- .x$post$lambda_d %>%
-        reshape2::melt() %>%
-        dplyr::rename(day = Var2) %>% as_tibble()
 
+      temp <- tidybayes::spread_draws(obj$fit, lambda_d[day, data_type])
       if (cumulative) {
         temp <- temp %>%
-          group_by(iterations) %>%
-          mutate(value = cumsum(value)) %>%
+          group_by(iterations, data_type) %>%
+          mutate(lambda_d = cumsum(lambda_d)) %>%
           ungroup()
       }
 
       temp %>%
-        group_by(day) %>%
+        group_by(day, data_type) %>%
         summarise(
-          med = median(value)
+          med = median(lambda_d)
         ) %>%
+        ungroup() %>%
         mutate(day = actual_dates[day])
     }, .id = "Scenario")
   } else {
@@ -82,16 +81,17 @@ make_projection_plot <- function(models, cumulative = FALSE,
     lambdas <- mu_dat
   }
 
+  .d <- as.data.frame(obj$daily_cases)
+  names(.d) <- seq(1, ncol(.d))
+  .d$day <- actual_dates[1:obj$last_day_obs]
+  dat <- tidyr::pivot_longer(.d, -day, names_to = "data_type")
+
   if (cumulative) {
-    dat <- tibble(day = actual_dates[1:obj$last_day_obs],
-      value = cumsum(obj$daily_cases))
-  } else {
-    dat <- tibble(day = actual_dates[1:obj$last_day_obs],
-      value = obj$daily_cases)
+    dat <- dat %>% group_by(data_type) %>%
+      mutate(value = cumsum(value)) %>%
+      ungroup()
   }
   if (is.null(cols)) {
-    # cols <- RColorBrewer::brewer.pal(8, "Dark2")
-    # cols <- rep(cols, 5)
     cols <- rep("#3182BD", 99)
   }
 
@@ -143,8 +143,8 @@ make_projection_plot <- function(models, cumulative = FALSE,
     labs(colour = "Projection scenario", fill = "Projection scenario") +
     theme(axis.title.x = element_blank())
 
-  if (facet && length(unique(out$Scenario)) > 1)
-    g <- g + facet_wrap(~Scenario, ncol = ncol) + theme(legend.position = "none")
+  if (facet && (length(unique(out$Scenario)) > 1 || length(unique(out$data_type)) > 1))
+    g <- g + facet_grid(Scenario~data_type) + theme(legend.position = "none")
 
   if (length(unique(out$Scenario)) == 1) {
     g <- g + guides(fill = FALSE, colour = FALSE)

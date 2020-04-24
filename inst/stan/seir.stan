@@ -89,13 +89,12 @@ data {
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
   real f2_prior[2];   // beta prior for f2
   int day_inc_sampling;   // day to switch to sampFrac2
-  real sampFrac2_prior[2];   // beta prior for sampFrac2
+  real sampFrac2_prior[2,J];   // beta prior for sampFrac2
   int<lower=0, upper=1> priors_only; // logical: include likelihood or just priors?
   int<lower=0, upper=J> est_phi; // estimate NB phi?
   int<lower=0, upper=N> n_sampFrac2; // number of sampFrac2
-  int<lower=0, upper=1> obs_model; // observation model: 0 = Poisson, 1 = NB2, 2 = betabinomial
+  int<lower=0, upper=1> obs_model; // observation model: 0 = Poisson, 1 = NB2
   real<lower=0> rw_sigma; // specified random walk standard deviation
-  int tests[N]; // vector of tests; only used for betabinomial
   real ode_control[3]; // vector of ODE control numbers
   int<lower=1> N_lik; // number of days in the likelihood
   int dat_in_lik[N_lik]; // vector of data to include in the likelihood
@@ -116,17 +115,16 @@ transformed parameters {
   real sum_ft_inner; // holds a temporary calculation
   real eta[N,J]; // expected value on link scale (log)
   real k2; // from ODE
-  real E2; // from ODE
-  real E2d; // from ODE
+  real E2; // from ODE exposed and symptomatic
+  real E2d; // from ODE exposed and symptomatic and distancing
   real theta[2]; // gathers up the parameters (which come in with various limits)
   real y_hat[T,12]; // predicted states for each time t from ODE
   real this_samp; // holds the sample fraction for a given day
-  // real<lower=0> alpha[N]; // 1st shape parameter for the beta distribution
-  // real<lower=0> beta[N]; // 2nd shape parameter for the beta distribution
   theta[1] = R0;
   theta[2] = f2;
 
-  y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i, ode_control[1], ode_control[2], ode_control[3]);
+  y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i,
+                             ode_control[1], ode_control[2], ode_control[3]);
 
   // Calculating the expected case counts given the delays in reporting:
   for (j in 1:J) {
@@ -144,7 +142,7 @@ transformed parameters {
         this_samp = sampFrac2[1];
       }
       for (t in 1:T) {
-        ft[t] = 0; // initialize at 0 across the full 1:T
+        ft[t] = 0; // initialize across the full 1:T
       }
       // a fancy way of moving across a window of time:
       for (t in time_day_id0[n]:time_day_id[n]) { // t is an increment here
@@ -155,27 +153,15 @@ transformed parameters {
       ft[t] = this_samp * k2 * (E2 + E2d) *
       exp(weibull_lpdf(time[time_day_id[n]] - time[t] | delayShape[j], delayScale[j]));
       }
-      sum_ft_inner = 0; // initialize at 0
+      sum_ft_inner = 0; // initialize
       for (t in (time_day_id0[n] + 1):(time_day_id[n] - 1)) {
         sum_ft_inner += ft[t];
       }
+      // trapezoid integration:
       lambda_d[n,j] = 0.5 * dx *
       (ft[time_day_id0[n]] + 2 * sum_ft_inner + ft[time_day_id[n]]);
       eta[n,j] = log(lambda_d[n,j]);
     }
-
-    // if (obs_model == 2) { // Beta-Binomial observation model
-    //   for (n in 1:N) {
-      //     eta[n] = inv_logit(exp(eta[n]));
-      //     alpha[n] = eta[n,j] * phi[1];
-      //     beta[n] = (1 - eta[n,j]) * phi[1];
-      //   }
-      // } else {
-        //   for (n in 1:N) {
-          //     alpha[n] = 0;
-          //     beta[n] = 0;
-          //   }
-          // }
   }
 }
 model {
@@ -188,13 +174,12 @@ model {
     target += log(0.5) - 1.5 * log(phi[j]); // Jacobian adjustment
   }
   }
-  if (est_phi > 0 && obs_model == 2) { // Beta-Binomial
-  for (j in 1:J) phi[j] ~ normal(0, phi_prior);
-  }
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
   f2 ~ beta(f2_prior[1], f2_prior[2]);
   if (n_sampFrac2 > 0) {
-    sampFrac2[1] ~ beta(sampFrac2_prior[1], sampFrac2_prior[2]);
+    for (j in 1:J) {
+      sampFrac2[j] ~ beta(sampFrac2_prior[1,j], sampFrac2_prior[2,j]);
+    }
     if (n_sampFrac2 > 1) {
       for (n in 2:n_sampFrac2) {
         sampFrac2[n] ~ normal(sampFrac2[n-1], rw_sigma); // RW
