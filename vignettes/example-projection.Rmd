@@ -56,11 +56,11 @@ s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13)) # example sample fractions
 s2 <- rep(0.05, length(hosp)) # example sample fractions
 ```
 
-We can fit the Stan model with the function `fit_seeiqr()`. It takes one data input: a vector of case counts. This could also represent new hospital cases. We will only use 250 iterations so that this example runs quickly, but you would likely want more if you want stability in the tails of the posterior distribution. 8000 total iterations should be plenty, broken up across however many chains you can use efficiently on your available cores (e.g. 8 chains, 1000 iterations).
+We can fit the Stan model with the function `fit_seeiqr()`. It takes one data input: a vector of case counts. This could also represent new hospital cases. We will only use 200 iterations and 1 chain so that this example runs quickly, but you would likely want more if you want stability in the tails of the posterior distribution. 8000 total iterations should be plenty, broken up across however many chains you can use efficiently on your available cores (e.g. 8 chains and 1000 iterations or 4 chains and 2000 iterations).
 
 Stan will run in parallel assuming `options(mc.cores = parallel::detectCores() / 2)` was set. For the purposes of this vignette, we will just run one chain.
 
-```{r fit, message=FALSE, results='hide', cache=TRUE}
+```{r fit, message=FALSE, results='hide'}
 m1 <- fit_seir(
   cases,
   iter = 200,
@@ -71,22 +71,26 @@ m1 <- fit_seir(
 )
 ```
 
-```{r, include=FALSE}
-# post_state <- m1$fit %>% tidybayes::spread_draws(y_hat[time_num, state_num], n = 20)
-# variables_df <- tibble(
-#     state = names(m1$state_0),
-#     state_num = seq_along(m1$state_0)
-# )
-# ts_df <- dplyr::tibble(time = m1$time, time_num = seq_along(m1$time))
-# post_state <- left_join(post_state, variables_df)
-# post_state <- left_join(post_state, ts_df)
-#
-# ggplot(post_state, aes(time, y_hat, group = paste(.iteration, .draw))) +
-#   geom_line(alpha = 0.25) +
-#   facet_wrap(~state, scales = "free_y")
+If we had fit the above model with `save_state_predictions = TRUE`, then we could visualize the state predictions with the following code. We won't do that here, since we will re-project the states in R afterwards. Running the model with `save_state_predictions = TRUE` will result in a much larger model object that is slower to work with.
+
+```{r, eval=FALSE}
+if ("y_hat" %in% names(m1$post)) {
+  post_state <- m1$fit %>%
+    tidybayes::spread_draws(y_hat[time_num, state_num], n = 20)
+  variables_df <- tibble(
+    state = names(m1$state_0),
+    state_num = seq_along(m1$state_0)
+  )
+  ts_df <- dplyr::tibble(time = m1$time, time_num = seq_along(m1$time))
+  post_state <- left_join(post_state, variables_df)
+  post_state <- left_join(post_state, ts_df)
+  ggplot(post_state, aes(time, y_hat, group = paste(.iteration, .draw))) +
+    geom_line(alpha = 0.25) +
+    facet_wrap(~state, scales = "free_y")
+}
 ```
 
-Posterior predictive replicates are available in `post$y_rep`. We can also build those ourselves afterwards in R.
+Posterior predictive replicates are available in `post$y_rep`. We can also build those ourselves afterwards in R (shown below).
 
 Draws from the expected number of cases `lambda_d` are available as well.
 
@@ -278,7 +282,7 @@ plot_projection(
 
 We can extend the model to include multiple response data types (e.g., daily case counts and daily hospitalizations) by including a matrix of daily cases. We also then have to include a matrix of sampled fractions and a vector of delay scale and shape parameters to match:
 
-```{r fit2types, message=FALSE, results='hide', cache=TRUE}
+```{r fit2types, message=FALSE, results='hide'}
 s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13)) # example sample fractions
 s2 <- rep(0.05, length(hosp)) # example sample fractions
 
