@@ -266,7 +266,7 @@ make_projection_plot(list(m1),
 
 We can extend the model to include multiple response data types (e.g., daily case counts and daily hospitalizations) by including a matrix of daily cases. We also then have to include a matrix of sampled fractions and a vector of delay scale and shape parameters to match:
 
-```{r fit2, message=FALSE, results='hide', cache=TRUE}
+```{r fit2types, message=FALSE, results='hide', cache=TRUE}
 s1 <- c(rep(0.1, 13), rep(0.2, length(cases)-13)) # example sample fractions
 s2 <- rep(0.05, length(hosp)) # example sample fractions
 
