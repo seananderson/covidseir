@@ -6,6 +6,7 @@
 #' @param ylim The y-axis limits.
 #' @param outer_quantile A vector representing the lower and upper outer quantiles of the credible interval.
 #' @param facet Logical for whether or not to facet the panels. If false, then will put multiple ribbons on the same axes.
+#' @param cols Colour vector.
 #' @param linetype Whether or not the line should represent the mean of the expectation or the median of the observation distribution.
 #' @param omitted_days An optional vector of days to omit from the plot.
 #' @param y_rep_dat An optional posterior predictive replicate data frame to override the input from `models`.

@@ -33,6 +33,8 @@ make_projection_plot(
 
 \item{facet}{Logical for whether or not to facet the panels. If false, then will put multiple ribbons on the same axes.}
 
+\item{cols}{Colour vector.}
+
 \item{linetype}{Whether or not the line should represent the mean of the expectation or the median of the observation distribution.}
 
 \item{omitted_days}{An optional vector of days to omit from the plot.}
