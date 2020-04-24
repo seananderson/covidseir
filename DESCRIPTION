@@ -1,48 +1,89 @@
 Package: covidseir
-Title: What the Package Does (One Line, Title Case)
+Title: Bayesian SEIR Modelling for Multivariate COVID-19 Case Data
 Version: 0.0.0.9000
 Authors@R: 
-    person(given = "First",
-           family = "Last",
-           role = c("aut", "cre"),
-           email = "first.last@example.com",
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+    c(person(given = c("Sean", "C."),
+             family = "Anderson",
+             role = c("aut", "cre"),
+             email = "sean@seananderson.ca",
+             comment = c(ORCID = "0000-0001-9563-1937")),
+      person(given = c("Andrew", "M."),
+             family = "Edwards",
+             role = "aut"),
+      person(given = "Madi",
+             family = "Yerlanov",
+             role = "aut"),
+      person(given = "Nicola",
+             family = "Mulberry",
+             role = "aut"),
+      person(given = c("Jessica", "E."),
+             family = "Stockdale",
+             role = "aut"),
+      person(given = c("Rebeca", "C."),
+             family = "Falcao",
+             role = "aut"),
+      person(given = c("Sarafa", "A."),
+             family = "Iyaniwura",
+             role = "aut"),
+      person(given = c("Michael", "C."),
+             family = "Otterstatter",
+             role = "aut"),
+      person(given = c("Michael", "A."),
+             family = "Irvine",
+             role = "aut"),
+      person(given = c("Naveed", "Z."),
+             family = "Janjua",
+             role = "aut"),
+      person(given = "Daniel",
+             family = "Coombs",
+             role = "aut"),
+      person(given = "Caroline",
+             family = "Colijn",
+             role = "aut"))
+Description: Fits a Bayesian SEIR (Susceptible, Exposed,
+    Infectious, Recovered) model to daily COVID-19 case data.  It focuses
+    on estimating the impacts of physical distancing (social distancing)
+    on the disease trajectory. The model is coded in 'Stan'. The model can
+    accommodate multiple types of case data at once (e.g., reported cases,
+    hospitalizations, ICU admissions) and accounts for delays between
+    symptom onset and case appearance. This model is a continuation of the
+    model described in the preprint <doi:10.1101/2020.04.17.20070086>.
 License: GPL-2
-Encoding: UTF-8
-LazyData: true
-Biarch: true
 Depends: 
-    R (>= 3.5.0),
-    deSolve
+    deSolve,
+    R (>= 3.5.0)
 Imports: 
-    methods,
-    Rcpp (>= 0.12.0),
-    rstan (>= 2.18.1),
-    rstantools (>= 2.0.0),
-    purrr,
     dplyr,
+    furrr,
     ggplot2,
+    lubridate,
     magrittr,
     MASS,
-    lubridate,
-    reshape2, 
-    furrr, 
-    tidyr,
-    tidybayes
+    methods,
+    purrr,
+    Rcpp (>= 0.12.0),
+    reshape2,
+    rstan (>= 2.18.1),
+    rstantools (>= 2.0.0),
+    tidybayes,
+    tidyr
+Suggests: 
+    bayesplot,
+    future,
+    knitr,
+    rmarkdown,
+    shinystan
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
     RcppEigen (>= 0.3.3.3.0),
     rstan (>= 2.18.1),
     StanHeaders (>= 2.18.0)
-SystemRequirements: GNU make
-RoxygenNote: 7.1.0
-Suggests: 
-    knitr,
-    rmarkdown,
-    bayesplot,
-    shinystan,
-    future
-VignetteBuilder: knitr
+VignetteBuilder: 
+    knitr
+Biarch: true
+Encoding: UTF-8
+LazyData: true
 Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.1.0
+SystemRequirements: GNU make
