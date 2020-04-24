@@ -4,21 +4,23 @@ This is a work in progress based on the model in the preprint [Estimating the im
 
 ### The model is very much a work in progress. Arguments and output format may still change.
 
-Install the package with:
+Before installation, you will need a [C++ compiler installed to compile the Stan model](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
+
+Then, install the package with:
 
 ```r
 # install.packages("remotes")
 remotes::install_github("seananderson/covidseir")
 ```
 
-You will need to have a C++ compiler installed.
-
-If you also want to read the vignette (slower):
+If you also want to read the compiled vignette (slower):
 
 ```r
 remotes::install_github("seananderson/covidseir", build_vignettes = TRUE)
 browseVignettes("covidseir")
 ```
+
+Alternatively, read the source code for the vignette [here](https://github.com/seananderson/covidseir/tree/master/vignettes).
 
 Or if you have a local copy of the repository:
 
