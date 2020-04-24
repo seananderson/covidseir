@@ -17,8 +17,7 @@ make_projection_plot(
   y_rep_dat = NULL,
   mu_dat = NULL,
   points_size = 1.25,
-  sc_order = NULL,
-  data_col = 1
+  sc_order = NULL
 )
 }
 \arguments{
@@ -45,8 +44,6 @@ make_projection_plot(
 \item{points_size}{The point size of dots.}
 
 \item{sc_order}{An optional vector of scenario names to force the order of the panels. This character vector should match the named elements of \code{models}.}
-
-\item{ncol}{The number of facet panel columns.}
 }
 \value{
 A ggplot

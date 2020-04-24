@@ -61,7 +61,6 @@
 #' @return A named list object
 
 fit_seir <- function(daily_cases,
-  daily_tests = NULL,
   obs_model = c("NB2", "Poisson"),
   forecast_days = 0,
   time_increment = 0.1,
@@ -75,8 +74,6 @@ fit_seir <- function(daily_cases,
   seed = 42,
   chains = 4,
   iter = 1000,
-  sampled_fraction1 = 0.1,
-  sampled_fraction2 = 0.3,
   sampled_fraction_day_change = 14,
   sampled_fractions = NULL,
   fixed_f_forecast = NULL,
@@ -131,14 +128,6 @@ fit_seir <- function(daily_cases,
       nrow(daily_cases) - sampled_fraction_day_change + 1L
       stop("Random walk is currently disabled.")
     }
-
-  if (!is.null(daily_tests)) {
-    stopifnot(nrow(daily_cases) + forecast_days == nrow(daily_tests))
-    if (min(daily_tests) == 0) {
-      warning("Replacing 0 daily tests with 1.")
-      daily_tests[daily_tests == 0] <- 1
-    }
-  }
   stopifnot(
     names(x_r) ==
       c("N", "D", "k1", "k2", "q", "r", "ur", "f1", "start_decline", "end_decline")
@@ -260,7 +249,7 @@ fit_seir <- function(daily_cases,
   list(
     fit = fit, post = post, phi_prior = phi_prior, R0_prior = R0_prior,
     f2_prior = f2_prior, obs_model = obs_model, sampFrac = sampFrac, state_0 = state_0,
-    daily_cases = daily_cases, daily_tests = daily_tests, days = days, time = time,
+    daily_cases = daily_cases, days = days, time = time,
     last_day_obs = last_day_obs, pars = x_r, f2_prior_beta_shape1 = beta_shape1,
     f2_prior_beta_shape2 = beta_shape2, stan_data = stan_data
   )

@@ -28,6 +28,7 @@ Imports:
     lubridate,
     reshape2, 
     furrr, 
+    tidyr,
     tidybayes
 LinkingTo: 
     BH (>= 1.66.0),

@@ -6,7 +6,6 @@
 \usage{
 fit_seir(
   daily_cases,
-  daily_tests = NULL,
   obs_model = c("NB2", "Poisson"),
   forecast_days = 0,
   time_increment = 0.1,
@@ -20,8 +19,6 @@ fit_seir(
   seed = 42,
   chains = 4,
   iter = 1000,
-  sampled_fraction1 = 0.1,
-  sampled_fraction2 = 0.3,
   sampled_fraction_day_change = 14,
   sampled_fractions = NULL,
   fixed_f_forecast = NULL,

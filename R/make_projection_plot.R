@@ -6,7 +6,6 @@
 #' @param ylim The y-axis limits.
 #' @param outer_quantile A vector representing the lower and upper outer quantiles of the credible interval.
 #' @param facet Logical for whether or not to facet the panels. If false, then will put multiple ribbons on the same axes.
-#' @param ncol The number of facet panel columns.
 #' @param linetype Whether or not the line should represent the mean of the expectation or the median of the observation distribution.
 #' @param omitted_days An optional vector of days to omit from the plot.
 #' @param y_rep_dat An optional posterior predictive replicate data frame to override the input from `models`.
@@ -18,15 +17,14 @@
 #' @export
 #' @importFrom ggplot2 theme facet_wrap guides ylab xlab scale_color_manual
 #' scale_fill_manual geom_point labs aes_string ggplot annotate geom_ribbon coord_cartesian
-#' element_blank geom_line
+#' element_blank geom_line facet_grid
 #' @importFrom dplyr summarise group_by mutate rename filter summarize ungroup tibble as_tibble
 #' @importFrom deSolve ode
 make_projection_plot <- function(models, cumulative = FALSE,
   first_date = "2020-03-01", ylim = c(0, max(out$upr) * 1.03), outer_quantile = c(0.05, 0.95),
   facet = TRUE, cols = NULL, linetype = c("mu", "obs"),
   omitted_days = NULL, y_rep_dat = NULL, mu_dat = NULL, points_size = 1.25,
-  sc_order = NULL,
-  data_col = 1
+  sc_order = NULL
   ) {
 
   linetype <- match.arg(linetype)
