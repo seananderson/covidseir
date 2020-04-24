@@ -39,7 +39,8 @@ Authors@R:
              role = "aut"),
       person(given = "Caroline",
              family = "Colijn",
-             role = "aut"))
+             role = "aut",
+             comment = "Principal Investigator; <ccolijn@sfu.ca>"))
 Description: Fits a Bayesian SEIR (Susceptible, Exposed,
     Infectious, Recovered) model to daily COVID-19 case data.  It focuses
     on estimating the impacts of physical distancing (social distancing)
