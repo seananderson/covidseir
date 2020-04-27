@@ -88,16 +88,16 @@ data {
   real R0_prior[2];   // lognormal log mean and SD for R0 prior
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
   real f2_prior[2];   // beta prior for f2
-  int day_inc_sampling;   // day to switch to sampFrac2
-  real sampFrac2_prior[2,J];   // beta prior for sampFrac2
+  // int day_inc_sampling;   // day to switch to sampFrac2
+  real sampFrac2_prior[2];   // beta prior for sampFrac2
   int<lower=0, upper=1> priors_only; // logical: include likelihood or just priors?
   int<lower=0, upper=J> est_phi; // estimate NB phi?
   int<lower=0, upper=N> n_sampFrac2; // number of sampFrac2
   int<lower=0, upper=1> obs_model; // observation model: 0 = Poisson, 1 = NB2
   real<lower=0> rw_sigma; // specified random walk standard deviation
   real ode_control[3]; // vector of ODE control numbers
-  int<lower=1> N_lik; // number of days in the likelihood
-  int dat_in_lik[N_lik]; // vector of data to include in the likelihood
+  // int<lower=1> N_lik; // number of days in the likelihood
+  // int dat_in_lik[N_lik]; // vector of data to include in the likelihood
 }
 transformed data {
   int x_i[0]; // empty; needed for ODE function
@@ -130,15 +130,15 @@ transformed parameters {
   for (j in 1:J) {
     for (n in 1:N) {
       this_samp = sampFrac[n,j];
-      if (n_sampFrac2 > 1) {
-        if (n >= day_inc_sampling && n <= last_day_obs) {
-          this_samp = sampFrac2[n - day_inc_sampling + 1];
+      if (n_sampFrac2 > 1 && j == 1) {
+        if (n <= last_day_obs) {
+          this_samp = sampFrac2[n];
         }
-        if (n >= day_inc_sampling && n > last_day_obs) {
+        if (n > last_day_obs && j == 1) {
           this_samp = sampFrac2[n_sampFrac2]; // forecast with last value
         }
       }
-      if (n_sampFrac2 == 1) {
+      if (n_sampFrac2 == 1 && j == 1) {
         this_samp = sampFrac2[1];
       }
       for (t in 1:T) {
@@ -177,23 +177,25 @@ model {
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
   f2 ~ beta(f2_prior[1], f2_prior[2]);
   if (n_sampFrac2 > 0) {
-    for (j in 1:J) {
-      sampFrac2[j] ~ beta(sampFrac2_prior[1,j], sampFrac2_prior[2,j]);
-    }
+    sampFrac2[1] ~ beta(sampFrac2_prior[1], sampFrac2_prior[2]);
     if (n_sampFrac2 > 1) {
       for (n in 2:n_sampFrac2) {
-        sampFrac2[n] ~ normal(sampFrac2[n-1], rw_sigma); // RW
+        sampFrac2[n] ~ normal(sampFrac2[n - 1], rw_sigma); // RW
       }
     }
   }
 
   // data likelihood:
   if (!priors_only) { // useful to turn off for prior predictive checks
-  for (j in 1:J) {
-    if (obs_model == 0) {
-      daily_cases[dat_in_lik,j] ~ poisson_log(eta[dat_in_lik,j]);
-    } else if (obs_model == 1) {
-      daily_cases[dat_in_lik,j] ~ neg_binomial_2_log(eta[dat_in_lik,j], phi[j]);
+  for (n in 1:last_day_obs) {
+    for (j in 1:J) {
+      if (daily_cases[n,j] != 9999999) { // NA magic number
+        if (obs_model == 0) {
+          daily_cases[n,j] ~ poisson_log(eta[n,j]);
+        } else if (obs_model == 1) {
+          daily_cases[n,j] ~ neg_binomial_2_log(eta[n,j], phi[j]);
+        }
+      }
     }
   }
   }

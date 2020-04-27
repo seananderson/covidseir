@@ -2,7 +2,8 @@
 #'
 #' @param daily_cases Either a vector of daily new cases if fit into a single
 #'   data type or a matrix of case data is fitting to multiple data types. Each
-#'   data type should be in its own column. There should be no missing values.
+#'   data type should be in its own column. Can have NA values (will be ignored
+#'   in likelihood).
 #' @param obs_model Type of observation model
 #' @param forecast_days Number of days into the future to forecast. The model
 #'   will run faster with fewer forecasted days.
@@ -15,12 +16,11 @@
 #'   phi) and `Var(Y) = mu + mu^2 / phi`.
 #'   <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations>
 #' @param f2_prior Beta mean and SD for `f2` parameter
-#' @param sampFrac2_prior `sampFrac2` prior starting on
-#'   `sampled_fraction_day_change` if `sampFrac2_type` is "estimated" or "rw".
+#' @param sampFrac2_prior `sampFrac2` prior if `sampFrac2_type` is
+#'   "estimated" or "rw".
 #'   In the case of the random walk, this specifies the initial state prior. The
-#'   two values correspond to the mean and SD of a Beta distribution. If there
-#'   are multiple input data types then `sampFrac2_prior` should be a matrix
-#'   with columns for the different data types and rows for the means and SDs.
+#'   two values correspond to the mean and SD of a Beta distribution.
+#'   Only applies to first time series.
 #'   (Currently disabled!)
 #' @param sampFrac2_type How to treat the sample fraction. Fixed, estimated, or
 #'   a constrained random walk (Currently disabled!).
@@ -32,7 +32,6 @@
 #' @param seed MCMC seed
 #' @param chains Number of MCMC chains
 #' @param iter MCMC iterations per chain
-#' @param sampled_fraction_day_change Date fraction sample changes
 #' @param sampled_fractions A vector (or matrix) of sampled fractions. Should
 #'   be of dimensions: `nrow(daily_cases) + forecast_days` (rows) by
 #'   `ncol(daily_cases` (columns). A vector will be turned into a one column matrix.
@@ -54,8 +53,6 @@
 #' @param ode_control Control options for the Stan ODE solver. First is relative
 #'   difference, that absolute difference, and then maximum iterations. You
 #'   probably don't need to touch these.
-#' @param daily_cases_omit An optional vector of days to omit from the data
-#'   likelihood. If `daily_cases` is a matrix then they should also be a matrix.
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #' @export
 #' @return A named list object
@@ -74,7 +71,6 @@ fit_seir <- function(daily_cases,
   seed = 42,
   chains = 4,
   iter = 2000,
-  sampled_fraction_day_change = 14,
   sampled_fractions = NULL,
   fixed_f_forecast = NULL,
   day_start_fixed_f_forecast = nrow(daily_cases) + 1,
@@ -123,10 +119,10 @@ fit_seir <- function(daily_cases,
       0L
     } else if (sampFrac2_type == "estimated") {
       1L
-      stop("Estimated sample fraction is currently disabled.")
+      # stop("Estimated sample fraction is currently disabled.", call. = FALSE)
     } else { # random walk:
-      nrow(daily_cases) - sampled_fraction_day_change + 1L
-      stop("Random walk is currently disabled.")
+      nrow(daily_cases)
+      # stop("Random walk is currently disabled.", call. = FALSE)
     }
   stopifnot(
     names(x_r) ==
@@ -179,24 +175,32 @@ fit_seir <- function(daily_cases,
   beta_shape2 <- get_beta_params(beta_mean, beta_sd)$beta
 
   if (sampFrac2_type == "fixed") {
-    sampFrac2_prior <- matrix(1, ncol = ncol(daily_cases), nrow = 2) # fake
+    sampFrac2_prior <- c(1, 1) # fake
   }
-  sampFrac2_prior_trans <- matrix(nrow = 2, ncol = ncol(daily_cases))
-  for (i in seq_len(ncol(daily_cases))) {
-    sampFrac2_prior_trans[1,i] <-
-      get_beta_params(sampFrac2_prior[1,i], sampFrac2_prior[2,i])$alpha
-    sampFrac2_prior_trans[2,i] <-
-      get_beta_params(sampFrac2_prior[1,i], sampFrac2_prior[2,i])$beta
+  # sampFrac2_prior_trans <- matrix(nrow = 2, ncol = ncol(daily_cases))
+  # for (i in seq_len(ncol(daily_cases))) {
+  #   sampFrac2_prior_trans[1,i] <-
+  #     get_beta_params(sampFrac2_prior[1,i], sampFrac2_prior[2,i])$alpha
+  #   sampFrac2_prior_trans[2,i] <-
+  #     get_beta_params(sampFrac2_prior[1,i], sampFrac2_prior[2,i])$beta
+  # }
+
+  sampFrac2_prior_trans <- c(
+    get_beta_params(sampFrac2_prior[1], sampFrac2_prior[2])$alpha,
+    get_beta_params(sampFrac2_prior[1], sampFrac2_prior[2])$beta
+  )
+
+  if (9999999 %in% daily_cases) {
+    stop("covidseir uses `9999999` as a 'magic' number for `NA`.", call. = FALSE)
   }
 
-  dat_in_lik <- seq(1, last_day_obs)
-  if (!is.null(daily_cases_omit)) {
-    dat_in_lik <- dat_in_lik[-daily_cases_omit]
-  }
+  daily_cases_stan <- daily_cases
+  daily_cases_stan[is.na(daily_cases_stan)] <- 9999999 # magic number for NA
+
   stan_data <- list(
     T = length(time),
     days = days,
-    daily_cases = daily_cases,
+    daily_cases = daily_cases_stan,
     J = ncol(daily_cases),
     N = length(days),
     y0 = state_0,
@@ -212,16 +216,13 @@ fit_seir <- function(daily_cases,
     phi_prior = phi_prior,
     f2_prior = c(beta_shape1, beta_shape2),
     sampFrac2_prior = sampFrac2_prior_trans,
-    day_inc_sampling = sampled_fraction_day_change,
     n_sampFrac2 = n_sampFrac2,
     rw_sigma = rw_sigma,
     priors_only = 0L,
     last_day_obs = last_day_obs,
     obs_model = obs_model,
     ode_control = ode_control,
-    est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L,
-    dat_in_lik = dat_in_lik,
-    N_lik = length(dat_in_lik)
+    est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L
   )
   initf <- function(stan_data) {
     R0 <- stats::rlnorm(1, log(R0_prior[1]), R0_prior[2])
