@@ -19,7 +19,6 @@ fit_seir(
   seed = 42,
   chains = 4,
   iter = 2000,
-  sampled_fraction_day_change = 14,
   sampled_fractions = NULL,
   fixed_f_forecast = NULL,
   day_start_fixed_f_forecast = nrow(daily_cases) + 1,
@@ -42,7 +41,8 @@ fit_seir(
 \arguments{
 \item{daily_cases}{Either a vector of daily new cases if fit into a single
 data type or a matrix of case data is fitting to multiple data types. Each
-data type should be in its own column. There should be no missing values.}
+data type should be in its own column. Can have NA values (will be ignored
+in likelihood).}
 
 \item{obs_model}{Type of observation model}
 
@@ -63,12 +63,11 @@ phi) and \code{Var(Y) = mu + mu^2 / phi}.
 
 \item{f2_prior}{Beta mean and SD for \code{f2} parameter}
 
-\item{sampFrac2_prior}{\code{sampFrac2} prior starting on
-\code{sampled_fraction_day_change} if \code{sampFrac2_type} is "estimated" or "rw".
+\item{sampFrac2_prior}{\code{sampFrac2} prior if \code{sampFrac2_type} is
+"estimated" or "rw".
 In the case of the random walk, this specifies the initial state prior. The
-two values correspond to the mean and SD of a Beta distribution. If there
-are multiple input data types then \code{sampFrac2_prior} should be a matrix
-with columns for the different data types and rows for the means and SDs.
+two values correspond to the mean and SD of a Beta distribution.
+Only applies to first time series.
 (Currently disabled!)}
 
 \item{sampFrac2_type}{How to treat the sample fraction. Fixed, estimated, or
@@ -85,8 +84,6 @@ walk on the first data type. (Currently disabled!)}
 \item{chains}{Number of MCMC chains}
 
 \item{iter}{MCMC iterations per chain}
-
-\item{sampled_fraction_day_change}{Date fraction sample changes}
 
 \item{sampled_fractions}{A vector (or matrix) of sampled fractions. Should
 be of dimensions: \code{nrow(daily_cases) + forecast_days} (rows) by
@@ -120,9 +117,6 @@ format as for \code{delayScale}.}
 \item{ode_control}{Control options for the Stan ODE solver. First is relative
 difference, that absolute difference, and then maximum iterations. You
 probably don't need to touch these.}
-
-\item{daily_cases_omit}{An optional vector of days to omit from the data
-likelihood. If \code{daily_cases} is a matrix then they should also be a matrix.}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}}.}
 }

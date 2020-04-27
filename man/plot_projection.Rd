@@ -17,11 +17,15 @@ plot_projection(
   y_rep_dat = NULL,
   mu_dat = NULL,
   points_size = 1.25,
-  sc_order = NULL
+  sc_order = NULL,
+  hide_data_types = NULL,
+  hide_dates = NULL
 )
 }
 \arguments{
-\item{models}{A list of models from \code{\link[=fit_seir]{fit_seir()}}. If there are multiple elements than the names of the list elements will be used for the facet labels.}
+\item{models}{A list of models from \code{\link[=fit_seir]{fit_seir()}}. If there are multiple
+elements than the names of the list elements will be used for the facet
+labels.}
 
 \item{cumulative}{Logical for whether or not it should be a cumulative plot.}
 
@@ -29,23 +33,37 @@ plot_projection(
 
 \item{ylim}{The y-axis limits.}
 
-\item{outer_quantile}{A vector representing the lower and upper outer quantiles of the credible interval.}
+\item{outer_quantile}{A vector representing the lower and upper outer
+quantiles of the credible interval.}
 
-\item{facet}{Logical for whether or not to facet the panels. If false, then will put multiple ribbons on the same axes.}
+\item{facet}{Logical for whether or not to facet the panels. If false, then
+will put multiple ribbons on the same axes.}
 
 \item{cols}{Colour vector.}
 
-\item{linetype}{Whether or not the line should represent the mean of the expectation or the median of the observation distribution.}
+\item{linetype}{Whether or not the line should represent the mean of the
+expectation or the median of the observation distribution.}
 
 \item{omitted_days}{An optional vector of days to omit from the plot.}
 
-\item{y_rep_dat}{An optional posterior predictive replicate data frame to override the input from \code{models}.}
+\item{y_rep_dat}{An optional posterior predictive replicate data frame to
+override the input from \code{models}.}
 
-\item{mu_dat}{An optional expected value data frame to override the input from \code{models}.}
+\item{mu_dat}{An optional expected value data frame to override the input
+from \code{models}.}
 
 \item{points_size}{The point size of dots.}
 
-\item{sc_order}{An optional vector of scenario names to force the order of the panels. This character vector should match the named elements of \code{models}.}
+\item{sc_order}{An optional vector of scenario names to force the order of
+the panels. This character vector should match the named elements of
+\code{models}.}
+
+\item{hide_data_types}{A numeric vector corresponding to the datatypes to
+hide projections of. Useful, for example, to omit showing projections if
+case projections are not trusted in the future.}
+
+\item{hide_dates}{A sequence of dates \code{lubridate::ymd()} format to omit from
+projections. See explanation for \code{hide_data_types}.}
 }
 \value{
 A ggplot

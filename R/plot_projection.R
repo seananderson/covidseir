@@ -1,18 +1,32 @@
 #' Make a projection plot
 #'
-#' @param models A list of models from [fit_seir()]. If there are multiple elements than the names of the list elements will be used for the facet labels.
+#' @param models A list of models from [fit_seir()]. If there are multiple
+#'   elements than the names of the list elements will be used for the facet
+#'   labels.
 #' @param cumulative Logical for whether or not it should be a cumulative plot.
 #' @param first_date The first date in the plot.
 #' @param ylim The y-axis limits.
-#' @param outer_quantile A vector representing the lower and upper outer quantiles of the credible interval.
-#' @param facet Logical for whether or not to facet the panels. If false, then will put multiple ribbons on the same axes.
+#' @param outer_quantile A vector representing the lower and upper outer
+#'   quantiles of the credible interval.
+#' @param facet Logical for whether or not to facet the panels. If false, then
+#'   will put multiple ribbons on the same axes.
 #' @param cols Colour vector.
-#' @param linetype Whether or not the line should represent the mean of the expectation or the median of the observation distribution.
+#' @param linetype Whether or not the line should represent the mean of the
+#'   expectation or the median of the observation distribution.
 #' @param omitted_days An optional vector of days to omit from the plot.
-#' @param y_rep_dat An optional posterior predictive replicate data frame to override the input from `models`.
-#' @param mu_dat An optional expected value data frame to override the input from `models`.
+#' @param y_rep_dat An optional posterior predictive replicate data frame to
+#'   override the input from `models`.
+#' @param mu_dat An optional expected value data frame to override the input
+#'   from `models`.
 #' @param points_size The point size of dots.
-#' @param sc_order An optional vector of scenario names to force the order of the panels. This character vector should match the named elements of `models`.
+#' @param sc_order An optional vector of scenario names to force the order of
+#'   the panels. This character vector should match the named elements of
+#'   `models`.
+#' @param hide_data_types A numeric vector corresponding to the datatypes to
+#'   hide projections of. Useful, for example, to omit showing projections if
+#'   case projections are not trusted in the future.
+#' @param hide_dates A sequence of dates `lubridate::ymd()` format to omit from
+#'   projections. See explanation for `hide_data_types`.
 #'
 #' @return A ggplot
 #' @export
@@ -25,7 +39,7 @@ plot_projection <- function(models, cumulative = FALSE,
   first_date = "2020-03-01", ylim = c(0, max(out$upr) * 1.03), outer_quantile = c(0.05, 0.95),
   facet = TRUE, cols = NULL, linetype = c("mu", "obs"),
   omitted_days = NULL, y_rep_dat = NULL, mu_dat = NULL, points_size = 1.25,
-  sc_order = NULL
+  sc_order = NULL, hide_data_types = NULL, hide_dates = NULL
   ) {
 
   if (is.list(models) && "fit" %in% names(models) && "post" %in% names(models)) {
@@ -87,6 +101,11 @@ plot_projection <- function(models, cumulative = FALSE,
   names(.d) <- seq(1, ncol(.d))
   .d$day <- actual_dates[1:obj$last_day_obs]
   dat <- tidyr::pivot_longer(.d, -day, names_to = "data_type")
+
+  if (!is.null(hide_dates)) {
+    out <- dplyr::filter(out, !(day %in% hide_dates & data_type %in% hide_data_types))
+    lambdas <- dplyr::filter(lambdas, !(day %in% hide_dates & data_type %in% hide_data_types))
+  }
 
   if (cumulative) {
     dat <- dat %>% group_by(data_type) %>%
