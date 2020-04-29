@@ -19,7 +19,8 @@ plot_projection(
   points_size = 1.25,
   sc_order = NULL,
   hide_data_types = NULL,
-  hide_dates = NULL
+  hide_dates = NULL,
+  data_type_names = NULL
 )
 }
 \arguments{
@@ -64,6 +65,8 @@ case projections are not trusted in the future.}
 
 \item{hide_dates}{A sequence of dates \code{lubridate::ymd()} format to omit from
 projections. See explanation for \code{hide_data_types}.}
+
+\item{data_type_names}{And named numeric vector where the names correspond to the desired \code{data_type} names in the values correspond to the \code{data_type} number.}
 }
 \value{
 A ggplot

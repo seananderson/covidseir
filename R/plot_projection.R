@@ -27,6 +27,7 @@
 #'   case projections are not trusted in the future.
 #' @param hide_dates A sequence of dates `lubridate::ymd()` format to omit from
 #'   projections. See explanation for `hide_data_types`.
+#' @param data_type_names And named numeric vector where the names correspond to the desired `data_type` names in the values correspond to the `data_type` number.
 #'
 #' @return A ggplot
 #' @export
@@ -39,7 +40,8 @@ plot_projection <- function(models, cumulative = FALSE,
   first_date = "2020-03-01", ylim = c(0, max(out$upr) * 1.03), outer_quantile = c(0.05, 0.95),
   facet = TRUE, cols = NULL, linetype = c("mu", "obs"),
   omitted_days = NULL, y_rep_dat = NULL, mu_dat = NULL, points_size = 1.25,
-  sc_order = NULL, hide_data_types = NULL, hide_dates = NULL
+  sc_order = NULL, hide_data_types = NULL, hide_dates = NULL,
+  data_type_names = NULL
   ) {
 
   if (is.list(models) && "fit" %in% names(models) && "post" %in% names(models)) {
@@ -116,6 +118,11 @@ plot_projection <- function(models, cumulative = FALSE,
     cols <- rep("#3182BD", 99)
   }
 
+  if (!is.null(data_type_names)) {
+    out$data_type <- names(data_type_names[out$data_type])
+    lambdas$data_type <- names(data_type_names[lambdas$data_type])
+    dat$data_type <- names(data_type_names[as.numeric(dat$data_type)])
+  }
   if (!is.null(sc_order)) {
     out$Scenario <- factor(out$Scenario, levels = sc_order)
     lambdas$Scenario <- factor(lambdas$Scenario, levels = sc_order)
