@@ -79,6 +79,8 @@ data {
   int days[N];        // day increments
   int last_day_obs;   // last day of observed data; days after this are projections
   int daily_cases[last_day_obs,J]; // daily new case counts
+  int sampFrac_seg[N]; // optional index of estimated sample fractions for 1st timeseries
+  int<lower=1, upper=4> sampFrac_type; // Type of sample fraction: fixed, estimated, rw, segmented
   real x_r[13];       // data for ODEs (real numbers)
   real sampFrac[N,J];   // fraction of cases sampled per time step
   real delayScale[J];    // Weibull parameter for delay in becoming a case count
@@ -131,11 +133,15 @@ transformed parameters {
     for (n in 1:N) {
       this_samp = sampFrac[n,j];
       if (n_sampFrac2 > 1 && j == 1) {
-        if (n <= last_day_obs) {
-          this_samp = sampFrac2[n];
-        }
-        if (n > last_day_obs && j == 1) {
-          this_samp = sampFrac2[n_sampFrac2]; // forecast with last value
+        if (sampFrac_type != 4) { // anything but segmented
+          if (n <= last_day_obs) {
+            this_samp = sampFrac2[n];
+          }
+          if (n > last_day_obs && j == 1) {
+            this_samp = sampFrac2[n_sampFrac2]; // forecast with last value
+          }
+        } else { // segmented
+          this_samp = sampFrac2[sampFrac_seg[n]];
         }
       }
       if (n_sampFrac2 == 1 && j == 1) {
@@ -176,7 +182,7 @@ model {
   }
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
   f2 ~ beta(f2_prior[1], f2_prior[2]);
-  if (n_sampFrac2 > 0) {
+  if (n_sampFrac2 > 0 && sampFrac_type != 4) { // sampFrac estimated but not segmented
     sampFrac2[1] ~ beta(sampFrac2_prior[1], sampFrac2_prior[2]);
     if (n_sampFrac2 > 1) {
       for (n in 2:n_sampFrac2) {
@@ -184,20 +190,25 @@ model {
       }
     }
   }
+  if (n_sampFrac2 > 0 && sampFrac_type != 4) { // sampFrac segmented
+    for (n in 1:n_sampFrac2) {
+      sampFrac2[n] ~ beta(sampFrac2_prior[1], sampFrac2_prior[2]);
+    }
+  }
 
   // data likelihood:
   if (!priors_only) { // useful to turn off for prior predictive checks
-  for (n in 1:last_day_obs) {
-    for (j in 1:J) {
-      if (daily_cases[n,j] != 9999999) { // NA magic number
+    for (n in 1:last_day_obs) {
+      for (j in 1:J) {
+        if (daily_cases[n,j] != 9999999) { // NA magic number
         if (obs_model == 0) {
           daily_cases[n,j] ~ poisson_log(eta[n,j]);
         } else if (obs_model == 1) {
           daily_cases[n,j] ~ neg_binomial_2_log(eta[n,j], phi[j]);
         }
+        }
       }
     }
-  }
   }
 }
 generated quantities{

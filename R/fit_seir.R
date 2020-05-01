@@ -17,16 +17,17 @@
 #'   <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations>
 #' @param f2_prior Beta mean and SD for `f2` parameter
 #' @param sampFrac2_prior `sampFrac2` prior if `sampFrac2_type` is
-#'   "estimated" or "rw".
+#'   "estimated" or "rw" or "segmented".
 #'   In the case of the random walk, this specifies the initial state prior. The
 #'   two values correspond to the mean and SD of a Beta distribution.
 #'   Only applies to first time series.
 #'   (Currently disabled!)
 #' @param sampFrac2_type How to treat the sample fraction. Fixed, estimated, or
-#'   a constrained random walk (Currently disabled!).
+#'   a constrained random walk. Also segmented.
 #'   Only applies to the first data type column if
 #'   there are multiple data types. The other data types always have a fixed
 #'   sample fraction.
+#' @param sampFrac_seg A vector of segment indexes of length `daily_cases` + `forecast_days`.
 #' @param rw_sigma The standard deviation on the optional `sampFrac2` random
 #'   walk on the first data type. (Currently disabled!)
 #' @param seed MCMC seed
@@ -66,7 +67,8 @@ fit_seir <- function(daily_cases,
   phi_prior = 1,
   f2_prior = c(0.4, 0.2),
   sampFrac2_prior = c(0.4, 0.2),
-  sampFrac2_type = c("fixed", "estimated", "rw"),
+  sampFrac2_type = c("fixed", "estimated", "rw", "segmented"),
+  sampFrac_seg = NULL,
   rw_sigma = 0.1,
   seed = 42,
   chains = 4,
@@ -119,10 +121,10 @@ fit_seir <- function(daily_cases,
       0L
     } else if (sampFrac2_type == "estimated") {
       1L
-      # stop("Estimated sample fraction is currently disabled.", call. = FALSE)
+    } else if (sampFrac2_type == "segmented") {
+      max(sampFrac_seg)
     } else { # random walk:
       nrow(daily_cases)
-      # stop("Random walk is currently disabled.", call. = FALSE)
     }
   stopifnot(
     names(x_r) ==
@@ -210,6 +212,8 @@ fit_seir <- function(daily_cases,
     delayShape = array(delayShape),
     delayScale = array(delayScale),
     sampFrac = sampFrac,
+    sampFrac_seg = sampFrac_seg,
+    sampFrac_type = if (sampFrac2_type == "segmented") 4 else 1, # FIXME
     time_day_id = time_day_id,
     time_day_id0 = time_day_id0,
     R0_prior = R0_prior,

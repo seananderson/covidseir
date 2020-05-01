@@ -14,7 +14,8 @@ fit_seir(
   phi_prior = 1,
   f2_prior = c(0.4, 0.2),
   sampFrac2_prior = c(0.4, 0.2),
-  sampFrac2_type = c("fixed", "estimated", "rw"),
+  sampFrac2_type = c("fixed", "estimated", "rw", "segmented"),
+  sampFrac_seg = NULL,
   rw_sigma = 0.1,
   seed = 42,
   chains = 4,
@@ -64,17 +65,19 @@ phi) and \code{Var(Y) = mu + mu^2 / phi}.
 \item{f2_prior}{Beta mean and SD for \code{f2} parameter}
 
 \item{sampFrac2_prior}{\code{sampFrac2} prior if \code{sampFrac2_type} is
-"estimated" or "rw".
+"estimated" or "rw" or "segmented".
 In the case of the random walk, this specifies the initial state prior. The
 two values correspond to the mean and SD of a Beta distribution.
 Only applies to first time series.
 (Currently disabled!)}
 
 \item{sampFrac2_type}{How to treat the sample fraction. Fixed, estimated, or
-a constrained random walk (Currently disabled!).
+a constrained random walk. Also segmented.
 Only applies to the first data type column if
 there are multiple data types. The other data types always have a fixed
 sample fraction.}
+
+\item{sampFrac_seg}{A vector of segment indexes of length \code{daily_cases} + \code{forecast_days}.}
 
 \item{rw_sigma}{The standard deviation on the optional \code{sampFrac2} random
 walk on the first data type. (Currently disabled!)}
