@@ -127,9 +127,10 @@ plot_projection <- function(models, cumulative = FALSE,
     out$Scenario <- factor(out$Scenario, levels = sc_order)
     lambdas$Scenario <- factor(lambdas$Scenario, levels = sc_order)
   }
-  g <- ggplot(out, aes_string(x = "day", y = "med", ymin = "lwr", ymax = "upr", colour = "Scenario",
+
+  g <- ggplot(out, aes_string(x = "day", y = "med", ymin = "lwr", ymax = "upr", colour = "Scenario", group = "paste(Scenario, data_type)",
     fill = "Scenario")) +
-    annotate("rect", xmin = actual_dates[obj$last_day_obs], xmax = max(out$day), ymin = 0, ymax = ylim[2], fill = "grey95") +
+    annotate("rect", xmin = actual_dates[obj$last_day_obs], xmax = max(out$day), ymin = 0, ymax = Inf, fill = "grey95") +
     coord_cartesian(expand = FALSE, ylim = ylim, xlim = range(out$day)) +
     geom_ribbon(alpha = 0.2, colour = NA) +
     geom_ribbon(alpha = 0.2, mapping = aes_string(ymin = "lwr2", ymax = "upr2"), colour = NA)
