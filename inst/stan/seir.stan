@@ -17,9 +17,6 @@ functions{
     real Qd    = state[11];
     real Rd    = state[12];
 
-    real R0    = theta[1];
-    real f2    = theta[2];
-
     real N     = x_r[1];
     real D     = x_r[2];
     real k1    = x_r[3];
@@ -28,25 +25,45 @@ functions{
     real r     = x_r[6];
     real ur    = x_r[7];
     real f1    = x_r[8];
+
     real start_decline = x_r[9];
     real end_decline = x_r[10];
     real fixed_f_forecast = x_r[11];
     real last_day_obs = x_r[12];
     real day_start_fixed_f_forecast = x_r[13];
 
+    real R0 = theta[1];
+
+    int n_f = x_i[1]; // the number of f parameters in time (after f1)
+    int f_seg_id[n_f]; // a lookup vector to grab the appropriate f parameter in time
+
+    real f; // will store the f value for this time point
+
     real dydt[12];
 
-    real f;
+    // integer version of the day for this time point:
+    // (must use this workaround since floor() in Stan produces a real number
+    // that can't be used to index an array)
+    int day;
+    day = 1;
+    while ((day + 1) < floor(t)) day = day + 1;
 
-    f = f1;
+    for (i in 1:n_f) {
+      // `i + 1` because of number of x_i before `f_seg_id`
+      // `+ 1` at end because of number of thetas (here just R0) before f thetas
+      f_seg_id[i] = x_i[i + 1] + 1;
+    }
+
+    f = f1; // business as usual before physical distancing
     if (t < start_decline) {
       f = f1;
     }
-    if (t >= start_decline && t < end_decline) {
-      f = f2 + (end_decline - t) * (f1 - f2) / (end_decline - start_decline);
+    if (t >= start_decline && t < end_decline) { // allow a ramp-in of physical distancing
+      f = theta[f_seg_id[day]] + (end_decline - t) *
+          (f1 - theta[f_seg_id[day]]) / (end_decline - start_decline);
     }
     if (t >= end_decline) {
-      f = f2;
+      f = theta[f_seg_id[day]];
     }
     if (t >= day_start_fixed_f_forecast && fixed_f_forecast != 0) {
       f = fixed_f_forecast;
@@ -73,6 +90,7 @@ data {
   int<lower=1> T;     // number of time steps
   int<lower=1> N;     // number of days
   int<lower=1> J;     // number of response data timeseries
+  int<lower=1> S;     // number of physical distancing segments
   real y0[12];        // initial state
   real t0;            // first time step
   real time[T];       // time increments
@@ -82,6 +100,8 @@ data {
   int sampFrac_seg[N]; // optional index of estimated sample fractions for 1st timeseries
   int<lower=1, upper=4> sampFrac_type; // Type of sample fraction: fixed, estimated, rw, segmented
   real x_r[13];       // data for ODEs (real numbers)
+  int n_x_i;          // the number of x_i values
+  int x_i[n_x_i];    // data for ODEs (integer numbers)
   real sampFrac[N,J];   // fraction of cases sampled per time step
   real delayScale[J];    // Weibull parameter for delay in becoming a case count
   real delayShape[J];    // Weibull parameter for delay in becoming a case count
@@ -90,7 +110,6 @@ data {
   real R0_prior[2];   // lognormal log mean and SD for R0 prior
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
   real f2_prior[2];   // beta prior for f2
-  // int day_inc_sampling;   // day to switch to sampFrac2
   real sampFrac2_prior[2];   // beta prior for sampFrac2
   int<lower=0, upper=1> priors_only; // logical: include likelihood or just priors?
   int<lower=0, upper=J> est_phi; // estimate NB phi?
@@ -98,15 +117,10 @@ data {
   int<lower=0, upper=1> obs_model; // observation model: 0 = Poisson, 1 = NB2
   real<lower=0> rw_sigma; // specified random walk standard deviation
   real ode_control[3]; // vector of ODE control numbers
-  // int<lower=1> N_lik; // number of days in the likelihood
-  // int dat_in_lik[N_lik]; // vector of data to include in the likelihood
-}
-transformed data {
-  int x_i[0]; // empty; needed for ODE function
 }
 parameters {
  real R0; // Stan ODE solver seems to be more efficient without this bounded at > 0
- real<lower=0, upper=1> f2; // strength of social distancing
+ real<lower=0, upper=1> f_s[S]; // strength of social distancing for segment `s`
  real<lower=0> phi[est_phi]; // NB2 (inverse) dispersion; `est_phi` turns on/off
  real<lower=0, upper=1> sampFrac2[n_sampFrac2];
 }
@@ -122,18 +136,22 @@ transformed parameters {
   real theta[2]; // gathers up the parameters (which come in with various limits)
   real y_hat[T,12]; // predicted states for each time t from ODE
   real this_samp; // holds the sample fraction for a given day
+
   theta[1] = R0;
-  theta[2] = f2;
+  for (s in 1:S) {
+    // `s + 1` because of number of thetas before f_s (just R0)
+    theta[s + 1] = f_s[s];
+  }
 
   y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i,
                              ode_control[1], ode_control[2], ode_control[3]);
 
   // Calculating the expected case counts given the delays in reporting:
-  for (j in 1:J) {
-    for (n in 1:N) {
+  for (j in 1:J) { // data_type increment
+    for (n in 1:N) { // day increment
       this_samp = sampFrac[n,j];
       if (n_sampFrac2 > 1 && j == 1) {
-        if (sampFrac_type != 4) { // anything but segmented
+        if (sampFrac_type != 4) { // anything but segmented sampFrac2
           if (n <= last_day_obs) {
             this_samp = sampFrac2[n];
           }
@@ -181,7 +199,9 @@ model {
   }
   }
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
-  f2 ~ beta(f2_prior[1], f2_prior[2]);
+  for (s in 1:S) {
+    f_s[s] ~ beta(f2_prior[1], f2_prior[2]); // FIXME: allow separate priors
+  }
   if (n_sampFrac2 > 0 && sampFrac_type != 4) { // sampFrac estimated but not segmented
     sampFrac2[1] ~ beta(sampFrac2_prior[1], sampFrac2_prior[2]);
     if (n_sampFrac2 > 1) {
