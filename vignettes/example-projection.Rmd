@@ -65,9 +65,9 @@ m1 <- fit_seir(
   cases,
   iter = 200,
   chains = 1,
-  sampled_fractions = s1,
-  delayScale = 9.85,
-  delayShape = 1.73
+  samp_frac_fixed = s1,
+  delay_scale = 9.85,
+  delay_shape = 1.73
 )
 ```
 
@@ -152,8 +152,8 @@ print(m1$fit)
 A few examples of things you could do:
 
 ```{r}
-bayesplot::mcmc_areas(m1$fit, pars = c("R0", "f_s", "phi[1]"))
-bayesplot::mcmc_trace(m1$fit, pars = c("R0", "f_s", "phi[1]"))
+bayesplot::mcmc_areas(m1$fit, pars = c("R0", "f_s[1]", "phi[1]"))
+bayesplot::mcmc_trace(m1$fit, pars = c("R0", "f_s[1]", "phi[1]"))
 ```
 
 ```{r, eval=FALSE}
@@ -296,9 +296,9 @@ m2 <- fit_seir(
   daily_cases = cbind(cases, hosp),
   iter = 200,
   chains = 1,
-  sampled_fractions = cbind(s1, s2),
-  delayScale = c(9.85, 10.15),
-  delayShape = c(1.73, 1.93),
+  samp_frac_fixed = cbind(s1, s2),
+  delay_scale = c(9.85, 10.15),
+  delay_shape = c(1.73, 1.93),
 )
 ```
 
@@ -313,28 +313,121 @@ plot_projection(m2)
 #   daily_cases = cbind(cases, hosp),
 #   iter = 200,
 #   chains = 1,
-#   sampFrac2_type = "segmented",
-#   sampled_fractions = cbind(s1, s2),
-#   delayScale = c(9.85, 10.15),
-#   delayShape = c(1.73, 1.93),
+#   samp_frac_type = "segmented",
+#   samp_frac_fixed = cbind(s1, s2),
+#   delay_scale = c(9.85, 10.15),
+#   delay_shape = c(1.73, 1.93),
 # )
 ```
 
 Multiple fraction-of-normal-contact segments for those physical distancing:
 
 ```{r fit2types-f-s, message=FALSE, results='hide', include=FALSE}
-s2 <- rep(0.07, length(hosp)) # example sample fractions
 (f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14)))
 # 0s are before physical distancing
 
 m4 <- fit_seir(
   cases,
-  iter = 200,
+  iter = 100,
   chains = 1,
-  sampled_fractions = s1,
+  samp_frac_fixed = s1,
   f_seg = f_seg,
-  delayScale = 9.85,
-  delayShape = 1.73
+  delay_scale = 9.85,
+  delay_shape = 1.73
 )
 print(m4$fit, pars = c("R0", "f_s", "phi"))
 ```
+
+```{r}
+library(future)
+plan(multisession, workers = parallel::detectCores() / 2)
+d <- m4$stan_data
+p <- m4$post
+
+d$x_r[["fixed_f_forecast"]] <- 0.6
+d$x_r
+
+days_back <- 45L
+forecast_days <- 120L
+days <- seq(1, nrow(d$daily_cases) + forecast_days)
+time_increment <- d$time[2] - d$time[1]
+time <- seq(-30, max(days), time_increment)
+
+# find the equivalent time of each day (end):
+get_time_id <- function(day, time) max(which(time <= day))
+time_day_id <- vapply(days, get_time_id, numeric(1), time = time)
+get_time_day_id0 <- function(day, time, days_back) {
+  # go back `days_back` or to beginning if that's negative time:
+  check <- time <= (day - days_back)
+  if (sum(check) == 0L) {
+    1L
+  } else {
+    max(which(check))
+  }
+}
+# find the equivalent time of each day (start):
+time_day_id0 <- vapply(days, get_time_day_id0, numeric(1),
+  time = time, days_back = days_back
+)
+
+d$time_day_id0 <- time_day_id0
+d$time_day_id <- time_day_id
+d$time <- time
+d$days <- days
+d$T <- length(time)
+d$N <- length(days)
+
+.s <- d$samp_frac_seg[length(d$samp_frac_seg)]
+added_length <- nrow(d$daily_cases) + forecast_days - length(d$samp_frac_seg)
+d$samp_frac_seg <- c(d$samp_frac_seg, rep(.s, added_length))
+
+.s <- d$samp_frac_fixed[nrow(d$samp_frac_fixed), ]
+d$samp_frac_fixed <- rbind(
+  d$samp_frac_fixed,
+  do.call(rbind, replicate(added_length, .s, simplify = FALSE))
+)
+
+.f_id <- d$x_i[length(d$x_i)]
+d$x_i <- c(d$x_i, rep(.f_id, added_length))
+d$x_i[1] <- length(d$x_i) - 1
+d$n_x_i <- length(d$x_i)
+
+pars_save <- c("phi", "mu", "y_rep")
+
+initf <- function(post, i, stan_data) {
+  R0 <- post$R0[i]
+  f_s <- array(post$f_s[i, ])
+  phi <- array(post$phi[i, ])
+  if ("samp_frac" %in% names(post)) {
+    samp_frac <- array(post$samp_frac[i, ])
+  } else {
+    samp_frac <- rep(1, stan_data$n_samp_frac) # fake
+  }
+  list(R0 = R0, f_s = f_s, phi = phi, samp_frac = samp_frac)
+}
+
+out <- furrr::future_map_dfr(1:50, function(i) {
+  fit <- rstan::sampling(
+    covidseir:::stanmodels$seir,
+    data = d,
+    iter = 1L,
+    chains = 1L,
+    init = function() initf(p, i, d),
+    pars = pars_save,
+    refresh = 0,
+    algorithm = "Fixed_param"
+  )
+  post <- rstan::extract(fit)
+  tibble(
+    day = d$days,
+    mu = post$mu[, , 1],
+    phi = rep(post$phi[1], length(d$days)),
+    y_rep = post$y_rep[, , 1],
+    iterations = rep(i, length(d$days)) 
+  )
+})
+
+ggplot(out, aes(day, mu, group = iterations)) + geom_line()
+ggplot(out, aes(day, y_rep, group = iterations)) + geom_line(alpha = 0.1)
+```
+
