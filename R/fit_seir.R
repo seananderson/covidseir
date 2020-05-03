@@ -27,9 +27,11 @@
 #'   Only applies to the first data type column if
 #'   there are multiple data types. The other data types always have a fixed
 #'   sample fraction.
-#' @param sampFrac_seg A vector of segment indexes of length `daily_cases` + `forecast_days`.
+#' @param sampFrac_seg A vector of sample fraction segment indexes of
+#'   length `daily_cases` + `forecast_days`.
 #' @param rw_sigma The standard deviation on the optional `sampFrac2` random
-#'   walk on the first data type. (Currently disabled!)
+#'   walk on the first data type.
+#' @param f_seg A vector of segment indexes of length `daily_cases` + `forecast_days`.
 #' @param seed MCMC seed
 #' @param chains Number of MCMC chains
 #' @param iter MCMC iterations per chain
@@ -70,6 +72,7 @@ fit_seir <- function(daily_cases,
   sampFrac2_type = c("fixed", "estimated", "rw", "segmented"),
   sampFrac_seg = NULL,
   rw_sigma = 0.1,
+  f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
   seed = 42,
   chains = 4,
   iter = 2000,
@@ -192,12 +195,15 @@ fit_seir <- function(daily_cases,
     get_beta_params(sampFrac2_prior[1], sampFrac2_prior[2])$beta
   )
 
-  if (9999999 %in% daily_cases) {
+  if (9999999L %in% daily_cases) {
     stop("covidseir uses `9999999` as a 'magic' number for `NA`.", call. = FALSE)
   }
 
   daily_cases_stan <- daily_cases
-  daily_cases_stan[is.na(daily_cases_stan)] <- 9999999 # magic number for NA
+  daily_cases_stan[is.na(daily_cases_stan)] <- 9999999L # magic number for NA
+
+  if (is.null(sampFrac_seg))
+    sampFrac_seg <- rep(1, length(days))
 
   stan_data <- list(
     T = length(time),
@@ -205,15 +211,19 @@ fit_seir <- function(daily_cases,
     daily_cases = daily_cases_stan,
     J = ncol(daily_cases),
     N = length(days),
+    S = length(unique(f_seg)) - 1, # - 1 because of 0 for fixed f1 before soc. dist.
     y0 = state_0,
     t0 = min(time) - 0.000001,
     time = time,
     x_r = x_r,
+    n_x_i = length(f_seg) + 1L,
+    x_i = c(length(f_seg), f_seg),
+    f_seg = f_seg,
     delayShape = array(delayShape),
     delayScale = array(delayScale),
     sampFrac = sampFrac,
     sampFrac_seg = sampFrac_seg,
-    sampFrac_type = if (sampFrac2_type == "segmented") 4 else 1, # FIXME
+    sampFrac_type = if (sampFrac2_type == "segmented") 4L else 1L, # FIXME
     time_day_id = time_day_id,
     time_day_id0 = time_day_id0,
     R0_prior = R0_prior,
@@ -230,15 +240,16 @@ fit_seir <- function(daily_cases,
   )
   initf <- function(stan_data) {
     R0 <- stats::rlnorm(1, log(R0_prior[1]), R0_prior[2])
-    f2 <- stats::rbeta(
+    f <- stats::rbeta(
       1,
       get_beta_params(f2_prior[1], f2_prior[2])$alpha,
       get_beta_params(f2_prior[1], f2_prior[2])$beta
     )
-    init <- list(R0 = R0, f2 = f2)
+    f_s <- array(f, dim = stan_data$S)
+    init <- list(R0 = R0, f_s = f_s)
     init
   }
-  pars_save <- c("R0", "f2", "phi", "lambda_d", "y_rep", "sampFrac2")
+  pars_save <- c("R0", "f_s", "phi", "lambda_d", "y_rep", "sampFrac2")
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   fit <- rstan::sampling(
     stanmodels$seir,

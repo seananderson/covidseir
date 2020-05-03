@@ -133,7 +133,7 @@ transformed parameters {
   real k2; // from ODE
   real E2; // from ODE exposed and symptomatic
   real E2d; // from ODE exposed and symptomatic and distancing
-  real theta[2]; // gathers up the parameters (which come in with various limits)
+  real theta[S + 1]; // gathers up the parameters (which come in with various limits)
   real y_hat[T,12]; // predicted states for each time t from ODE
   real this_samp; // holds the sample fraction for a given day
 

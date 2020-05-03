@@ -138,7 +138,7 @@ names(m1$post)
 The rstan object itself is in the named element `fit`. You can do anything with that you can do with the output from an rstan fit.
 
 ```{r}
-print(m1$fit, pars = c("R0", "f2", "phi"))
+print(m1$fit, pars = c("R0", "f_s", "phi"))
 ```
 
 I have named the parameters I want to look up to avoid summarizing many derived values and parameters.
@@ -152,8 +152,8 @@ print(m1$fit)
 A few examples of things you could do:
 
 ```{r}
-bayesplot::mcmc_areas(m1$fit, pars = c("R0", "f2", "phi[1]"))
-bayesplot::mcmc_trace(m1$fit, pars = c("R0", "f2", "phi[1]"))
+bayesplot::mcmc_areas(m1$fit, pars = c("R0", "f_s", "phi[1]"))
+bayesplot::mcmc_trace(m1$fit, pars = c("R0", "f_s", "phi[1]"))
 ```
 
 ```{r, eval=FALSE}
@@ -304,4 +304,37 @@ m2 <- fit_seir(
 
 ```{r}
 plot_projection(m2)
+```
+
+```{r fit2types-est, message=FALSE, results='hide', include=FALSE}
+# s2 <- rep(0.07, length(hosp)) # example sample fractions
+# 
+# m3 <- fit_seir(
+#   daily_cases = cbind(cases, hosp),
+#   iter = 200,
+#   chains = 1,
+#   sampFrac2_type = "segmented",
+#   sampled_fractions = cbind(s1, s2),
+#   delayScale = c(9.85, 10.15),
+#   delayShape = c(1.73, 1.93),
+# )
+```
+
+Multiple fraction-of-normal-contact segments for those physical distancing:
+
+```{r fit2types-f-s, message=FALSE, results='hide', include=FALSE}
+s2 <- rep(0.07, length(hosp)) # example sample fractions
+(f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14)))
+# 0s are before physical distancing
+
+m4 <- fit_seir(
+  cases,
+  iter = 200,
+  chains = 1,
+  sampled_fractions = s1,
+  f_seg = f_seg,
+  delayScale = 9.85,
+  delayShape = 1.73
+)
+print(m4$fit, pars = c("R0", "f_s", "phi"))
 ```
