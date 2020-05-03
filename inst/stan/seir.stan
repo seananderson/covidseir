@@ -97,23 +97,23 @@ data {
   int days[N];        // day increments
   int last_day_obs;   // last day of observed data; days after this are projections
   int daily_cases[last_day_obs,J]; // daily new case counts
-  int sampFrac_seg[N]; // optional index of estimated sample fractions for 1st timeseries
-  int<lower=1, upper=4> sampFrac_type; // Type of sample fraction: fixed, estimated, rw, segmented
+  int samp_frac_seg[N]; // optional index of estimated sample fractions for 1st timeseries
+  int<lower=1, upper=4> samp_frac_type; // Type of sample fraction: fixed, estimated, rw, segmented
   real x_r[13];       // data for ODEs (real numbers)
   int n_x_i;          // the number of x_i values
   int x_i[n_x_i];    // data for ODEs (integer numbers)
-  real sampFrac[N,J];   // fraction of cases sampled per time step
-  real delayScale[J];    // Weibull parameter for delay in becoming a case count
-  real delayShape[J];    // Weibull parameter for delay in becoming a case count
+  real samp_frac_fixed[N,J];   // fraction of cases sampled per time step
+  real delay_scale[J];    // Weibull parameter for delay in becoming a case count
+  real delay_shape[J];    // Weibull parameter for delay in becoming a case count
   int time_day_id[N]; // last time increment associated with each day
   int time_day_id0[N];// first time increment for Weibull integration of case counts
   real R0_prior[2];   // lognormal log mean and SD for R0 prior
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
   real f2_prior[2];   // beta prior for f2
-  real sampFrac2_prior[2];   // beta prior for sampFrac2
+  real samp_frac_prior[2];   // beta prior for samp_frac
   int<lower=0, upper=1> priors_only; // logical: include likelihood or just priors?
   int<lower=0, upper=J> est_phi; // estimate NB phi?
-  int<lower=0, upper=N> n_sampFrac2; // number of sampFrac2
+  int<lower=0, upper=N> n_samp_frac; // number of samp_frac
   int<lower=0, upper=1> obs_model; // observation model: 0 = Poisson, 1 = NB2
   real<lower=0> rw_sigma; // specified random walk standard deviation
   real ode_control[3]; // vector of ODE control numbers
@@ -122,12 +122,12 @@ parameters {
  real R0; // Stan ODE solver seems to be more efficient without this bounded at > 0
  real<lower=0, upper=1> f_s[S]; // strength of social distancing for segment `s`
  real<lower=0> phi[est_phi]; // NB2 (inverse) dispersion; `est_phi` turns on/off
- real<lower=0, upper=1> sampFrac2[n_sampFrac2];
+ real<lower=0, upper=1> samp_frac[n_samp_frac];
 }
 transformed parameters {
   real dx = time[2] - time[1]; // time increment
   real ft[T]; // container for the lambda function at time t
-  real lambda_d[N,J]; // estimated daily cases for each day
+  real mu[N,J]; // estimated daily cases for each day
   real sum_ft_inner; // holds a temporary calculation
   real eta[N,J]; // expected value on link scale (log)
   real k2; // from ODE
@@ -149,21 +149,21 @@ transformed parameters {
   // Calculating the expected case counts given the delays in reporting:
   for (j in 1:J) { // data_type increment
     for (n in 1:N) { // day increment
-      this_samp = sampFrac[n,j];
-      if (n_sampFrac2 > 1 && j == 1) {
-        if (sampFrac_type != 4) { // anything but segmented sampFrac2
+      this_samp = samp_frac_fixed[n,j];
+      if (n_samp_frac > 1 && j == 1) {
+        if (samp_frac_type != 4) { // anything but segmented samp_frac
           if (n <= last_day_obs) {
-            this_samp = sampFrac2[n];
+            this_samp = samp_frac[n];
           }
           if (n > last_day_obs && j == 1) {
-            this_samp = sampFrac2[n_sampFrac2]; // forecast with last value
+            this_samp = samp_frac[n_samp_frac]; // forecast with last value
           }
         } else { // segmented
-          this_samp = sampFrac2[sampFrac_seg[n]];
+          this_samp = samp_frac[samp_frac_seg[n]];
         }
       }
-      if (n_sampFrac2 == 1 && j == 1) {
-        this_samp = sampFrac2[1];
+      if (n_samp_frac == 1 && j == 1) {
+        this_samp = samp_frac[1];
       }
       for (t in 1:T) {
         ft[t] = 0; // initialize across the full 1:T
@@ -175,16 +175,16 @@ transformed parameters {
         E2d = y_hat[t,9];
 
         ft[t] = this_samp * k2 * (E2 + E2d) *
-        exp(weibull_lpdf(time[time_day_id[n]] - time[t] | delayShape[j], delayScale[j]));
+        exp(weibull_lpdf(time[time_day_id[n]] - time[t] | delay_shape[j], delay_scale[j]));
       }
       sum_ft_inner = 0; // initialize
       for (t in (time_day_id0[n] + 1):(time_day_id[n] - 1)) {
         sum_ft_inner += ft[t];
       }
       // trapezoid integration:
-      lambda_d[n,j] = 0.5 * dx *
+      mu[n,j] = 0.5 * dx *
       (ft[time_day_id0[n]] + 2 * sum_ft_inner + ft[time_day_id[n]]);
-      eta[n,j] = log(lambda_d[n,j]);
+      eta[n,j] = log(mu[n,j]);
     }
   }
 }
@@ -202,17 +202,17 @@ model {
   for (s in 1:S) {
     f_s[s] ~ beta(f2_prior[1], f2_prior[2]); // FIXME: allow separate priors
   }
-  if (n_sampFrac2 > 0 && sampFrac_type != 4) { // sampFrac estimated but not segmented
-    sampFrac2[1] ~ beta(sampFrac2_prior[1], sampFrac2_prior[2]);
-    if (n_sampFrac2 > 1) {
-      for (n in 2:n_sampFrac2) {
-        sampFrac2[n] ~ normal(sampFrac2[n - 1], rw_sigma); // RW
+  if (n_samp_frac > 0 && samp_frac_type != 4) { // samp_frac estimated but not segmented
+    samp_frac[1] ~ beta(samp_frac_prior[1], samp_frac_prior[2]);
+    if (n_samp_frac > 1) {
+      for (n in 2:n_samp_frac) {
+        samp_frac[n] ~ normal(samp_frac[n - 1], rw_sigma); // RW
       }
     }
   }
-  if (n_sampFrac2 > 0 && sampFrac_type != 4) { // sampFrac segmented
-    for (n in 1:n_sampFrac2) {
-      sampFrac2[n] ~ beta(sampFrac2_prior[1], sampFrac2_prior[2]);
+  if (n_samp_frac > 0 && samp_frac_type != 4) { // samp_frac segmented
+    for (n in 1:n_samp_frac) {
+      samp_frac[n] ~ beta(samp_frac_prior[1], samp_frac_prior[2]);
     }
   }
 
