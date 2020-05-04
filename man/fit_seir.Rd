@@ -169,6 +169,7 @@ hosp <- c(
   7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6,
   11, 8, 11, 8, 7, 6
 )
+\donttest{
 m2 <- fit_seir(
   daily_cases = cbind(cases, hosp),
   iter = 100,
@@ -179,6 +180,8 @@ m2 <- fit_seir(
   delay_scale = c(9.8, 11.2),
   delay_shape = c(1.7, 1.9),
 )
+print(m2)
+}
 
 # Estimate a second estimated f_s block:
 f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14))
