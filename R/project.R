@@ -12,9 +12,8 @@
 #' @param iter MCMC iterations to include. Defaults to all.
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #'
-#' @details
-#' Set a [future::plan()] and this function will operate in parallel
-#' across MCMC iterations using \pkg{furrr}.
+#' @details Set a [future::plan()] and this function will operate in parallel
+#' across MCMC iterations using \pkg{future.apply}.
 #'
 #' @return
 #' A data frame:
@@ -154,7 +153,8 @@ project <- function(
 
   # out <- furrr::future_map_dfr(iter, function(i) {
   # out <- purrr::map_dfr(iter, function(i) {
-  out <- lapply(iter, function(i) {
+  # out <- lapply(iter, function(i) {
+  out <- future.apply::future_lapply(iter, function(i) {
     fit <- rstan::sampling(
       stanmodels$seir,
       data = d,
