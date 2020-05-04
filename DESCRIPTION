@@ -53,7 +53,6 @@ Description: Fits a Bayesian SEIR (Susceptible, Exposed,
     one described in the preprint <doi:10.1101/2020.04.17.20070086>.
 License: GPL-2
 Depends: 
-    deSolve,
     R (>= 3.5.0)
 Imports: 
     dplyr,

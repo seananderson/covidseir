@@ -27,7 +27,11 @@
 #'   case projections are not trusted in the future.
 #' @param hide_dates A sequence of dates `lubridate::ymd()` format to omit from
 #'   projections. See explanation for `hide_data_types`.
-#' @param data_type_names And named numeric vector where the names correspond to the desired `data_type` names in the values correspond to the `data_type` number.
+#' @param data_type_names And named numeric vector where the names correspond to
+#'   the desired `data_type` names in the values correspond to the `data_type`
+#'   number.
+#' @param return_data Logical for whether to return the data part way through
+#'   the function instead of making the plot.
 #'
 #' @return A ggplot
 #' @export
@@ -35,18 +39,18 @@
 #' scale_fill_manual geom_point labs aes_string ggplot annotate geom_ribbon coord_cartesian
 #' element_blank geom_line facet_grid
 #' @importFrom dplyr summarise group_by mutate rename filter summarize ungroup tibble as_tibble
-#' @importFrom deSolve ode
 plot_projection <- function(models, cumulative = FALSE,
   first_date = "2020-03-01", ylim = c(0, max(out$upr) * 1.03), outer_quantile = c(0.05, 0.95),
   facet = TRUE, cols = NULL, linetype = c("mu", "obs"),
   omitted_days = NULL, y_rep_dat = NULL, mu_dat = NULL, points_size = 1.25,
   sc_order = NULL, hide_data_types = NULL, hide_dates = NULL,
-  data_type_names = NULL
+  data_type_names = NULL, return_data = FALSE
   ) {
 
   if (is.list(models) && "fit" %in% names(models) && "post" %in% names(models)) {
     models <- list(models)
   }
+  # browser()
   linetype <- match.arg(linetype)
   obj <- models[[1]]
   actual_dates <- seq(lubridate::ymd(first_date),
@@ -89,7 +93,7 @@ plot_projection <- function(models, cumulative = FALSE,
       temp %>%
         group_by(day, data_type) %>%
         summarise(
-          med = median(lambda_d)
+          med = stats::median(lambda_d)
         ) %>%
         ungroup() %>%
         mutate(day = actual_dates[day])
@@ -98,6 +102,7 @@ plot_projection <- function(models, cumulative = FALSE,
     out <- y_rep_dat
     lambdas <- mu_dat
   }
+  if (return_data) list(y_rep = out, mu = lambdas)
 
   .d <- as.data.frame(obj$daily_cases)
   names(.d) <- seq(1, ncol(.d))

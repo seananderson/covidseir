@@ -13,14 +13,15 @@ fit_seir(
   R0_prior = c(log(2.6), 0.2),
   phi_prior = 1,
   f2_prior = c(0.4, 0.2),
-  sampFrac2_prior = c(0.4, 0.2),
-  sampFrac2_type = c("fixed", "estimated", "rw", "segmented"),
-  sampFrac_seg = NULL,
+  samp_frac_prior = c(0.4, 0.2),
+  samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
+  samp_frac_seg = NULL,
   rw_sigma = 0.1,
+  f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
   seed = 42,
   chains = 4,
   iter = 2000,
-  sampled_fractions = NULL,
+  samp_frac_fixed = NULL,
   fixed_f_forecast = NULL,
   day_start_fixed_f_forecast = nrow(daily_cases) + 1,
   pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f1 = 1,
@@ -32,10 +33,9 @@ fit_seir(
     = 0.5 * nsi * i0, Q = 0, R = 0, Sd = fsi * (pars[["N"]] - i0), E1d = 0.4 * fsi * i0,
     E2d = 0.1 * fsi * i0, Id = 0.5 * fsi * i0, Qd = 0, Rd = 0),
   save_state_predictions = FALSE,
-  delayScale = 9.85,
-  delayShape = 1.73,
+  delay_scale = 9.85,
+  delay_shape = 1.73,
   ode_control = c(1e-06, 1e-05, 1e+05),
-  daily_cases_omit = NULL,
   ...
 )
 }
@@ -43,7 +43,7 @@ fit_seir(
 \item{daily_cases}{Either a vector of daily new cases if fit into a single
 data type or a matrix of case data is fitting to multiple data types. Each
 data type should be in its own column. Can have NA values (will be ignored
-in likelihood).}
+in likelihood). A vector will be turned into a one column matrix.}
 
 \item{obs_model}{Type of observation model}
 
@@ -64,23 +64,26 @@ phi) and \code{Var(Y) = mu + mu^2 / phi}.
 
 \item{f2_prior}{Beta mean and SD for \code{f2} parameter}
 
-\item{sampFrac2_prior}{\code{sampFrac2} prior if \code{sampFrac2_type} is
-"estimated" or "rw" or "segmented".
-In the case of the random walk, this specifies the initial state prior. The
-two values correspond to the mean and SD of a Beta distribution.
-Only applies to first time series.
-(Currently disabled!)}
+\item{samp_frac_prior}{\code{samp_frac} prior if \code{samp_frac_type} is "estimated"
+or "rw" or "segmented". In the case of the random walk, this specifies the
+initial state prior. The two values correspond to the mean and SD of a Beta
+distribution. Only applies to first time series. (Currently disabled!)}
 
-\item{sampFrac2_type}{How to treat the sample fraction. Fixed, estimated, or
-a constrained random walk. Also segmented.
-Only applies to the first data type column if
-there are multiple data types. The other data types always have a fixed
-sample fraction.}
+\item{samp_frac_type}{How to treat the sample fraction. Fixed, estimated, or
+a constrained random walk. Also segmented. Only applies to the first data
+type column if there are multiple data types. The other data types always
+have a fixed sample fraction.}
 
-\item{sampFrac_seg}{A vector of segment indexes of length \code{daily_cases} + \code{forecast_days}.}
+\item{samp_frac_seg}{A vector of sample fraction segment indexes of length
+\code{daily_cases} + \code{forecast_days}. Should start at 1.}
 
-\item{rw_sigma}{The standard deviation on the optional \code{sampFrac2} random
-walk on the first data type. (Currently disabled!)}
+\item{rw_sigma}{The standard deviation on the optional \code{samp_frac} random
+walk on the first data type.}
+
+\item{f_seg}{A vector of segment indexes of length \code{daily_cases} +
+\code{forecast_days}. The the segment index values should start at 0 to
+represent the fixed "no social distancing" value \code{f1} from the \code{pars}
+argument.}
 
 \item{seed}{MCMC seed}
 
@@ -88,34 +91,35 @@ walk on the first data type. (Currently disabled!)}
 
 \item{iter}{MCMC iterations per chain}
 
-\item{sampled_fractions}{A vector (or matrix) of sampled fractions. Should
-be of dimensions: \code{nrow(daily_cases) + forecast_days} (rows) by
-\verb{ncol(daily_cases} (columns). A vector will be turned into a one column matrix.}
+\item{samp_frac_fixed}{A vector (or matrix) of sampled fractions. Should be
+of dimensions: \code{nrow(daily_cases) + forecast_days} (rows) by
+\verb{ncol(daily_cases} (columns). A vector will be turned into a one column
+matrix.}
 
-\item{fixed_f_forecast}{Optional fixed \code{f} (fraction of normal distancing) for
-the forecast.}
+\item{fixed_f_forecast}{Optional fixed \code{f} (fraction of normal distancing)
+for the forecast.}
 
 \item{day_start_fixed_f_forecast}{Day to start using \code{fixed_f_forecast}.}
 
 \item{pars}{A named numeric vector of fixed parameter values}
 
-\item{i0}{A scaling factor FIXME}
+\item{i0}{Infected people infected at initial point in time.}
 
 \item{fsi}{Fraction socially distancing. Derived parameter.}
 
 \item{nsi}{Fraction not socially distancing. Derived parameter.}
 
-\item{state_0}{Initial state: a named numeric vector}
+\item{state_0}{Initial state: a named numeric vector.}
 
 \item{save_state_predictions}{Include the state predictions? \code{y_hat} Will
 make the resulting model object much larger.}
 
-\item{delayScale}{Weibull scale parameter for the delay in reporting. If
+\item{delay_scale}{Weibull scale parameter for the delay in reporting. If
 there are multiple datatypes then this should be a vector of the same
 length as the data types.}
 
-\item{delayShape}{Weibull shape parameter for the delay in reporting. Same
-format as for \code{delayScale}.}
+\item{delay_shape}{Weibull shape parameter for the delay in reporting. Same
+format as for \code{delay_scale}.}
 
 \item{ode_control}{Control options for the Stan ODE solver. First is relative
 difference, that absolute difference, and then maximum iterations. You
@@ -128,4 +132,62 @@ A named list object
 }
 \description{
 Fit a Stan SEIR model
+}
+\examples{
+# Example daily case data:
+cases <- c(
+0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
+77, 76, 48, 67, 78, 42, 66, 67, 92, 16, 70, 43, 53, 55, 53, 29,
+26, 37, 25, 45, 34, 40, 35
+)
+
+# Example assume sampling fractions of positive cases:
+s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
+
+# Using only 100 iterations and 1 chain for a quick example:
+m <- fit_seir(
+  cases,
+  iter = 100,
+  chains = 1,
+  samp_frac_fixed = s1
+)
+print(m)
+names(m)
+names(m$post)
+post_mu <- m$fit \%>\% tidybayes::spread_draws(mu[day, data_type])
+post_mu
+post_y_rep <- m$fit \%>\% tidybayes::spread_draws(mu[day, data_type])
+post_y_rep
+
+# Add hospitalization data and estimate 2 sample-fraction blocks
+# for the reported cases:
+samp_frac_seg <- c(rep(1, 13), rep(2, length(cases) - 13))
+
+s2 <- rep(0.7, 42) # Assuming 7\% of positive individuals are hospitalized
+hosp <- c(
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 11, 9, 4,
+  7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6,
+  11, 8, 11, 8, 7, 6
+)
+m2 <- fit_seir(
+  daily_cases = cbind(cases, hosp),
+  iter = 100,
+  chains = 1,
+  samp_frac_type = "segmented", # `samp_frac_type` affects the first data type only
+  samp_frac_seg = samp_frac_seg,
+  samp_frac_fixed = cbind(s1, s2), # s1 is ignored and could be anything
+  delay_scale = c(9.8, 11.2),
+  delay_shape = c(1.7, 1.9),
+)
+
+# Estimate a second estimated f_s block:
+f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14))
+m3 <- fit_seir(
+  cases,
+  iter = 100,
+  chains = 1,
+  f_seg = f_seg,
+  samp_frac_fixed = s1
+)
+print(m3)
 }

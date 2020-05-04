@@ -16,36 +16,37 @@
 #'   phi) and `Var(Y) = mu + mu^2 / phi`.
 #'   <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations>
 #' @param f2_prior Beta mean and SD for `f2` parameter
-#' @param samp_frac_prior `samp_frac` prior if `samp_frac_type` is
-#'   "estimated" or "rw" or "segmented".
-#'   In the case of the random walk, this specifies the initial state prior. The
-#'   two values correspond to the mean and SD of a Beta distribution.
-#'   Only applies to first time series.
-#'   (Currently disabled!)
+#' @param samp_frac_prior `samp_frac` prior if `samp_frac_type` is "estimated"
+#'   or "rw" or "segmented". In the case of the random walk, this specifies the
+#'   initial state prior. The two values correspond to the mean and SD of a Beta
+#'   distribution. Only applies to first time series. (Currently disabled!)
 #' @param samp_frac_type How to treat the sample fraction. Fixed, estimated, or
-#'   a constrained random walk. Also segmented.
-#'   Only applies to the first data type column if
-#'   there are multiple data types. The other data types always have a fixed
-#'   sample fraction.
-#' @param samp_frac_seg A vector of sample fraction segment indexes of
-#'   length `daily_cases` + `forecast_days`.
+#'   a constrained random walk. Also segmented. Only applies to the first data
+#'   type column if there are multiple data types. The other data types always
+#'   have a fixed sample fraction.
+#' @param samp_frac_seg A vector of sample fraction segment indexes of length
+#'   `daily_cases` + `forecast_days`. Should start at 1.
 #' @param rw_sigma The standard deviation on the optional `samp_frac` random
 #'   walk on the first data type.
-#' @param f_seg A vector of segment indexes of length `daily_cases` + `forecast_days`.
+#' @param f_seg A vector of segment indexes of length `daily_cases` +
+#'   `forecast_days`. The the segment index values should start at 0 to
+#'   represent the fixed "no social distancing" value `f1` from the `pars`
+#'   argument.
 #' @param seed MCMC seed
 #' @param chains Number of MCMC chains
 #' @param iter MCMC iterations per chain
-#' @param samp_frac_fixed A vector (or matrix) of sampled fractions. Should
-#'   be of dimensions: `nrow(daily_cases) + forecast_days` (rows) by
-#'   `ncol(daily_cases` (columns). A vector will be turned into a one column matrix.
-#' @param fixed_f_forecast Optional fixed `f` (fraction of normal distancing) for
-#'   the forecast.
+#' @param samp_frac_fixed A vector (or matrix) of sampled fractions. Should be
+#'   of dimensions: `nrow(daily_cases) + forecast_days` (rows) by
+#'   `ncol(daily_cases` (columns). A vector will be turned into a one column
+#'   matrix.
+#' @param fixed_f_forecast Optional fixed `f` (fraction of normal distancing)
+#'   for the forecast.
 #' @param day_start_fixed_f_forecast Day to start using `fixed_f_forecast`.
 #' @param pars A named numeric vector of fixed parameter values
 #' @param i0 Infected people infected at initial point in time.
 #' @param fsi Fraction socially distancing. Derived parameter.
 #' @param nsi Fraction not socially distancing. Derived parameter.
-#' @param state_0 Initial state: a named numeric vector
+#' @param state_0 Initial state: a named numeric vector.
 #' @param save_state_predictions Include the state predictions? `y_hat` Will
 #'   make the resulting model object much larger.
 #' @param delay_scale Weibull scale parameter for the delay in reporting. If
@@ -59,56 +60,112 @@
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #' @export
 #' @return A named list object
+#' @examples
+#' # Example daily case data:
+#' cases <- c(
+#' 0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
+#' 77, 76, 48, 67, 78, 42, 66, 67, 92, 16, 70, 43, 53, 55, 53, 29,
+#' 26, 37, 25, 45, 34, 40, 35
+#' )
+#'
+#' # Example assume sampling fractions of positive cases:
+#' s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
+#'
+#' # Using only 100 iterations and 1 chain for a quick example:
+#' m <- fit_seir(
+#'   cases,
+#'   iter = 100,
+#'   chains = 1,
+#'   samp_frac_fixed = s1
+#' )
+#' print(m)
+#' names(m)
+#' names(m$post)
+#' post_mu <- m$fit %>% tidybayes::spread_draws(mu[day, data_type])
+#' post_mu
+#' post_y_rep <- m$fit %>% tidybayes::spread_draws(mu[day, data_type])
+#' post_y_rep
+#'
+#' # Add hospitalization data and estimate 2 sample-fraction blocks
+#' # for the reported cases:
+#' samp_frac_seg <- c(rep(1, 13), rep(2, length(cases) - 13))
+#'
+#' s2 <- rep(0.7, 42) # Assuming 7% of positive individuals are hospitalized
+#' hosp <- c(
+#'   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 11, 9, 4,
+#'   7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6,
+#'   11, 8, 11, 8, 7, 6
+#' )
+#' m2 <- fit_seir(
+#'   daily_cases = cbind(cases, hosp),
+#'   iter = 100,
+#'   chains = 1,
+#'   samp_frac_type = "segmented", # `samp_frac_type` affects the first data type only
+#'   samp_frac_seg = samp_frac_seg,
+#'   samp_frac_fixed = cbind(s1, s2), # s1 is ignored and could be anything
+#'   delay_scale = c(9.8, 11.2),
+#'   delay_shape = c(1.7, 1.9),
+#' )
+#'
+#' # Estimate a second estimated f_s block:
+#' f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14))
+#' m3 <- fit_seir(
+#'   cases,
+#'   iter = 100,
+#'   chains = 1,
+#'   f_seg = f_seg,
+#'   samp_frac_fixed = s1
+#' )
+#' print(m3)
 
 fit_seir <- function(daily_cases,
-  obs_model = c("NB2", "Poisson"),
-  forecast_days = 0,
-  time_increment = 0.1,
-  days_back = 45,
-  R0_prior = c(log(2.6), 0.2),
-  phi_prior = 1,
-  f2_prior = c(0.4, 0.2),
-  samp_frac_prior = c(0.4, 0.2),
-  samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
-  samp_frac_seg = NULL,
-  rw_sigma = 0.1,
-  f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
-  seed = 42,
-  chains = 4,
-  iter = 2000,
-  samp_frac_fixed = NULL,
-  fixed_f_forecast = NULL,
-  day_start_fixed_f_forecast = nrow(daily_cases) + 1,
-  pars = c(
-    N = 5.1e6, D = 5, k1 = 1 / 5,
-    k2 = 1, q = 0.05,
-    r = 0.1, ur = 0.02, f1 = 1.0,
-    start_decline = 15,
-    end_decline = 22
-  ),
-  i0 = 8,
-  fsi = pars[["r"]] / (pars[["r"]] + pars[["ur"]]),
-  nsi = 1 - fsi,
-  state_0 = c(
-    S = nsi * (pars[["N"]] - i0),
-    E1 = 0.4 * nsi * i0,
-    E2 = 0.1 * nsi * i0,
-    I = 0.5 * nsi * i0,
-    Q = 0,
-    R = 0,
-    Sd = fsi * (pars[["N"]] - i0),
-    E1d = 0.4 * fsi * i0,
-    E2d = 0.1 * fsi * i0,
-    Id = 0.5 * fsi * i0,
-    Qd = 0,
-    Rd = 0
-  ),
-  save_state_predictions = FALSE,
-  delay_scale = 9.85,
-  delay_shape = 1.73,
-  ode_control = c(1e-6, 1e-5, 1e5),
-  daily_cases_omit = NULL,
-  ...) {
+                     obs_model = c("NB2", "Poisson"),
+                     forecast_days = 0,
+                     time_increment = 0.1,
+                     days_back = 45,
+                     R0_prior = c(log(2.6), 0.2),
+                     phi_prior = 1,
+                     f2_prior = c(0.4, 0.2),
+                     samp_frac_prior = c(0.4, 0.2),
+                     samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
+                     samp_frac_seg = NULL,
+                     rw_sigma = 0.1,
+                     f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
+                     seed = 42,
+                     chains = 4,
+                     iter = 2000,
+                     samp_frac_fixed = NULL,
+                     fixed_f_forecast = NULL,
+                     day_start_fixed_f_forecast = nrow(daily_cases) + 1,
+                     pars = c(
+                       N = 5.1e6, D = 5, k1 = 1 / 5,
+                       k2 = 1, q = 0.05,
+                       r = 0.1, ur = 0.02, f1 = 1.0,
+                       start_decline = 15,
+                       end_decline = 22
+                     ),
+                     i0 = 8,
+                     fsi = pars[["r"]] / (pars[["r"]] + pars[["ur"]]),
+                     nsi = 1 - fsi,
+                     state_0 = c(
+                       S = nsi * (pars[["N"]] - i0),
+                       E1 = 0.4 * nsi * i0,
+                       E2 = 0.1 * nsi * i0,
+                       I = 0.5 * nsi * i0,
+                       Q = 0,
+                       R = 0,
+                       Sd = fsi * (pars[["N"]] - i0),
+                       E1d = 0.4 * fsi * i0,
+                       E2d = 0.1 * fsi * i0,
+                       Id = 0.5 * fsi * i0,
+                       Qd = 0,
+                       Rd = 0
+                     ),
+                     save_state_predictions = FALSE,
+                     delay_scale = 9.85,
+                     delay_shape = 1.73,
+                     ode_control = c(1e-6, 1e-5, 1e5),
+                     ...) {
   obs_model <- match.arg(obs_model)
   obs_model <-
     if (obs_model == "Poisson") {
@@ -129,6 +186,7 @@ fit_seir <- function(daily_cases,
     } else { # random walk:
       nrow(daily_cases)
     }
+
   stopifnot(
     names(x_r) ==
       c("N", "D", "k1", "k2", "q", "r", "ur", "f1", "start_decline", "end_decline")
@@ -153,18 +211,7 @@ fit_seir <- function(daily_cases,
   x_r <- c(x_r, c("day_start_fixed_f_forecast" = day_start_fixed_f_forecast))
 
   # find the equivalent time of each day (end):
-  get_time_id <- function(day, time) max(which(time <= day))
   time_day_id <- vapply(days, get_time_id, numeric(1), time = time)
-
-  get_time_day_id0 <- function(day, time, days_back) {
-    # go back `days_back` or to beginning if that's negative time:
-    check <- time <= (day - days_back)
-    if (sum(check) == 0L) {
-      1L
-    } else {
-      max(which(check))
-    }
-  }
   # find the equivalent time of each day (start):
   time_day_id0 <- vapply(days, get_time_day_id0, numeric(1),
     time = time, days_back = days_back
@@ -201,8 +248,9 @@ fit_seir <- function(daily_cases,
   daily_cases_stan <- daily_cases
   daily_cases_stan[is.na(daily_cases_stan)] <- 9999999L # magic number for NA
 
-  if (is.null(samp_frac_seg))
+  if (is.null(samp_frac_seg)) {
     samp_frac_seg <- rep(1, length(days))
+  }
 
   stan_data <- list(
     T = length(time),
@@ -217,7 +265,6 @@ fit_seir <- function(daily_cases,
     x_r = x_r,
     n_x_i = length(f_seg) + 1L,
     x_i = c(length(f_seg), f_seg),
-    f_seg = f_seg,
     delay_shape = array(delay_shape),
     delay_scale = array(delay_scale),
     samp_frac_fixed = samp_frac_fixed,
@@ -261,14 +308,14 @@ fit_seir <- function(daily_cases,
     ... = ...
   )
   post <- rstan::extract(fit)
-  list(
+  structure(list(
     fit = fit, post = post, phi_prior = phi_prior, R0_prior = R0_prior,
     f2_prior = f2_prior, obs_model = obs_model,
     samp_frac_fixed = samp_frac_fixed, state_0 = state_0,
     daily_cases = daily_cases, days = days, time = time,
     last_day_obs = last_day_obs, pars = x_r, f2_prior_beta_shape1 = beta_shape1,
-    f2_prior_beta_shape2 = beta_shape2, stan_data = stan_data
-  )
+    f2_prior_beta_shape2 = beta_shape2, stan_data = stan_data, days_back = days_back
+  ), class = "covidseir")
 }
 
 get_beta_params <- function(mu, sd) {
@@ -277,3 +324,17 @@ get_beta_params <- function(mu, sd) {
   beta <- alpha * (1 / mu - 1)
   list(alpha = alpha, beta = beta)
 }
+
+get_time_id <- function(day, time) max(which(time <= day))
+
+get_time_day_id0 <- function(day, time, days_back) {
+  # go back `days_back` or to beginning if that's negative time:
+  check <- time <= (day - days_back)
+  if (sum(check) == 0L) {
+    1L
+  } else {
+    max(which(check))
+  }
+}
+
+getu <- function(f, r) (r - f * r) / f

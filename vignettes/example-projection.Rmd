@@ -24,8 +24,8 @@ library(covidseir)
 library(ggplot2)
 library(dplyr)
 options(mc.cores = parallel::detectCores() / 2) # Stan parallel processing
-library(future)
-plan(multisession, workers = parallel::detectCores() / 2)
+# library(future)
+# plan(multisession, workers = parallel::detectCores() / 2)
 ```
 
 Let's read in the data:
@@ -61,70 +61,70 @@ We can fit the Stan model with the function `fit_seeiqr()`. It takes one data in
 Stan will run in parallel assuming `options(mc.cores = parallel::detectCores() / 2)` was set. For the purposes of this vignette, we will just run one chain.
 
 ```{r fit, message=FALSE, results='hide'}
-m1 <- fit_seir(
-  cases,
-  iter = 200,
-  chains = 1,
-  samp_frac_fixed = s1,
-  delay_scale = 9.85,
-  delay_shape = 1.73
-)
+# m1 <- fit_seir(
+#   cases,
+#   iter = 200,
+#   chains = 1,
+#   samp_frac_fixed = s1,
+#   delay_scale = 9.85,
+#   delay_shape = 1.73
+# )
 ```
 
 If we had fit the above model with `save_state_predictions = TRUE`, then we could visualize the state predictions with the following code. We won't do that here, since we will re-project the states in R afterwards. Running the model with `save_state_predictions = TRUE` will result in a much larger model object that is slower to work with.
 
 ```{r, eval=FALSE}
-if ("y_hat" %in% names(m1$post)) {
-  post_state <- m1$fit %>%
-    tidybayes::spread_draws(y_hat[time_num, state_num], n = 20)
-  variables_df <- tibble(
-    state = names(m1$state_0),
-    state_num = seq_along(m1$state_0)
-  )
-  ts_df <- dplyr::tibble(time = m1$time, time_num = seq_along(m1$time))
-  post_state <- left_join(post_state, variables_df)
-  post_state <- left_join(post_state, ts_df)
-  ggplot(post_state, aes(time, y_hat, group = paste(.iteration, .draw))) +
-    geom_line(alpha = 0.25) +
-    facet_wrap(~state, scales = "free_y")
-}
+# if ("y_hat" %in% names(m1$post)) {
+#   post_state <- m1$fit %>%
+#     tidybayes::spread_draws(y_hat[time_num, state_num], n = 20)
+#   variables_df <- tibble(
+#     state = names(m1$state_0),
+#     state_num = seq_along(m1$state_0)
+#   )
+#   ts_df <- dplyr::tibble(time = m1$time, time_num = seq_along(m1$time))
+#   post_state <- left_join(post_state, variables_df)
+#   post_state <- left_join(post_state, ts_df)
+#   ggplot(post_state, aes(time, y_hat, group = paste(.iteration, .draw))) +
+#     geom_line(alpha = 0.25) +
+#     facet_wrap(~state, scales = "free_y")
+# }
 ```
 
 Posterior predictive replicates are available in `post$y_rep`. We can also build those ourselves afterwards in R (shown below).
 
-Draws from the expected number of cases `lambda_d` are available as well.
+Draws from the expected number of cases `mu` are available as well.
 
 ```{r}
-post_mu <- m1$fit %>% tidybayes::spread_draws(lambda_d[day, data_type])
-post_y_rep <- m1$fit %>% tidybayes::spread_draws(y_rep[day, data_type])
-
-ggplot(post_mu, aes(day, lambda_d, group = paste(.iteration, .draw))) +
-  geom_line(alpha = 0.05) +
-  facet_wrap(~data_type) +
-  geom_point(
-    data = filter(dat, type == "daily_cases"), aes(x = day, y = cases),
-    inherit.aes = FALSE
-  )
-
-ggplot(post_y_rep, aes(day, y_rep, group = paste(.iteration, .draw))) +
-  geom_line(alpha = 0.07) +
-  facet_wrap(~data_type) +
-  geom_line(
-    data = filter(dat, type == "daily_cases"), aes(x = day, y = cases),
-    inherit.aes = FALSE
-  )
+# post_mu <- m1$fit %>% tidybayes::spread_draws(mu[day, data_type])
+# post_y_rep <- m1$fit %>% tidybayes::spread_draws(mu[day, data_type])
+# 
+# ggplot(post_mu, aes(day, mu, group = paste(.iteration, .draw))) +
+#   geom_line(alpha = 0.05) +
+#   facet_wrap(~data_type) +
+#   geom_point(
+#     data = filter(dat, type == "daily_cases"), aes(x = day, y = cases),
+#     inherit.aes = FALSE
+#   )
+# 
+# ggplot(post_y_rep, aes(day, y_rep, group = paste(.iteration, .draw))) +
+#   geom_line(alpha = 0.07) +
+#   facet_wrap(~data_type) +
+#   geom_line(
+#     data = filter(dat, type == "daily_cases"), aes(x = day, y = cases),
+#     inherit.aes = FALSE
+#   )
 ```
 
 We can make a quick plot of the model fit:
 
 ```{r plot2}
-plot_projection(m1)
+# plot_projection(m1)
 ```
 
 If we wanted to control the number of projected days within the Stan fitting function, we could do it like this:
 
 ```{r fit2, message=FALSE, results='hide', eval=FALSE}
-m_forecast <- fit_seir(cases, iter = 200, chains = 1, forecast_days = 60)
+# m_forecast <- fit_seir(cases, iter = 200, chains = 1, forecast_days = 15)
 ```
 
 There are many named elements of the fitted object. Examples follow.
@@ -132,13 +132,13 @@ There are many named elements of the fitted object. Examples follow.
 The posterior samples from `rstan::extract()` are in the element `post` for posterior:
 
 ```{r}
-names(m1$post)
+# names(m1$post)
 ```
 
 The rstan object itself is in the named element `fit`. You can do anything with that you can do with the output from an rstan fit.
 
 ```{r}
-print(m1$fit, pars = c("R0", "f_s", "phi"))
+# print(m1$fit, pars = c("R0", "f_s", "phi"))
 ```
 
 I have named the parameters I want to look up to avoid summarizing many derived values and parameters.
@@ -146,18 +146,18 @@ I have named the parameters I want to look up to avoid summarizing many derived 
 If you don't do that you would get this:
 
 ```{r}
-print(m1$fit)
+# print(m1$fit)
 ```
 
 A few examples of things you could do:
 
 ```{r}
-bayesplot::mcmc_areas(m1$fit, pars = c("R0", "f_s[1]", "phi[1]"))
-bayesplot::mcmc_trace(m1$fit, pars = c("R0", "f_s[1]", "phi[1]"))
+# bayesplot::mcmc_areas(m1$fit, pars = c("R0", "f_s[1]", "phi[1]"))
+# bayesplot::mcmc_trace(m1$fit, pars = c("R0", "f_s[1]", "phi[1]"))
 ```
 
 ```{r, eval=FALSE}
-shinystan::launch_shinystan(m1$fit)
+# shinystan::launch_shinystan(m1$fit)
 ```
 
 The ODE state predictions are only available if `fit_seeiqr()` is fit with the option `save_state_predictions = TRUE`. This will make the resulting model object considerably larger in the model will take a little bit longer to fit. By default it is false.
@@ -166,7 +166,7 @@ The other elements of the output object are mostly information on how the model 
 It's helpful for debugging purposes to know that the data, exactly as it was passed to Stan, are in the element `stan_data`:
 
 ```{r}
-names(m1$stan_data)
+# names(m1$stan_data)
 ```
 
 # Making projections directly in R
@@ -178,22 +178,22 @@ Aside: most of the submitted pre-print just uses Stan for all the predictions an
 Let's start by using the R functions to generate the same predictions that we could have got out of our fit to the historical data:
 
 ```{r}
-proj <- project_fit(m1)
-head(proj$states)
-head(proj$cases)
-
-ggplot(proj$states, aes(time, I + Id, group = iterations)) +
-  geom_line(alpha = 0.3)
-ggplot(proj$cases, aes(day, lambda_d, group = iterations)) +
-  geom_line(alpha = 0.3)
-ggplot(proj$cases, aes(day, y_rep, group = iterations)) +
-  geom_line(alpha = 0.3)
-
-proj$states %>%
-  tidyr::pivot_longer(-c(time, iterations)) %>%
-  ggplot(aes(time, value, group = iterations)) +
-  geom_line(alpha = 0.2) +
-  facet_wrap(~name, scales = "free_y")
+# proj <- project_fit(m1)
+# head(proj$states)
+# head(proj$cases)
+# 
+# ggplot(proj$states, aes(time, I + Id, group = iterations)) +
+#   geom_line(alpha = 0.3)
+# ggplot(proj$cases, aes(day, mu, group = iterations)) +
+#   geom_line(alpha = 0.3)
+# ggplot(proj$cases, aes(day, y_rep, group = iterations)) +
+#   geom_line(alpha = 0.3)
+# 
+# proj$states %>%
+#   tidyr::pivot_longer(-c(time, iterations)) %>%
+#   ggplot(aes(time, value, group = iterations)) +
+#   geom_line(alpha = 0.2) +
+#   facet_wrap(~name, scales = "free_y")
 ```
 
 By default, `project_fit()` only uses 50 samples from the posterior. This may be enough for some visualizations, but probably isn't enough for coming up with consistent credible intervals on projections.
@@ -203,85 +203,19 @@ The function `project_fit()` also takes an argument `f_vec`, which should be a v
 Here's an example of cycling between f = 0.8 and f = 0.3 at 4-week intervals:
 
 ```{r}
-f_vec <- c(
-  rep(NA, m1$last_day_obs),
-  rep(c(rep(0.8, 7 * 4), rep(0.3, 7 * 4)), 3)
-)
-f_vec
-proj2 <- project_fit(m1, f_vec = f_vec, proj_days = 90, i = 1:20)
-
-ggplot(proj2$states, aes(time, I + Id, group = iterations)) +
-  geom_line(alpha = 0.3)
-ggplot(proj2$cases, aes(day, lambda_d, group = iterations)) +
-  geom_line(alpha = 0.3)
-ggplot(proj2$cases, aes(day, y_rep, group = iterations)) +
-  geom_line(alpha = 0.3)
-```
-
-# Using the projection plot function
-
-You can use the output data to make whatever plots you would like. However, there's also a function for making some of the projection plots from the pre-print:
-
-```{r}
-plot_projection(m1)
-```
-
-Note that it can take a list object as input. This is so that you can provide a list of multiple models and it will arrange them as multiple panels in one plot. The names of the list elements become the facet labels. If you only have one model, you will need to provide it as a list.
-
-For example:
-
-```{r}
-plot_projection(list("One model" = m1, "Another model" = m1))
-```
-
-Obviously these are both actually the same model in this case, but they could be named list output from `purrr::map()` or `lapply()`.
-
-By default it takes the projections directly from the Stan object. You can also override that if you want to provide your own predictions.
-
-Sorry I haven't wrapped up these functions yet. FIXME
-
-```{r}
-prep_dat <- function(.dat, Scenario = "") {
-  actual_dates <- seq(dat$date[1], max(dat$date[1]) + 90, by = "1 day")
-  outer_quantile <- c(0.05, 0.95)
-  y_rep <- .dat %>%
-    mutate(value = y_rep) %>%
-    group_by(day) %>%
-    summarise(
-      lwr = quantile(value, probs = outer_quantile[1]),
-      lwr2 = quantile(value, probs = 0.25),
-      upr = quantile(value, probs = outer_quantile[2]),
-      upr2 = quantile(value, probs = 0.75),
-      med = median(value)
-    ) %>%
-    mutate(day = actual_dates[day], Scenario = Scenario)
-  lambdas <- .dat %>%
-    group_by(day) %>%
-    mutate(value = lambda_d) %>%
-    summarise(
-      med = median(value)
-    ) %>%
-    mutate(day = actual_dates[day], Scenario = Scenario)
-  list(y_rep = y_rep, mu = lambdas)
-}
-# Re-sample the observation component for smoother credible intervals:
-proj_replicated <- purrr::map_dfr(1:30, function(i) {
-  temp <- proj2$cases
-  temp$y_rep <- MASS::rnegbin(length(temp$y_rep),
-    temp$lambda_d,
-    theta = temp$phi
-  )
-  temp
-})
-x <- prep_dat(proj_replicated)
-```
-
-```{r, warnings = FALSE, include=FALSE, eval=FALSE}
-plot_projection(
-  m1,
-  mu_dat = x$mu,
-  y_rep_dat = x$y_rep
-)
+# f_vec <- c(
+#   rep(NA, m1$last_day_obs),
+#   rep(c(rep(0.8, 7 * 4), rep(0.3, 7 * 4)), 3)
+# )
+# f_vec
+# proj2 <- project_fit(m1, f_vec = f_vec, proj_days = 90, i = 1:20)
+# 
+# ggplot(proj2$states, aes(time, I + Id, group = iterations)) +
+#   geom_line(alpha = 0.3)
+# ggplot(proj2$cases, aes(day, mu, group = iterations)) +
+#   geom_line(alpha = 0.3)
+# ggplot(proj2$cases, aes(day, y_rep, group = iterations)) +
+#   geom_line(alpha = 0.3)
 ```
 
 # Multiple data types
@@ -289,21 +223,21 @@ plot_projection(
 We can extend the model to include multiple response data types (e.g., daily case counts and daily hospitalizations) by including a matrix of daily cases. We also then have to include a matrix of sampled fractions and a vector of delay scale and shape parameters to match:
 
 ```{r fit2types, message=FALSE, results='hide'}
-s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13)) # example sample fractions
-s2 <- rep(0.05, length(hosp)) # example sample fractions
-
-m2 <- fit_seir(
-  daily_cases = cbind(cases, hosp),
-  iter = 200,
-  chains = 1,
-  samp_frac_fixed = cbind(s1, s2),
-  delay_scale = c(9.85, 10.15),
-  delay_shape = c(1.73, 1.93),
-)
+# s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13)) # example sample fractions
+# s2 <- rep(0.05, length(hosp)) # example sample fractions
+# 
+# m2 <- fit_seir(
+#   daily_cases = cbind(cases, hosp),
+#   iter = 200,
+#   chains = 1,
+#   samp_frac_fixed = cbind(s1, s2),
+#   delay_scale = c(9.85, 10.15),
+#   delay_shape = c(1.73, 1.93),
+# )
 ```
 
 ```{r}
-plot_projection(m2)
+# plot_projection(m2)
 ```
 
 ```{r fit2types-est, message=FALSE, results='hide', include=FALSE}
@@ -323,111 +257,17 @@ plot_projection(m2)
 Multiple fraction-of-normal-contact segments for those physical distancing:
 
 ```{r fit2types-f-s, message=FALSE, results='hide', include=FALSE}
-(f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14)))
-# 0s are before physical distancing
-
-m4 <- fit_seir(
-  cases,
-  iter = 100,
-  chains = 1,
-  samp_frac_fixed = s1,
-  f_seg = f_seg,
-  delay_scale = 9.85,
-  delay_shape = 1.73
-)
-print(m4$fit, pars = c("R0", "f_s", "phi"))
+# (f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14)))
+# # 0s are before physical distancing
+# 
+# m4 <- fit_seir(
+#   cases,
+#   iter = 150,
+#   chains = 8,
+#   samp_frac_fixed = s1,
+#   f_seg = f_seg,
+#   delay_scale = 9.85,
+#   delay_shape = 1.73
+# )
+# print(m4$fit, pars = c("R0", "f_s", "phi"))
 ```
-
-```{r}
-library(future)
-plan(multisession, workers = parallel::detectCores() / 2)
-d <- m4$stan_data
-p <- m4$post
-
-d$x_r[["fixed_f_forecast"]] <- 0.6
-d$x_r
-
-days_back <- 45L
-forecast_days <- 120L
-days <- seq(1, nrow(d$daily_cases) + forecast_days)
-time_increment <- d$time[2] - d$time[1]
-time <- seq(-30, max(days), time_increment)
-
-# find the equivalent time of each day (end):
-get_time_id <- function(day, time) max(which(time <= day))
-time_day_id <- vapply(days, get_time_id, numeric(1), time = time)
-get_time_day_id0 <- function(day, time, days_back) {
-  # go back `days_back` or to beginning if that's negative time:
-  check <- time <= (day - days_back)
-  if (sum(check) == 0L) {
-    1L
-  } else {
-    max(which(check))
-  }
-}
-# find the equivalent time of each day (start):
-time_day_id0 <- vapply(days, get_time_day_id0, numeric(1),
-  time = time, days_back = days_back
-)
-
-d$time_day_id0 <- time_day_id0
-d$time_day_id <- time_day_id
-d$time <- time
-d$days <- days
-d$T <- length(time)
-d$N <- length(days)
-
-.s <- d$samp_frac_seg[length(d$samp_frac_seg)]
-added_length <- nrow(d$daily_cases) + forecast_days - length(d$samp_frac_seg)
-d$samp_frac_seg <- c(d$samp_frac_seg, rep(.s, added_length))
-
-.s <- d$samp_frac_fixed[nrow(d$samp_frac_fixed), ]
-d$samp_frac_fixed <- rbind(
-  d$samp_frac_fixed,
-  do.call(rbind, replicate(added_length, .s, simplify = FALSE))
-)
-
-.f_id <- d$x_i[length(d$x_i)]
-d$x_i <- c(d$x_i, rep(.f_id, added_length))
-d$x_i[1] <- length(d$x_i) - 1
-d$n_x_i <- length(d$x_i)
-
-pars_save <- c("phi", "mu", "y_rep")
-
-initf <- function(post, i, stan_data) {
-  R0 <- post$R0[i]
-  f_s <- array(post$f_s[i, ])
-  phi <- array(post$phi[i, ])
-  if ("samp_frac" %in% names(post)) {
-    samp_frac <- array(post$samp_frac[i, ])
-  } else {
-    samp_frac <- rep(1, stan_data$n_samp_frac) # fake
-  }
-  list(R0 = R0, f_s = f_s, phi = phi, samp_frac = samp_frac)
-}
-
-out <- furrr::future_map_dfr(1:50, function(i) {
-  fit <- rstan::sampling(
-    covidseir:::stanmodels$seir,
-    data = d,
-    iter = 1L,
-    chains = 1L,
-    init = function() initf(p, i, d),
-    pars = pars_save,
-    refresh = 0,
-    algorithm = "Fixed_param"
-  )
-  post <- rstan::extract(fit)
-  tibble(
-    day = d$days,
-    mu = post$mu[, , 1],
-    phi = rep(post$phi[1], length(d$days)),
-    y_rep = post$y_rep[, , 1],
-    iterations = rep(i, length(d$days)) 
-  )
-})
-
-ggplot(out, aes(day, mu, group = iterations)) + geom_line()
-ggplot(out, aes(day, y_rep, group = iterations)) + geom_line(alpha = 0.1)
-```
-
