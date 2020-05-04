@@ -2,7 +2,7 @@
 
 S3method(print,covidseir)
 export(fit_seir)
-export(project)
+export(project_seir)
 import(Rcpp)
 import(methods)
 importFrom(rstan,sampling)

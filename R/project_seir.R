@@ -1,9 +1,10 @@
 #' Project a SEIR fit
 #'
 #' Project a fit from [fit_seir()], possibly with a forecast. By default, the
-#' forecast uses the estimated f values (fraction of normal contacts encountered
-#' for those physical distancing). The function also includes functionality to
-#' specify a vector of fixed f values starting on a given future date.
+#' forecast uses the estimated f values (fraction of normal
+#' contacts encountered for those physical distancing). The function also includes
+#' functionality to specify a vector of fixed f values starting on a given
+#' future date.
 #'
 #' @param obj Output from [fit_seir()].
 #' @param forecast_days Number of forecast days.
@@ -15,19 +16,18 @@
 #' @param iter MCMC iterations to include. Defaults to all.
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #'
-#' @details Set a [future::plan()] and this function will operate in parallel
+#' @details
+#' Set a [future::plan()] and this function will operate in parallel
 #' across MCMC iterations using \pkg{future.apply}.
 #'
 #' @return
 #' A data frame:
 #' \describe{
-#'   \item{`day`}{Day}
-#'   \item{`data_type`}{Data-type column from the case data}
-#'   \item{`mu`}{Expected number of cases}
-#'   \item{`y_rep`}{Posterior predictive replicate observations}
-#'   \item{`phi`}{Posterior draw of phi, the (inverse) NB2 dispersion parameter, if
-#'   included. Useful if you want to resample the observation component; i.e.,
-#'   resampling additional `y_rep`.}
+#'   \item{day}{Day}
+#'   \item{data_type}{Data-type column from the case data}
+#'   \item{mu}{Expected number of cases}
+#'   \item{y_rep}{Posterior predictive replicate observation}
+#'   \item{phi}{Posterior draw of phi, the NB2 dispersion parameter, if included}
 #'   \item{.iteration}{The MCMC iteration}
 #' }
 #' @export
@@ -179,7 +179,7 @@ project_seir <- function(
     df$data_type <- rep(seq_len(d$J), each = d$N)
     df$mu <- as.vector(post$mu[1, , ])
     df$y_rep <- as.vector(post$y_rep[1, , ])
-    if ("phi" %in% names(post)) df$phi <- rep(as.vector(post$phi[1, ]), each = d$N)
+    df$phi <- rep(as.vector(post$phi[1, ]), each = d$N)
     df$.iteration <- i
     df
   })

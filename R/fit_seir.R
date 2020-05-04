@@ -1,45 +1,52 @@
 #' Fit a Stan SEIR model
 #'
-#' @param daily_cases Either a vector of daily new cases if fit into a single
-#'   data type or a matrix of case data is fitting to multiple data types. Each
+#' This function fits a Stan SEIR model to one or more sets of COVID-19 case
+#' data. See [project_seir()] for making forecasts.
+#'
+#' @param daily_cases Either a vector of daily new cases if fitting to a single
+#'   data type or a matrix of case data if fitting to multiple data types. Each
 #'   data type should be in its own column. Can have NA values (will be ignored
 #'   in likelihood). A vector will be turned into a one column matrix.
-#' @param obs_model Type of observation model
+#' @param obs_model Type of observation model.
 #' @param forecast_days Number of days into the future to forecast. The model
-#'   will run faster with fewer forecasted days.
+#'   will run faster with fewer forecasted days. It is recommended to set this
+#'   to 0 here and use [project_seir()] for forecasts.
 #' @param time_increment Time increment for ODEs and Weibull delay-model
-#'   integration
-#' @param days_back Number of days to go back for Weibull delay-model
-#'   integration
-#' @param R0_prior Lognormal log mean and SD for R0 prior
+#'   integration. Larger numbers will run faster, possibly at the expense of
+#'   accuracy.
+#' @param days_back Number of days to go back for the Weibull case-delay
+#'   integration. Should be sufficiently large that the results do not change.
+#' @param R0_prior Lognormal log mean and SD for the R0 prior.
 #' @param phi_prior SD of `1/sqrt(phi) ~ Normal(0, SD)` prior, where NB2(mu,
-#'   phi) and `Var(Y) = mu + mu^2 / phi`.
-#'   <https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations>
-#' @param f2_prior Beta mean and SD for `f2` parameter
+#'   phi) and `Var(Y) = mu + mu^2 / phi`. See the Stan
+#'   \href{https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations}{Prior
+#'   Choice Recommendations}.
+#' @param f_prior Beta mean and SD for the `f` parameters. FIXME: all `f`
+#'   parameters must have the same prior currently. This will be fixed.
 #' @param samp_frac_prior `samp_frac` prior if `samp_frac_type` is "estimated"
 #'   or "rw" or "segmented". In the case of the random walk, this specifies the
 #'   initial state prior. The two values correspond to the mean and SD of a Beta
-#'   distribution. Only applies to first time series. (Currently disabled!)
-#' @param samp_frac_type How to treat the sample fraction. Fixed, estimated, or
-#'   a constrained random walk. Also segmented. Only applies to the first data
-#'   type column if there are multiple data types. The other data types always
-#'   have a fixed sample fraction.
+#'   distribution. Only applies to first time series.
+#' @param samp_frac_type How to treat the sample fraction. Fixed, estimated, a
+#'   constrained random walk, or segmented. Only applies to the first data type
+#'   column. The other data types must always have a fixed sample fraction
+#'   currently.
 #' @param samp_frac_seg A vector of sample fraction segment indexes of length
-#'   `daily_cases` + `forecast_days`. Should start at 1.
-#' @param rw_sigma The standard deviation on the optional `samp_frac` random
-#'   walk on the first data type.
+#'   `daily_cases` + `forecast_days`. Should start at 1. Applies if
+#'   `samp_frac_type = "segmented"`.
+#' @param rw_sigma The fixed standard deviation on the optional `samp_frac`
+#'   random walk.
 #' @param f_seg A vector of segment indexes of length `daily_cases` +
-#'   `forecast_days`. The the segment index values should start at 0 to
-#'   represent the fixed "no social distancing" value `f0` from the `pars`
-#'   argument.
-#' @param seed MCMC seed
-#' @param chains Number of MCMC chains
-#' @param iter MCMC iterations per chain
+#'   `forecast_days`. The segment index values should start at 0 to represent
+#'   the fixed "no social distancing" value `f0` from the `pars` argument.
+#' @param seed MCMC seed for [rstan::stan()].
+#' @param chains Number of MCMC chains for [rstan::stan()].
+#' @param iter MCMC iterations per chain for [rstan::stan()].
 #' @param samp_frac_fixed A vector (or matrix) of sampled fractions. Should be
 #'   of dimensions: `nrow(daily_cases) + forecast_days` (rows) by
 #'   `ncol(daily_cases` (columns). A vector will be turned into a one column
 #'   matrix.
-#' @param pars A named numeric vector of fixed parameter values
+#' @param pars A named numeric vector of fixed parameter values.
 #' @param i0 Infected people infected at initial point in time.
 #' @param fsi Fraction socially distancing. Derived parameter.
 #' @param nsi Fraction not socially distancing. Derived parameter.
@@ -52,18 +59,18 @@
 #' @param delay_shape Weibull shape parameter for the delay in reporting. Same
 #'   format as for `delay_scale`.
 #' @param ode_control Control options for the Stan ODE solver. First is relative
-#'   difference, that absolute difference, and then maximum iterations. You
-#'   probably don't need to touch these.
-#' @param ... Other arguments to pass to [rstan::sampling()].
+#'   difference, that absolute difference, and then maximum iterations. These
+#'   can likely be left as is.
+#' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()].
 #' @export
 #' @return A named list object
 #' @examples
 #' \donttest{
 #' # Example daily case data:
 #' cases <- c(
-#' 0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
-#' 77, 76, 48, 67, 78, 42, 66, 67, 92, 16, 70, 43, 53, 55, 53, 29,
-#' 26, 37, 25, 45, 34, 40, 35
+#'   0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
+#'   77, 76, 48, 67, 78, 42, 66, 67, 92, 16, 70, 43, 53, 55, 53, 29,
+#'   26, 37, 25, 45, 34, 40, 35
 #' )
 #'
 #' # Example assume sampling fractions of positive cases:
@@ -81,7 +88,7 @@
 #' )
 #' print(m)
 #' names(m)
-#' names(m$post)
+#' names(m$post) # from rstan::extract(m$fit)
 #'
 #' # use tidybayes if you'd like:
 #' # post_tidy <- tidybayes::spread_draws(m$fit, c(y_rep, mu)[day, data_type])
@@ -127,7 +134,7 @@ fit_seir <- function(daily_cases,
                      days_back = 45,
                      R0_prior = c(log(2.6), 0.2),
                      phi_prior = 1,
-                     f2_prior = c(0.4, 0.2),
+                     f_prior = c(0.4, 0.2),
                      samp_frac_prior = c(0.4, 0.2),
                      samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
                      samp_frac_seg = NULL,
@@ -220,8 +227,8 @@ fit_seir <- function(daily_cases,
   stopifnot(nrow(samp_frac_fixed) == length(days))
   stopifnot(ncol(samp_frac_fixed) == ncol(daily_cases))
 
-  beta_sd <- f2_prior[2]
-  beta_mean <- f2_prior[1]
+  beta_sd <- f_prior[2]
+  beta_mean <- f_prior[1]
   beta_shape1 <- get_beta_params(beta_mean, beta_sd)$alpha
   beta_shape2 <- get_beta_params(beta_mean, beta_sd)$beta
 
@@ -275,7 +282,7 @@ fit_seir <- function(daily_cases,
     time_day_id0 = time_day_id0,
     R0_prior = R0_prior,
     phi_prior = phi_prior,
-    f2_prior = c(beta_shape1, beta_shape2),
+    f_prior = c(beta_shape1, beta_shape2),
     samp_frac_prior = samp_frac_prior_trans,
     n_samp_frac = n_samp_frac,
     rw_sigma = rw_sigma,
@@ -289,8 +296,8 @@ fit_seir <- function(daily_cases,
     R0 <- stats::rlnorm(1, log(R0_prior[1]), R0_prior[2])
     f <- stats::rbeta(
       1,
-      get_beta_params(f2_prior[1], f2_prior[2])$alpha,
-      get_beta_params(f2_prior[1], f2_prior[2])$beta
+      get_beta_params(f_prior[1], f_prior[2])$alpha,
+      get_beta_params(f_prior[1], f_prior[2])$beta
     )
     f_s <- array(f, dim = stan_data$S)
     init <- list(R0 = R0, f_s = f_s)
@@ -311,7 +318,7 @@ fit_seir <- function(daily_cases,
   post <- rstan::extract(fit)
   structure(list(
     fit = fit, post = post, phi_prior = phi_prior, R0_prior = R0_prior,
-    f2_prior = f2_prior, obs_model = obs_model,
+    f_prior = f_prior, obs_model = obs_model,
     samp_frac_fixed = samp_frac_fixed, state_0 = state_0,
     daily_cases = daily_cases, days = days, time = time,
     last_day_obs = last_day_obs, pars = x_r, f2_prior_beta_shape1 = beta_shape1,

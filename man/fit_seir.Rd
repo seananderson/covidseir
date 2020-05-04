@@ -12,7 +12,7 @@ fit_seir(
   days_back = 45,
   R0_prior = c(log(2.6), 0.2),
   phi_prior = 1,
-  f2_prior = c(0.4, 0.2),
+  f_prior = c(0.4, 0.2),
   samp_frac_prior = c(0.4, 0.2),
   samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
   samp_frac_seg = NULL,
@@ -38,63 +38,67 @@ fit_seir(
 )
 }
 \arguments{
-\item{daily_cases}{Either a vector of daily new cases if fit into a single
-data type or a matrix of case data is fitting to multiple data types. Each
+\item{daily_cases}{Either a vector of daily new cases if fitting to a single
+data type or a matrix of case data if fitting to multiple data types. Each
 data type should be in its own column. Can have NA values (will be ignored
 in likelihood). A vector will be turned into a one column matrix.}
 
-\item{obs_model}{Type of observation model}
+\item{obs_model}{Type of observation model.}
 
 \item{forecast_days}{Number of days into the future to forecast. The model
-will run faster with fewer forecasted days.}
+will run faster with fewer forecasted days. It is recommended to set this
+to 0 here and use \code{\link[=project_seir]{project_seir()}} for forecasts.}
 
 \item{time_increment}{Time increment for ODEs and Weibull delay-model
-integration}
+integration. Larger numbers will run faster, possibly at the expense of
+accuracy.}
 
-\item{days_back}{Number of days to go back for Weibull delay-model
-integration}
+\item{days_back}{Number of days to go back for the Weibull case-delay
+integration. Should be sufficiently large that the results do not change.}
 
-\item{R0_prior}{Lognormal log mean and SD for R0 prior}
+\item{R0_prior}{Lognormal log mean and SD for the R0 prior.}
 
 \item{phi_prior}{SD of \code{1/sqrt(phi) ~ Normal(0, SD)} prior, where NB2(mu,
-phi) and \code{Var(Y) = mu + mu^2 / phi}.
-\url{https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations}}
+phi) and \code{Var(Y) = mu + mu^2 / phi}. See the Stan
+\href{https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations}{Prior
+Choice Recommendations}.}
 
-\item{f2_prior}{Beta mean and SD for \code{f2} parameter}
+\item{f_prior}{Beta mean and SD for the \code{f} parameters. FIXME: all \code{f}
+parameters must have the same prior currently. This will be fixed.}
 
 \item{samp_frac_prior}{\code{samp_frac} prior if \code{samp_frac_type} is "estimated"
 or "rw" or "segmented". In the case of the random walk, this specifies the
 initial state prior. The two values correspond to the mean and SD of a Beta
-distribution. Only applies to first time series. (Currently disabled!)}
+distribution. Only applies to first time series.}
 
-\item{samp_frac_type}{How to treat the sample fraction. Fixed, estimated, or
-a constrained random walk. Also segmented. Only applies to the first data
-type column if there are multiple data types. The other data types always
-have a fixed sample fraction.}
+\item{samp_frac_type}{How to treat the sample fraction. Fixed, estimated, a
+constrained random walk, or segmented. Only applies to the first data type
+column. The other data types must always have a fixed sample fraction
+currently.}
 
 \item{samp_frac_seg}{A vector of sample fraction segment indexes of length
-\code{daily_cases} + \code{forecast_days}. Should start at 1.}
+\code{daily_cases} + \code{forecast_days}. Should start at 1. Applies if
+\code{samp_frac_type = "segmented"}.}
 
-\item{rw_sigma}{The standard deviation on the optional \code{samp_frac} random
-walk on the first data type.}
+\item{rw_sigma}{The fixed standard deviation on the optional \code{samp_frac}
+random walk.}
 
 \item{f_seg}{A vector of segment indexes of length \code{daily_cases} +
-\code{forecast_days}. The the segment index values should start at 0 to
-represent the fixed "no social distancing" value \code{f0} from the \code{pars}
-argument.}
+\code{forecast_days}. The segment index values should start at 0 to represent
+the fixed "no social distancing" value \code{f0} from the \code{pars} argument.}
 
-\item{seed}{MCMC seed}
+\item{seed}{MCMC seed for \code{\link[rstan:stan]{rstan::stan()}}.}
 
-\item{chains}{Number of MCMC chains}
+\item{chains}{Number of MCMC chains for \code{\link[rstan:stan]{rstan::stan()}}.}
 
-\item{iter}{MCMC iterations per chain}
+\item{iter}{MCMC iterations per chain for \code{\link[rstan:stan]{rstan::stan()}}.}
 
 \item{samp_frac_fixed}{A vector (or matrix) of sampled fractions. Should be
 of dimensions: \code{nrow(daily_cases) + forecast_days} (rows) by
 \verb{ncol(daily_cases} (columns). A vector will be turned into a one column
 matrix.}
 
-\item{pars}{A named numeric vector of fixed parameter values}
+\item{pars}{A named numeric vector of fixed parameter values.}
 
 \item{i0}{Infected people infected at initial point in time.}
 
@@ -115,24 +119,25 @@ length as the data types.}
 format as for \code{delay_scale}.}
 
 \item{ode_control}{Control options for the Stan ODE solver. First is relative
-difference, that absolute difference, and then maximum iterations. You
-probably don't need to touch these.}
+difference, that absolute difference, and then maximum iterations. These
+can likely be left as is.}
 
-\item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}}.}
+\item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}}.}
 }
 \value{
 A named list object
 }
 \description{
-Fit a Stan SEIR model
+This function fits a Stan SEIR model to one or more sets of COVID-19 case
+data. See \code{\link[=project_seir]{project_seir()}} for making forecasts.
 }
 \examples{
 \donttest{
 # Example daily case data:
 cases <- c(
-0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
-77, 76, 48, 67, 78, 42, 66, 67, 92, 16, 70, 43, 53, 55, 53, 29,
-26, 37, 25, 45, 34, 40, 35
+  0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
+  77, 76, 48, 67, 78, 42, 66, 67, 92, 16, 70, 43, 53, 55, 53, 29,
+  26, 37, 25, 45, 34, 40, 35
 )
 
 # Example assume sampling fractions of positive cases:
@@ -150,7 +155,7 @@ m <- fit_seir(
 )
 print(m)
 names(m)
-names(m$post)
+names(m$post) # from rstan::extract(m$fit)
 
 # use tidybayes if you'd like:
 # post_tidy <- tidybayes::spread_draws(m$fit, c(y_rep, mu)[day, data_type])
