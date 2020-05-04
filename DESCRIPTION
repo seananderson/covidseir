@@ -44,26 +44,26 @@ Authors@R:
              comment = "Principal Investigator; <ccolijn@sfu.ca>"))
 Description: Fits a Bayesian SEIR (Susceptible, Exposed,
     Infectious, Recovered) model to daily COVID-19 case data. The package
-    focuses on estimating the fraction of usual contacts encountered
-    for individuals participating in physical distancing (social
-    distancing). The model is coded in 'Stan'. The model can accommodate
-    multiple types of case data at once (e.g., reported cases,
-    hospitalizations, ICU admissions) and accounts for delays between
-    symptom onset and case appearance. This model is a continuation of the
-    one described in the preprint <doi:10.1101/2020.04.17.20070086>.
+    focuses on estimating the fraction of usual contacts encountered for
+    individuals participating in physical distancing (social distancing).
+    The model is coded in 'Stan'. The model can accommodate multiple types
+    of case data at once (e.g., reported cases, hospitalizations, ICU
+    admissions) and accounts for delays between symptom onset and case
+    appearance. This model is a continuation of the one described in the
+    preprint <doi:10.1101/2020.04.17.20070086>.
 License: GPL-2
 Depends: 
     R (>= 3.5.0)
 Imports: 
+    future.apply,
     methods,
     Rcpp (>= 0.12.0),
-    rstan (>= 2.18.1),
-    rstantools (>= 2.0.0),
-    future.apply
-Suggests: 
+    rstan (>= 2.18.1)
+Suggests:
+    ggplot2,
     knitr,
     rmarkdown,
-    ggplot2
+    rstantools (>= 2.0.0)
 LinkingTo: 
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
