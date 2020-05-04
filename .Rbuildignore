@@ -1,4 +1,14 @@
-^covidseir\.Rproj$
-^\.Rproj\.user$
 ^\.travis\.yml$
+^.*\.Rproj$
+^\.Rproj\.user$
+^CRAN-RELEASE$
+^cran-comments\.md$
+^\.httr-oauth$
+^codecov\.yml$
+^_pkgdown\.yml$
+^docs$
+^appveyor\.yml$
+^TAGS$
+^\.github$
+^\.github/workflows/R-CMD-check\.yaml$
 ^README\.Rmd
