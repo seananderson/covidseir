@@ -1,6 +1,6 @@
 #' The 'covidseir' package.
 #'
-#' @description A DESCRIPTION OF THE PACKAGE
+#' @description Bayesian SEIR Modelling for Multivariate COVID-19 Case Data
 #'
 #' @docType package
 #' @name covidseir-package
