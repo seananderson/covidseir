@@ -30,32 +30,15 @@ Before installation, you will need a [C++ compiler installed to compile the Stan
 In particular, the following must return `TRUE` before continuing:
 
 ```r
+# install.packages("pkgbuild")
 pkgbuild::has_build_tools(debug = TRUE)
 ```
 
 Then, install the package with:
 
 ```r
-# install.packages("remotes")
-remotes::install_github("seananderson/covidseir")
+# install.packages("devtools")
+devtools::install_github("seananderson/covidseir")
 ```
 
-If you also want to read the compiled vignette (slower):
-
-```r
-remotes::install_github("seananderson/covidseir", build_vignettes = TRUE)
-browseVignettes("covidseir")
-```
-
-Alternatively, read the source code for the vignette [here](https://github.com/seananderson/covidseir/tree/master/vignettes).
-
-Or if you have a local copy of the repository:
-
-```r
-# with vignettes:
-devtools::install("covidseir", build_vignettes = TRUE)
-browseVignettes("covidseir")
-
-# without vignettes (faster):
-devtools::install("covidseir")
-```
+See the examples in `?fit_seir` and `?project_seir`.
