@@ -58,6 +58,7 @@
 #' @export
 #' @return A named list object
 #' @examples
+#' \donttest{
 #' # Example daily case data:
 #' cases <- c(
 #' 0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
@@ -95,7 +96,6 @@
 #'   7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6,
 #'   11, 8, 11, 8, 7, 6
 #' )
-#' \donttest{
 #' m2 <- fit_seir(
 #'   daily_cases = cbind(cases, hosp),
 #'   iter = 100,
