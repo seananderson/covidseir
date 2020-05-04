@@ -97,7 +97,7 @@
 #' # for the reported cases:
 #' samp_frac_seg <- c(rep(1, 13), rep(2, length(cases) - 13))
 #'
-#' s2 <- rep(0.07, 42) # Assuming 7% of positive individuals are hospitalized
+#' s2 <- rep(0.07, 42) # Assuming 7\% of positive individuals are hospitalized
 #' hosp <- c(
 #'   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 11, 9, 4,
 #'   7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6,
@@ -126,7 +126,7 @@
 #' )
 #' print(m3)
 #' }
-
+#'
 fit_seir <- function(daily_cases,
                      obs_model = c("NB2", "Poisson"),
                      forecast_days = 0,

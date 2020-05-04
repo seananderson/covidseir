@@ -76,14 +76,13 @@
 #' )
 #' p
 #' plot_ts(p)
-
 project_seir <- function(
-                    obj,
-                    forecast_days = 30,
-                    f_s_fixed_start = NULL,
-                    f_s_fixed = NULL,
-                    iter = seq_along(obj$post$R0),
-                    ...) {
+                         obj,
+                         forecast_days = 30,
+                         f_s_fixed_start = NULL,
+                         f_s_fixed = NULL,
+                         iter = seq_along(obj$post$R0),
+                         ...) {
   if (!identical(class(obj), "covidseir")) {
     stop("`obj` must be of class `covidseir`.")
   }
