@@ -30,7 +30,7 @@
 #'   walk on the first data type.
 #' @param f_seg A vector of segment indexes of length `daily_cases` +
 #'   `forecast_days`. The the segment index values should start at 0 to
-#'   represent the fixed "no social distancing" value `f1` from the `pars`
+#'   represent the fixed "no social distancing" value `f0` from the `pars`
 #'   argument.
 #' @param seed MCMC seed
 #' @param chains Number of MCMC chains
@@ -39,9 +39,6 @@
 #'   of dimensions: `nrow(daily_cases) + forecast_days` (rows) by
 #'   `ncol(daily_cases` (columns). A vector will be turned into a one column
 #'   matrix.
-#' @param fixed_f_forecast Optional fixed `f` (fraction of normal distancing)
-#'   for the forecast.
-#' @param day_start_fixed_f_forecast Day to start using `fixed_f_forecast`.
 #' @param pars A named numeric vector of fixed parameter values
 #' @param i0 Infected people infected at initial point in time.
 #' @param fsi Fraction socially distancing. Derived parameter.
@@ -71,6 +68,9 @@
 #' # Example assume sampling fractions of positive cases:
 #' s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
 #'
+#' # To use parallel processing:
+#' # options(mc.cores = parallel::detectCores() / 2)
+#'
 #' # Using only 100 iterations and 1 chain for a quick example:
 #' m <- fit_seir(
 #'   cases,
@@ -90,7 +90,7 @@
 #' # for the reported cases:
 #' samp_frac_seg <- c(rep(1, 13), rep(2, length(cases) - 13))
 #'
-#' s2 <- rep(0.7, 42) # Assuming 7% of positive individuals are hospitalized
+#' s2 <- rep(0.07, 42) # Assuming 7% of positive individuals are hospitalized
 #' hosp <- c(
 #'   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 11, 9, 4,
 #'   7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6,
@@ -138,12 +138,10 @@ fit_seir <- function(daily_cases,
                      chains = 4,
                      iter = 2000,
                      samp_frac_fixed = NULL,
-                     fixed_f_forecast = NULL,
-                     day_start_fixed_f_forecast = nrow(daily_cases) + 1,
                      pars = c(
                        N = 5.1e6, D = 5, k1 = 1 / 5,
                        k2 = 1, q = 0.05,
-                       r = 0.1, ur = 0.02, f1 = 1.0,
+                       r = 0.1, ur = 0.02, f0 = 1.0,
                        start_decline = 15,
                        end_decline = 22
                      ),
@@ -192,7 +190,7 @@ fit_seir <- function(daily_cases,
 
   stopifnot(
     names(x_r) ==
-      c("N", "D", "k1", "k2", "q", "r", "ur", "f1", "start_decline", "end_decline")
+      c("N", "D", "k1", "k2", "q", "r", "ur", "f0", "start_decline", "end_decline")
   )
   stopifnot(
     names(state_0) == c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
@@ -208,10 +206,10 @@ fit_seir <- function(daily_cases,
   days <- seq(1, nrow(daily_cases) + forecast_days)
   last_day_obs <- nrow(daily_cases)
   time <- seq(-30, max(days), time_increment)
-  x_r <- c(x_r, if (!is.null(fixed_f_forecast)) fixed_f_forecast else 0)
-  names(x_r)[length(x_r)] <- "fixed_f_forecast"
-  x_r <- c(x_r, c("last_day_obs" = last_day_obs))
-  x_r <- c(x_r, c("day_start_fixed_f_forecast" = day_start_fixed_f_forecast))
+
+  x_i <- c("last_day_obs" = last_day_obs)
+  f_seg <- stats::setNames(f_seg, paste0("f", seq_along(f_seg)))
+  x_i <- c(x_i, c("n_f_s" = length(f_seg)), f_seg)
 
   # find the equivalent time of each day (end):
   time_day_id <- vapply(days, get_time_id, numeric(1), time = time)
@@ -261,13 +259,14 @@ fit_seir <- function(daily_cases,
     daily_cases = daily_cases_stan,
     J = ncol(daily_cases),
     N = length(days),
-    S = length(unique(f_seg)) - 1, # - 1 because of 0 for fixed f1 before soc. dist.
+    S = length(unique(f_seg)) - 1, # - 1 because of 0 for fixed f0 before soc. dist.
     y0 = state_0,
     t0 = min(time) - 0.000001,
     time = time,
+    n_x_r = length(x_r),
     x_r = x_r,
-    n_x_i = length(f_seg) + 1L,
-    x_i = c(length(f_seg), f_seg),
+    n_x_i = length(x_i),
+    x_i = x_i,
     delay_shape = array(delay_shape),
     delay_scale = array(delay_scale),
     samp_frac_fixed = samp_frac_fixed,

@@ -4,28 +4,39 @@
 \alias{project_fit}
 \title{Project a SEIR fit}
 \usage{
-project_fit(obj, forecast_days = 30, fixed_f_forecast = NULL, ...)
+project_fit(
+  obj,
+  forecast_days = 30,
+  f_s_fixed_start = NULL,
+  f_s_fixed = NULL,
+  iter = seq_along(obj$post$R0),
+  ...
+)
 }
 \arguments{
 \item{obj}{Output from \code{\link[=fit_seir]{fit_seir()}}.}
 
 \item{forecast_days}{Number of forecast days.}
 
-\item{fixed_f_forecast}{Optional fixed f value for forecast.}
+\item{f_s_fixed_start}{Optional day to start changing f. Must be set if
+\code{f_s_fixed} is set.}
+
+\item{f_s_fixed}{Optional fixed f values for forecast. Should be length
+\code{forecast_days - (f_s_fixed_start - nrow(daily_cases) - 1)}. I.e. one value
+per day after \code{f_s_fixed_start} day.}
+
+\item{iter}{MCMC iterations to include. Defaults to all.}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}}.}
 }
 \value{
-A \code{\link[dplyr:tibble]{dplyr::tibble()}} from \code{\link[tidybayes:spread_draws]{tidybayes::spread_draws()}}:
+A data frame:
 \describe{
 \item{day}{Day}
 \item{data_type}{Data-type column from the case data}
 \item{mu}{Expected number of cases}
 \item{y_rep}{Posterior predictive replicate observation}
 \item{phi}{Posterior draw of phi, the NB2 dispersion parameter, if included}
-\item{R0}{Posterior draw of R0}
-\item{f_seq}{f parameter segment; segment 0 is the initial no physical distancing}
-\item{f_s}{f values; estimated for f_seq > 0}
 \item{.iteration}{The MCMC iteration}
 }
 }
@@ -63,10 +74,22 @@ p <- project_fit(m)
 p
 
 library(ggplot2)
-ggplot(p, aes(day, mu, group = .iteration)) +
-  geom_line(alpha = 0.4) +
-  geom_point(aes(y = y_rep), alpha = 0.2, pch = 21) +
-  geom_point(aes(x = day, y = cases), data.frame(day = seq_along(cases), cases),
-    colour = "red", inherit.aes = FALSE) +
-  labs(y = "Reported cases", x = "Day")
+plot_ts <- function(p) {
+  ggplot(p, aes(day, mu, group = .iteration)) +
+    geom_line(alpha = 0.4) +
+    geom_point(aes(y = y_rep), alpha = 0.2, pch = 21) +
+    geom_point(aes(x = day, y = cases), data.frame(day = seq_along(cases), cases),
+      colour = "red", inherit.aes = FALSE
+    ) +
+    labs(y = "Reported cases", x = "Day")
+}
+plot_ts(p)
+
+p <- project_fit(m,
+  forecast_days = 100,
+  f_s_fixed_start = 53,
+  f_s_fixed = c(rep(0.7, 60), rep(0.2, 30)),
+  iter = 1:10
+)
+plot_ts(p)
 }

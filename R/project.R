@@ -4,7 +4,12 @@
 #'
 #' @param obj Output from [fit_seir()].
 #' @param forecast_days Number of forecast days.
-#' @param fixed_f_forecast Optional fixed f value for forecast.
+#' @param f_s_fixed_start Optional day to start changing f. Must be set if
+#'   `f_s_fixed` is set.
+#' @param f_s_fixed Optional fixed f values for forecast. Should be length
+#'   `forecast_days - (f_s_fixed_start - nrow(daily_cases) - 1)`. I.e. one value
+#'   per day after `f_s_fixed_start` day.
+#' @param iter MCMC iterations to include. Defaults to all.
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #'
 #' @details
@@ -12,16 +17,13 @@
 #' across MCMC iterations using \pkg{furrr}.
 #'
 #' @return
-#' A [dplyr::tibble()] from [tidybayes::spread_draws()]:
+#' A data frame:
 #' \describe{
 #'   \item{day}{Day}
 #'   \item{data_type}{Data-type column from the case data}
 #'   \item{mu}{Expected number of cases}
 #'   \item{y_rep}{Posterior predictive replicate observation}
 #'   \item{phi}{Posterior draw of phi, the NB2 dispersion parameter, if included}
-#'   \item{R0}{Posterior draw of R0}
-#'   \item{f_seq}{f parameter segment; segment 0 is the initial no physical distancing}
-#'   \item{f_s}{f values; estimated for f_seq > 0}
 #'   \item{.iteration}{The MCMC iteration}
 #' }
 #' @export
@@ -52,25 +54,44 @@
 #' p
 #'
 #' library(ggplot2)
-#' ggplot(p, aes(day, mu, group = .iteration)) +
-#'   geom_line(alpha = 0.4) +
-#'   geom_point(aes(y = y_rep), alpha = 0.2, pch = 21) +
-#'   geom_point(aes(x = day, y = cases), data.frame(day = seq_along(cases), cases),
-#'     colour = "red", inherit.aes = FALSE) +
-#'   labs(y = "Reported cases", x = "Day")
-
-project_fit <- function(obj, forecast_days = 30, fixed_f_forecast = NULL, ...) {
-
-  if (!identical(class(obj), "covidseir"))
+#' plot_ts <- function(p) {
+#'   ggplot(p, aes(day, mu, group = .iteration)) +
+#'     geom_line(alpha = 0.4) +
+#'     geom_point(aes(y = y_rep), alpha = 0.2, pch = 21) +
+#'     geom_point(aes(x = day, y = cases), data.frame(day = seq_along(cases), cases),
+#'       colour = "red", inherit.aes = FALSE
+#'     ) +
+#'     labs(y = "Reported cases", x = "Day")
+#' }
+#' plot_ts(p)
+#'
+#' p <- project_fit(m,
+#'   forecast_days = 100,
+#'   f_s_fixed_start = 53,
+#'   f_s_fixed = c(rep(0.7, 60), rep(0.2, 30)),
+#'   iter = 1:10
+#' )
+#' plot_ts(p)
+project_fit <- function(
+                        obj,
+                        forecast_days = 30,
+                        f_s_fixed_start = NULL,
+                        f_s_fixed = NULL,
+                        iter = seq_along(obj$post$R0),
+                        ...) {
+  if (!identical(class(obj), "covidseir")) {
     stop("`obj` must be of class `covidseir`.")
+  }
 
   d <- obj$stan_data
   p <- obj$post
 
-  if (is.null(fixed_f_forecast)) fixed_f_forecast <- 0
+  stopifnot(
+    (is.null(f_s_fixed_start) && is.null(f_s_fixed_start)) ||
+      (!is.null(f_s_fixed_start) && !is.null(f_s_fixed_start))
+  )
 
-  d$x_r[["fixed_f_forecast"]] <- fixed_f_forecast
-  d$x_r
+  stopifnot(length(f_s_fixed) == forecast_days - (f_s_fixed_start - nrow(d$daily_cases) - 1))
 
   days <- seq(1L, nrow(d$daily_cases) + forecast_days)
   time_increment <- d$time[2] - d$time[1]
@@ -101,13 +122,25 @@ project_fit <- function(obj, forecast_days = 30, fixed_f_forecast = NULL, ...) {
   )
 
   .f_id <- d$x_i[length(d$x_i)]
-  d$x_i <- c(d$x_i, rep(.f_id, added_length))
-  d$x_i[1] <- length(d$x_i) - 1L
+
+  max_f_seg_id <- max(d$x_i[-c(1:2)]) # 1:2 is the non-f_s x_i values
+
+  if (!is.null(f_s_fixed_start)) {
+    d$S <- d$S + length(f_s_fixed)
+    d$x_i <- c(d$x_i, rep(
+      d$x_i[length(d$x_i)],
+      f_s_fixed_start - nrow(d$daily_cases) - 1
+    ))
+    d$x_i <- c(d$x_i, seq(max_f_seg_id + 1, max_f_seg_id + 1 + length(f_s_fixed)))
+  } else {
+    d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], forecast_days))
+  }
+  d$x_i[["n_f_s"]] <- length(d$x_i) - 2 # 2 is number of non-f_s x_i values
   d$n_x_i <- length(d$x_i)
 
   initf_project <- function(post, i, stan_data) {
     R0 <- post$R0[i]
-    f_s <- array(post$f_s[i, ])
+    f_s <- array(c(post$f_s[i, ], f_s_fixed))
     if ("phi" %in% names(post)) {
       phi <- array(post$phi[i, ])
     } else {
@@ -121,8 +154,8 @@ project_fit <- function(obj, forecast_days = 30, fixed_f_forecast = NULL, ...) {
     list(R0 = R0, f_s = f_s, phi = phi, samp_frac = samp_frac)
   }
 
-  out <- furrr::future_map_dfr(seq_along(p$R0), function(i) {
-  # out <- purrr::map_dfr(seq_along(p$R0), function(i) {
+  out <- furrr::future_map_dfr(iter, function(i) {
+    # out <- purrr::map_dfr(iter, function(i) {
     fit <- rstan::sampling(
       stanmodels$seir,
       data = d,
@@ -136,27 +169,38 @@ project_fit <- function(obj, forecast_days = 30, fixed_f_forecast = NULL, ...) {
     )
     post <- rstan::extract(fit)
 
-    if ("phi" %in% names(post)) {
-      df <- tidybayes::spread_draws(
-        fit, mu[day, data_type], y_rep[day, data_type], phi[data_type], R0)
-    } else {
-      df <- tidybayes::spread_draws(
-        fit, mu[day, data_type], y_rep[day, data_type], R0)
-    }
-    df$.chain <- NULL
-    df$.draw <- NULL
-    df$.iteration <- NULL
-    df2 <- tidybayes::spread_draws(fit, f_s[f_seg])
-    df2$.chain <- NULL
-    df2$.draw <- NULL
-    df2$.iteration <- NULL
-    df2 <- dplyr::bind_rows(df2, tibble(f_seg = 0, f_s = 1))
-    df2 <- dplyr::left_join(tibble(f_seg = d$x_i[-1]), df2, by = "f_seg")
-    df2$day <- seq_len(nrow(df2))
-    df <- dplyr::left_join(df, df2, by = "day")
+    # if (output_type == "full") {
+    #   if ("phi" %in% names(post)) {
+    #     df <- tidybayes::spread_draws(
+    #       fit, mu[day, data_type], y_rep[day, data_type], phi[data_type], R0)
+    #   } else {
+    #     df <- tidybayes::spread_draws(
+    #       fit, mu[day, data_type], y_rep[day, data_type], R0)
+    #   }
+    #   df$.chain <- NULL
+    #   df$.draw <- NULL
+    #   df$.iteration <- NULL
+    #   df <- dplyr::ungroup(df)
+    #   df2 <- tidybayes::spread_draws(fit, f_s[f_seg])
+    #   df2$.chain <- NULL
+    #   df2$.draw <- NULL
+    #   df2$.iteration <- NULL
+    #   df2 <- dplyr::bind_rows(df2, tibble(f_seg = 0, f_s = 1))
+    #   df2 <- dplyr::ungroup(df2)
+    #   df2 <- suppressWarnings(
+    #     dplyr::left_join(tibble(f_seg = d$x_i[-c(1:2)]), df2, by = "f_seg"))
+    #   df2$day <- seq_len(nrow(df2))
+    #   df <- suppressWarnings(dplyr::left_join(df, df2, by = "day"))
+    #   df$.iteration <- i
+    # } else {
+    df <- tibble(day = rep(d$days, d$J))
+    df$data_type <- rep(seq_len(d$J), each = d$N)
+    df$mu <- as.vector(post$mu[1, , ])
+    df$y_rep <- as.vector(post$y_rep[1, , ])
+    df$phi <- rep(as.vector(post$phi[1, ]), each = d$N)
     df$.iteration <- i
+    # }
     df
   })
   out
 }
-

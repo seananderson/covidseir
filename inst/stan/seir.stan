@@ -24,17 +24,16 @@ functions{
     real q     = x_r[5];
     real r     = x_r[6];
     real ur    = x_r[7];
-    real f1    = x_r[8];
+    real f0    = x_r[8];
 
     real start_decline = x_r[9];
     real end_decline = x_r[10];
-    real fixed_f_forecast = x_r[11];
-    real last_day_obs = x_r[12];
-    real day_start_fixed_f_forecast = x_r[13];
+
+    real last_day_obs = x_i[1];
 
     real R0 = theta[1];
 
-    int n_f = x_i[1]; // the number of f parameters in time (after f1)
+    int n_f = x_i[2]; // the number of f parameters in time (after f0)
     int f_seg_id[n_f]; // a lookup vector to grab the appropriate f parameter in time
 
     real f; // will store the f value for this time point
@@ -49,24 +48,27 @@ functions{
     while ((day + 1) < floor(t)) day = day + 1;
 
     for (i in 1:n_f) {
-      // `i + 1` because of number of x_i before `f_seg_id`
-      // `+ 1` at end because of number of thetas (here just R0) before f thetas
-      f_seg_id[i] = x_i[i + 1] + 1;
+      // `i + 2` because of number of x_i before `f_seg_id`
+      // `+ 1` at end because of number of thetas (here just R0) before f_s thetas
+      f_seg_id[i] = x_i[i + 2] + 1;
     }
 
-    f = f1; // business as usual before physical distancing
+    f = f0; // business as usual before physical distancing
     if (t < start_decline) {
-      f = f1;
+      f = f0;
     }
     if (t >= start_decline && t < end_decline) { // allow a ramp-in of physical distancing
       f = theta[f_seg_id[day]] + (end_decline - t) *
-          (f1 - theta[f_seg_id[day]]) / (end_decline - start_decline);
+          (f0 - theta[f_seg_id[day]]) / (end_decline - start_decline);
     }
+    // if (t >= end_decline && t <= last_day_obs) {
+    //   f = theta[f_seg_id[day]];
+    // }
+    // if (t > last_day_obs) {
+    //   f = x_r[11 + day - day_start_fixed_f_forecast_int];
+    // }
     if (t >= end_decline) {
       f = theta[f_seg_id[day]];
-    }
-    if (t >= day_start_fixed_f_forecast && fixed_f_forecast != 0) {
-      f = fixed_f_forecast;
     }
 
     dydt[1]  = -(R0/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - r*S + ur*Sd;
@@ -99,14 +101,15 @@ data {
   int daily_cases[last_day_obs,J]; // daily new case counts
   int samp_frac_seg[N]; // optional index of estimated sample fractions for 1st timeseries
   int<lower=1, upper=4> samp_frac_type; // Type of sample fraction: fixed, estimated, rw, segmented
-  real x_r[13];       // data for ODEs (real numbers)
-  int n_x_i;          // the number of x_i values
+  int n_x_r;         // the number of x_r values
+  real x_r[n_x_r];   // data for ODEs (real numbers)
+  int n_x_i;         // the number of x_i values
   int x_i[n_x_i];    // data for ODEs (integer numbers)
   real samp_frac_fixed[N,J];   // fraction of cases sampled per time step
-  real delay_scale[J];    // Weibull parameter for delay in becoming a case count
-  real delay_shape[J];    // Weibull parameter for delay in becoming a case count
+  real delay_scale[J];    // Weibull parameter for delay in becoming a case
+  real delay_shape[J];    // Weibull parameter for delay in becoming a case
   int time_day_id[N]; // last time increment associated with each day
-  int time_day_id0[N];// first time increment for Weibull integration of case counts
+  int time_day_id0[N];// first time increment for Weibull integration of cases
   real R0_prior[2];   // lognormal log mean and SD for R0 prior
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
   real f2_prior[2];   // beta prior for f2

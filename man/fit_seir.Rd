@@ -22,9 +22,7 @@ fit_seir(
   chains = 4,
   iter = 2000,
   samp_frac_fixed = NULL,
-  fixed_f_forecast = NULL,
-  day_start_fixed_f_forecast = nrow(daily_cases) + 1,
-  pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f1 = 1,
+  pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f0 = 1,
     start_decline = 15, end_decline = 22),
   i0 = 8,
   fsi = pars[["r"]]/(pars[["r"]] + pars[["ur"]]),
@@ -82,7 +80,7 @@ walk on the first data type.}
 
 \item{f_seg}{A vector of segment indexes of length \code{daily_cases} +
 \code{forecast_days}. The the segment index values should start at 0 to
-represent the fixed "no social distancing" value \code{f1} from the \code{pars}
+represent the fixed "no social distancing" value \code{f0} from the \code{pars}
 argument.}
 
 \item{seed}{MCMC seed}
@@ -95,11 +93,6 @@ argument.}
 of dimensions: \code{nrow(daily_cases) + forecast_days} (rows) by
 \verb{ncol(daily_cases} (columns). A vector will be turned into a one column
 matrix.}
-
-\item{fixed_f_forecast}{Optional fixed \code{f} (fraction of normal distancing)
-for the forecast.}
-
-\item{day_start_fixed_f_forecast}{Day to start using \code{fixed_f_forecast}.}
 
 \item{pars}{A named numeric vector of fixed parameter values}
 
@@ -144,6 +137,9 @@ cases <- c(
 # Example assume sampling fractions of positive cases:
 s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
 
+# To use parallel processing:
+# options(mc.cores = parallel::detectCores() / 2)
+
 # Using only 100 iterations and 1 chain for a quick example:
 m <- fit_seir(
   cases,
@@ -163,7 +159,7 @@ post_y_rep
 # for the reported cases:
 samp_frac_seg <- c(rep(1, 13), rep(2, length(cases) - 13))
 
-s2 <- rep(0.7, 42) # Assuming 7\% of positive individuals are hospitalized
+s2 <- rep(0.07, 42) # Assuming 7\% of positive individuals are hospitalized
 hosp <- c(
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 11, 9, 4,
   7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6,
