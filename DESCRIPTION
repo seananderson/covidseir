@@ -55,10 +55,12 @@ License: GPL-2
 Depends: 
     R (>= 3.5.0)
 Imports: 
-    future.apply,
+    dplyr,
+    furrr,
     methods,
     Rcpp (>= 0.12.0),
-    rstan (>= 2.18.1)
+    rstan (>= 2.18.1),
+    tibble
 Suggests:
     ggplot2,
     knitr,

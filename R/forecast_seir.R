@@ -16,9 +16,11 @@
 #' @param iter MCMC iterations to include. Defaults to all.
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #'
+#' @importFrom dplyr bind_rows
+#'
 #' @details
 #' Set a [future::plan()] and this function will operate in parallel
-#' across MCMC iterations using \pkg{future.apply}.
+#' across MCMC iterations using \pkg{furrr}.
 #'
 #' @return
 #' A data frame:
@@ -52,9 +54,11 @@
 #' )
 #' print(m)
 #'
+#' # For parallel processing (more important for more iterations):
+#' # library(future)
+#' # plan(multisession, workers = availableCores() / 2)
 #' p <- forecast_seir(m)
 #' p
-#'
 #'
 #' plot_ts <- function(p) {
 #'   if (require("ggplot2")) { # just for R CMD check in this example
@@ -132,11 +136,10 @@ forecast_seir <- function(
 
   if (!is.null(f_fixed_start)) {
     d$S <- d$S + length(f_fixed)
-    d$x_i <- c(d$x_i, rep(
-      d$x_i[length(d$x_i)],
-      f_fixed_start - nrow(d$daily_cases) - 1
-    ))
-    d$x_i <- c(d$x_i, seq(max_f_seg_id + 1, max_f_seg_id + 1 + length(f_fixed)))
+    est_f_forecast_days <- f_fixed_start - nrow(d$daily_cases) - 1
+    d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], est_f_forecast_days))
+    fixed_f_forecast_ids <- seq(max_f_seg_id + 1, max_f_seg_id + length(f_fixed))
+    d$x_i <- c(d$x_i, fixed_f_forecast_ids)
   } else {
     d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], forecast_days))
   }
@@ -159,10 +162,11 @@ forecast_seir <- function(
     list(R0 = R0, f_s = f_s, phi = phi, samp_frac = samp_frac)
   }
 
-  # out <- furrr::future_map_dfr(iter, function(i) {
+  incl_progress <- (d$last_day_obs + forecast_days) > 100
+  out <- furrr::future_map_dfr(iter, function(i) {
   # out <- purrr::map_dfr(iter, function(i) {
   # out <- lapply(iter, function(i) {
-  out <- future.apply::future_lapply(iter, function(i) {
+  # out <- future.apply::future_lapply(iter, function(i) {
     fit <- rstan::sampling(
       stanmodels$seir,
       data = d,
@@ -182,6 +186,18 @@ forecast_seir <- function(
     df$phi <- rep(as.vector(post$phi[1, ]), each = d$N)
     df$.iteration <- i
     df
-  })
-  do.call(rbind, out)
+  }, .progress = incl_progress)
+  out <- bind_rows(out)
+  .forecast <- c(rep(FALSE, d$last_day_obs), rep(TRUE, forecast_days))
+  out$forecast <- rep(.forecast, length(iter) * d$J)
+
+  if (!is.null(f_fixed_start)) {
+    .f_fixed <- c(
+      rep(FALSE, d$last_day_obs),
+      rep(FALSE, est_f_forecast_days),
+      rep(TRUE, length(fixed_f_forecast_ids))
+    )
+    out$f_fixed <- rep(.f_fixed, length(iter) * d$J)
+  }
+  tibble::as_tibble(out)
 }

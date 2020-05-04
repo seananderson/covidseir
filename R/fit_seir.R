@@ -12,8 +12,8 @@
 #'   will run faster with fewer forecasted days. It is recommended to set this
 #'   to 0 here and use [forecast_seir()] for forecasts.
 #' @param time_increment Time increment for ODEs and Weibull delay-model
-#'   integration. Larger numbers will run faster, possibly at the expense of
-#'   accuracy.
+#'   integration in units of days. Larger numbers will run faster,
+#'   possibly at the expense of accuracy.
 #' @param days_back Number of days to go back for the Weibull case-delay
 #'   integration. Should be sufficiently large that the results do not change.
 #' @param R0_prior Lognormal log mean and SD for the R0 prior.
@@ -130,7 +130,7 @@
 fit_seir <- function(daily_cases,
                      obs_model = c("NB2", "Poisson"),
                      forecast_days = 0,
-                     time_increment = 0.1,
+                     time_increment = 0.2,
                      days_back = 45,
                      R0_prior = c(log(2.6), 0.2),
                      phi_prior = 1,
