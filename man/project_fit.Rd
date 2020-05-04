@@ -66,7 +66,7 @@ library(ggplot2)
 ggplot(p, aes(day, mu, group = .iteration)) +
   geom_line(alpha = 0.4) +
   geom_point(aes(y = y_rep), alpha = 0.2, pch = 21) +
-  geom_point(aes(x = day, y = cases), tibble(day = seq_along(cases), cases),
+  geom_point(aes(x = day, y = cases), data.frame(day = seq_along(cases), cases),
     colour = "red", inherit.aes = FALSE) +
   labs(y = "Reported cases", x = "Day")
 }
