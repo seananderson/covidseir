@@ -162,7 +162,7 @@ forecast_seir <- function(
     list(R0 = R0, f_s = f_s, phi = phi, samp_frac = samp_frac)
   }
 
-  incl_progress <- (d$last_day_obs + forecast_days) > 100
+  # incl_progress <- (d$last_day_obs + forecast_days) > 100
   out <- furrr::future_map_dfr(iter, function(i) {
   # out <- purrr::map_dfr(iter, function(i) {
   # out <- lapply(iter, function(i) {
@@ -186,7 +186,8 @@ forecast_seir <- function(
     df$phi <- rep(as.vector(post$phi[1, ]), each = d$N)
     df$.iteration <- i
     df
-  }, .progress = incl_progress)
+  # }, .progress = incl_progress)
+  })
   out <- bind_rows(out)
   .forecast <- c(rep(FALSE, d$last_day_obs), rep(TRUE, forecast_days))
   out$forecast <- rep(.forecast, length(iter) * d$J)
