@@ -208,7 +208,7 @@ fit_seir <- function(daily_cases,
   time <- seq(-30, max(days), time_increment)
 
   x_i <- c("last_day_obs" = last_day_obs)
-  f_seg <- stats::setNames(f_seg, paste0("f", seq_along(f_seg)))
+  f_seg <- stats::setNames(f_seg, paste0("f_seg_id_", seq_along(f_seg)))
   x_i <- c(x_i, c("n_f_s" = length(f_seg)), f_seg)
 
   # find the equivalent time of each day (end):
