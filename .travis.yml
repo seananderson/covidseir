@@ -5,7 +5,6 @@ cache: packages
 
 latex: true
 
-
 env:
   matrix:
     - CXX_OLEVEL=2 CXX=clang++
