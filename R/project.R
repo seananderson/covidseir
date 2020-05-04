@@ -47,38 +47,36 @@
 #' )
 #' print(m)
 #'
-#' # To use parallel processing, set a 'future' plan:
-#' # library(future)
-#' # plan(multisession, workers = parallel::detectCores() / 2)
-#' p <- project_fit(m)
+#' p <- project(m)
 #' p
 #'
-#' library(ggplot2)
-#' plot_ts <- function(p) {
-#'   ggplot(p, aes(day, mu, group = .iteration)) +
-#'     geom_line(alpha = 0.4) +
-#'     geom_point(aes(y = y_rep), alpha = 0.2, pch = 21) +
-#'     geom_point(aes(x = day, y = cases), data.frame(day = seq_along(cases), cases),
-#'       colour = "red", inherit.aes = FALSE
-#'     ) +
-#'     labs(y = "Reported cases", x = "Day")
-#' }
-#' plot_ts(p)
+#' # library(ggplot2)
+#' # plot_ts <- function(p) {
+#' #   ggplot(p, aes(day, mu, group = .iteration)) +
+#' #     geom_line(alpha = 0.4) +
+#' #     geom_point(aes(y = y_rep), alpha = 0.2, pch = 21) +
+#' #     geom_point(aes(x = day, y = cases), data.frame(day = seq_along(cases), cases),
+#' #       colour = "red", inherit.aes = FALSE
+#' #     ) +
+#' #     labs(y = "Reported cases", x = "Day")
+#' # }
+#' # plot_ts(p)
 #'
-#' p <- project_fit(m,
+#' p <- project(m,
 #'   forecast_days = 100,
 #'   f_s_fixed_start = 53,
 #'   f_s_fixed = c(rep(0.7, 60), rep(0.2, 30)),
 #'   iter = 1:10
 #' )
-#' plot_ts(p)
-project_fit <- function(
-                        obj,
-                        forecast_days = 30,
-                        f_s_fixed_start = NULL,
-                        f_s_fixed = NULL,
-                        iter = seq_along(obj$post$R0),
-                        ...) {
+#' p
+#' # plot_ts(p)
+project <- function(
+                    obj,
+                    forecast_days = 30,
+                    f_s_fixed_start = NULL,
+                    f_s_fixed = NULL,
+                    iter = seq_along(obj$post$R0),
+                    ...) {
   if (!identical(class(obj), "covidseir")) {
     stop("`obj` must be of class `covidseir`.")
   }
@@ -154,8 +152,9 @@ project_fit <- function(
     list(R0 = R0, f_s = f_s, phi = phi, samp_frac = samp_frac)
   }
 
-  out <- furrr::future_map_dfr(iter, function(i) {
-    # out <- purrr::map_dfr(iter, function(i) {
+  # out <- furrr::future_map_dfr(iter, function(i) {
+  # out <- purrr::map_dfr(iter, function(i) {
+  out <- lapply(iter, function(i) {
     fit <- rstan::sampling(
       stanmodels$seir,
       data = d,
@@ -193,7 +192,7 @@ project_fit <- function(
     #   df <- suppressWarnings(dplyr::left_join(df, df2, by = "day"))
     #   df$.iteration <- i
     # } else {
-    df <- tibble(day = rep(d$days, d$J))
+    df <- data.frame(day = rep(d$days, d$J))
     df$data_type <- rep(seq_len(d$J), each = d$N)
     df$mu <- as.vector(post$mu[1, , ])
     df$y_rep <- as.vector(post$y_rep[1, , ])
@@ -202,5 +201,5 @@ project_fit <- function(
     # }
     df
   })
-  out
+  do.call(rbind, out)
 }

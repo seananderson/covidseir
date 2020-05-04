@@ -81,10 +81,9 @@
 #' print(m)
 #' names(m)
 #' names(m$post)
-#' post_mu <- m$fit %>% tidybayes::spread_draws(mu[day, data_type])
-#' post_mu
-#' post_y_rep <- m$fit %>% tidybayes::spread_draws(mu[day, data_type])
-#' post_y_rep
+#'
+#' # use tidybayes if you'd like:
+#' # post_tidy <- tidybayes::spread_draws(m$fit, c(y_rep, mu)[day, data_type])
 #'
 #' # Add hospitalization data and estimate 2 sample-fraction blocks
 #' # for the reported cases:
@@ -108,7 +107,6 @@
 #'   delay_shape = c(1.7, 1.9),
 #' )
 #' print(m2)
-#' }
 #'
 #' # Estimate a second estimated f_s block:
 #' f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14))
@@ -120,6 +118,7 @@
 #'   samp_frac_fixed = s1
 #' )
 #' print(m3)
+#' }
 
 fit_seir <- function(daily_cases,
                      obs_model = c("NB2", "Poisson"),
