@@ -73,10 +73,9 @@ print(m)
 
 # For parallel processing (more important for more iterations):
 # library(future)
-# plan(multisession, workers = availableCores() / 2)
+# plan(multisession)
 p <- forecast_seir(m)
 p
-
 
 plot_ts <- function(p) {
   if (require("ggplot2")) { # just for R CMD check in this example

@@ -56,7 +56,7 @@
 #'
 #' # For parallel processing (more important for more iterations):
 #' # library(future)
-#' # plan(multisession, workers = availableCores())
+#' # plan(multisession)
 #' p <- forecast_seir(m)
 #' p
 #'
