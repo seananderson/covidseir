@@ -1,7 +1,7 @@
 #' Fit a Stan SEIR model
 #'
 #' This function fits a Stan SEIR model to one or more sets of COVID-19 case
-#' data. See [project_seir()] for making forecasts.
+#' data. See [forecast_seir()] for making forecasts.
 #'
 #' @param daily_cases Either a vector of daily new cases if fitting to a single
 #'   data type or a matrix of case data if fitting to multiple data types. Each
@@ -10,7 +10,7 @@
 #' @param obs_model Type of observation model.
 #' @param forecast_days Number of days into the future to forecast. The model
 #'   will run faster with fewer forecasted days. It is recommended to set this
-#'   to 0 here and use [project_seir()] for forecasts.
+#'   to 0 here and use [forecast_seir()] for forecasts.
 #' @param time_increment Time increment for ODEs and Weibull delay-model
 #'   integration. Larger numbers will run faster, possibly at the expense of
 #'   accuracy.
@@ -73,13 +73,13 @@
 #'   26, 37, 25, 45, 34, 40, 35
 #' )
 #'
-#' # Example assume sampling fractions of positive cases:
+#' # Example assumed sampling fractions of positive cases:
 #' s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
 #'
-#' # To use parallel processing:
+#' # To use parallel processing with multiple chains:
 #' # options(mc.cores = parallel::detectCores() / 2)
 #'
-#' # Using only 100 iterations and 1 chain for a quick example:
+#' # Only using 100 iterations and 1 chain for a quick example:
 #' m <- fit_seir(
 #'   cases,
 #'   iter = 100,
@@ -90,7 +90,7 @@
 #' names(m)
 #' names(m$post) # from rstan::extract(m$fit)
 #'
-#' # use tidybayes if you'd like:
+#' # Use tidybayes if you'd like:
 #' # post_tidy <- tidybayes::spread_draws(m$fit, c(y_rep, mu)[day, data_type])
 #'
 #' # Add hospitalization data and estimate 2 sample-fraction blocks
@@ -115,7 +115,7 @@
 #' )
 #' print(m2)
 #'
-#' # Estimate a second estimated f_s block:
+#' # Estimate a second f_s segment:
 #' f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14))
 #' m3 <- fit_seir(
 #'   cases,
@@ -248,12 +248,17 @@ fit_seir <- function(daily_cases,
     get_beta_params(samp_frac_prior[1], samp_frac_prior[2])$beta
   )
 
-  if (9999999L %in% daily_cases) {
-    stop("covidseir uses `9999999` as a 'magic' number for `NA`.", call. = FALSE)
-  }
 
   daily_cases_stan <- daily_cases
-  daily_cases_stan[is.na(daily_cases_stan)] <- 9999999L # magic number for NA
+  if (sum(is.na(daily_cases)) > 0) {
+    if (9999999L %in% daily_cases) {
+      stop("covidseir uses `9999999` as a 'magic' number for `NA`.", call. = FALSE)
+    }
+    daily_cases_stan[is.na(daily_cases_stan)] <- 9999999L # magic number for NA
+    contains_NAs <- 1L
+  } else {
+    contains_NAs <- 0L
+  }
 
   if (is.null(samp_frac_seg)) {
     samp_frac_seg <- rep(1, length(days))
@@ -289,6 +294,7 @@ fit_seir <- function(daily_cases,
     priors_only = 0L,
     last_day_obs = last_day_obs,
     obs_model = obs_model,
+    contains_NAs = contains_NAs,
     ode_control = ode_control,
     est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L
   )

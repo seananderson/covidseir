@@ -1,33 +1,33 @@
-#' Project a SEIR fit
+#' Make a forecast with a SEIR fit
 #'
 #' Project a fit from [fit_seir()], possibly with a forecast. By default, the
-#' forecast uses the estimated f values (fraction of normal contacts encountered
-#' for those physical distancing). The function also includes functionality to
-#' specify a vector of fixed f values starting on a given future date.
+#' forecast uses the estimated f values (fraction of normal
+#' contacts encountered for those physical distancing). The function also includes
+#' functionality to specify a vector of fixed f values starting on a given
+#' future date.
 #'
 #' @param obj Output from [fit_seir()].
 #' @param forecast_days Number of forecast days.
-#' @param f_s_fixed_start Optional day to start changing f. Must be set if
-#'   `f_s_fixed` is set.
-#' @param f_s_fixed Optional fixed f values for forecast. Should be length
-#'   `forecast_days - (f_s_fixed_start - nrow(daily_cases) - 1)`. I.e. one value
-#'   per day after `f_s_fixed_start` day.
+#' @param f_fixed_start Optional day to start changing f. Must be set if
+#'   `f_fixed` is set.
+#' @param f_fixed An optional vector of fixed f values for the forecast.
+#'   Should be length `forecast_days - (f_fixed_start - nrow(daily_cases) -
+#'   1)`. I.e. one value per day after `f_fixed_start` day.
 #' @param iter MCMC iterations to include. Defaults to all.
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #'
-#' @details Set a [future::plan()] and this function will operate in parallel
+#' @details
+#' Set a [future::plan()] and this function will operate in parallel
 #' across MCMC iterations using \pkg{future.apply}.
 #'
 #' @return
 #' A data frame:
 #' \describe{
-#'   \item{`day`}{Day}
-#'   \item{`data_type`}{Data-type column from the case data}
-#'   \item{`mu`}{Expected number of cases}
-#'   \item{`y_rep`}{Posterior predictive replicate observations}
-#'   \item{`phi`}{Posterior draw of phi, the (inverse) NB2 dispersion parameter, if
-#'   included. Useful if you want to resample the observation component; i.e.,
-#'   resampling additional `y_rep`.}
+#'   \item{day}{Day}
+#'   \item{data_type}{Data-type column from the case data}
+#'   \item{mu}{Expected number of cases}
+#'   \item{y_rep}{Posterior predictive replicate observation}
+#'   \item{phi}{Posterior draw of phi, the NB2 dispersion parameter, if included}
 #'   \item{.iteration}{The MCMC iteration}
 #' }
 #' @export
@@ -40,18 +40,19 @@
 #' # Example fixed sample fractions:
 #' s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
 #'
-#' # To use parallel processing:
+#' # To use parallel processing with multiple chains:
 #' # options(mc.cores = parallel::detectCores() / 2)
 #'
+#' # Only using 100 iterations and 1 chain for a quick example:
 #' m <- fit_seir(
 #'   cases,
-#'   iter = 150,
+#'   iter = 100,
 #'   chains = 1,
 #'   samp_frac_fixed = s1
 #' )
 #' print(m)
 #'
-#' p <- project_seir(m)
+#' p <- forecast_seir(m)
 #' p
 #'
 #'
@@ -68,19 +69,19 @@
 #' }
 #' plot_ts(p)
 #'
-#' p <- project_seir(m,
+#' p <- forecast_seir(m,
 #'   forecast_days = 100,
-#'   f_s_fixed_start = 53,
-#'   f_s_fixed = c(rep(0.7, 60), rep(0.2, 30)),
+#'   f_fixed_start = 53,
+#'   f_fixed = c(rep(0.7, 60), rep(0.2, 30)),
 #'   iter = 1:25
 #' )
 #' p
 #' plot_ts(p)
-project_seir <- function(
+forecast_seir <- function(
                          obj,
                          forecast_days = 30,
-                         f_s_fixed_start = NULL,
-                         f_s_fixed = NULL,
+                         f_fixed_start = NULL,
+                         f_fixed = NULL,
                          iter = seq_along(obj$post$R0),
                          ...) {
   if (!identical(class(obj), "covidseir")) {
@@ -91,11 +92,11 @@ project_seir <- function(
   p <- obj$post
 
   stopifnot(
-    (is.null(f_s_fixed_start) && is.null(f_s_fixed_start)) ||
-      (!is.null(f_s_fixed_start) && !is.null(f_s_fixed_start))
+    (is.null(f_fixed_start) && is.null(f_fixed_start)) ||
+      (!is.null(f_fixed_start) && !is.null(f_fixed_start))
   )
 
-  stopifnot(length(f_s_fixed) == forecast_days - (f_s_fixed_start - nrow(d$daily_cases) - 1))
+  stopifnot(length(f_fixed) == forecast_days - (f_fixed_start - nrow(d$daily_cases) - 1))
 
   days <- seq(1L, nrow(d$daily_cases) + forecast_days)
   time_increment <- d$time[2] - d$time[1]
@@ -129,13 +130,13 @@ project_seir <- function(
 
   max_f_seg_id <- max(d$x_i[-c(1:2)]) # 1:2 is the non-f_s x_i values
 
-  if (!is.null(f_s_fixed_start)) {
-    d$S <- d$S + length(f_s_fixed)
+  if (!is.null(f_fixed_start)) {
+    d$S <- d$S + length(f_fixed)
     d$x_i <- c(d$x_i, rep(
       d$x_i[length(d$x_i)],
-      f_s_fixed_start - nrow(d$daily_cases) - 1
+      f_fixed_start - nrow(d$daily_cases) - 1
     ))
-    d$x_i <- c(d$x_i, seq(max_f_seg_id + 1, max_f_seg_id + 1 + length(f_s_fixed)))
+    d$x_i <- c(d$x_i, seq(max_f_seg_id + 1, max_f_seg_id + 1 + length(f_fixed)))
   } else {
     d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], forecast_days))
   }
@@ -144,7 +145,7 @@ project_seir <- function(
 
   initf_project <- function(post, i, stan_data) {
     R0 <- post$R0[i]
-    f_s <- array(c(post$f_s[i, ], f_s_fixed))
+    f_s <- array(c(post$f_s[i, ], f_fixed))
     if ("phi" %in% names(post)) {
       phi <- array(post$phi[i, ])
     } else {
@@ -178,7 +179,7 @@ project_seir <- function(
     df$data_type <- rep(seq_len(d$J), each = d$N)
     df$mu <- as.vector(post$mu[1, , ])
     df$y_rep <- as.vector(post$y_rep[1, , ])
-    if ("phi" %in% names(post)) df$phi <- rep(as.vector(post$phi[1, ]), each = d$N)
+    df$phi <- rep(as.vector(post$phi[1, ]), each = d$N)
     df$.iteration <- i
     df
   })

@@ -40,4 +40,4 @@ Then, install the package with:
 devtools::install_github("seananderson/covidseir")
 ```
 
-See the examples in `?fit_seir` and `?project_seir`.
+See the examples in `?fit_seir` and `?forecast_seir`.

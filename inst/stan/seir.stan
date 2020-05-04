@@ -119,6 +119,7 @@ data {
   int<lower=0, upper=N> n_samp_frac; // number of samp_frac
   int<lower=0, upper=1> obs_model; // observation model: 0 = Poisson, 1 = NB2
   real<lower=0> rw_sigma; // specified random walk standard deviation
+  int<lower=0, upper=1> contains_NAs; // Logical: contains NA values?
   real ode_control[3]; // vector of ODE control numbers
 }
 parameters {
@@ -221,14 +222,24 @@ model {
 
   // data likelihood:
   if (!priors_only) { // useful to turn off for prior predictive checks
-    for (n in 1:last_day_obs) {
-      for (j in 1:J) {
-        if (daily_cases[n,j] != 9999999) { // NA magic number
-        if (obs_model == 0) {
-          daily_cases[n,j] ~ poisson_log(eta[n,j]);
-        } else if (obs_model == 1) {
-          daily_cases[n,j] ~ neg_binomial_2_log(eta[n,j], phi[j]);
+    if (contains_NAs) { // Not vectorized to 'easily' deal with NAs:
+      for (n in 1:last_day_obs) {
+        for (j in 1:J) {
+          if (daily_cases[n,j] != 9999999) { // NA magic number
+            if (obs_model == 0) {
+              daily_cases[n,j] ~ poisson_log(eta[n,j]);
+            } else if (obs_model == 1) {
+              daily_cases[n,j] ~ neg_binomial_2_log(eta[n,j], phi[j]);
+            }
+          }
         }
+      }
+    } else { // No NAs; vectorized for increased efficiency:
+      for (j in 1:J) {
+        if (obs_model == 0) {
+          daily_cases[1:last_day_obs,j] ~ poisson_log(eta[1:last_day_obs,j]);
+        } else if (obs_model == 1) {
+          daily_cases[1:last_day_obs,j] ~ neg_binomial_2_log(eta[1:last_day_obs,j], phi[j]);
         }
       }
     }

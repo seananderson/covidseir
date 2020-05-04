@@ -47,7 +47,7 @@ in likelihood). A vector will be turned into a one column matrix.}
 
 \item{forecast_days}{Number of days into the future to forecast. The model
 will run faster with fewer forecasted days. It is recommended to set this
-to 0 here and use \code{\link[=project_seir]{project_seir()}} for forecasts.}
+to 0 here and use \code{\link[=forecast_seir]{forecast_seir()}} for forecasts.}
 
 \item{time_increment}{Time increment for ODEs and Weibull delay-model
 integration. Larger numbers will run faster, possibly at the expense of
@@ -129,7 +129,7 @@ A named list object
 }
 \description{
 This function fits a Stan SEIR model to one or more sets of COVID-19 case
-data. See \code{\link[=project_seir]{project_seir()}} for making forecasts.
+data. See \code{\link[=forecast_seir]{forecast_seir()}} for making forecasts.
 }
 \examples{
 \donttest{
@@ -140,13 +140,13 @@ cases <- c(
   26, 37, 25, 45, 34, 40, 35
 )
 
-# Example assume sampling fractions of positive cases:
+# Example assumed sampling fractions of positive cases:
 s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
 
-# To use parallel processing:
+# To use parallel processing with multiple chains:
 # options(mc.cores = parallel::detectCores() / 2)
 
-# Using only 100 iterations and 1 chain for a quick example:
+# Only using 100 iterations and 1 chain for a quick example:
 m <- fit_seir(
   cases,
   iter = 100,
@@ -157,14 +157,14 @@ print(m)
 names(m)
 names(m$post) # from rstan::extract(m$fit)
 
-# use tidybayes if you'd like:
+# Use tidybayes if you'd like:
 # post_tidy <- tidybayes::spread_draws(m$fit, c(y_rep, mu)[day, data_type])
 
 # Add hospitalization data and estimate 2 sample-fraction blocks
 # for the reported cases:
 samp_frac_seg <- c(rep(1, 13), rep(2, length(cases) - 13))
 
-s2 <- rep(0.07, 42) # Assuming 7\% of positive individuals are hospitalized
+s2 <- rep(0.07, 42) # Assuming 7\\% of positive individuals are hospitalized
 hosp <- c(
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 11, 9, 4,
   7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6,
@@ -182,7 +182,7 @@ m2 <- fit_seir(
 )
 print(m2)
 
-# Estimate a second estimated f_s block:
+# Estimate a second f_s segment:
 f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14))
 m3 <- fit_seir(
   cases,
@@ -193,4 +193,5 @@ m3 <- fit_seir(
 )
 print(m3)
 }
+
 }
