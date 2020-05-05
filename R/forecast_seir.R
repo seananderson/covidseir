@@ -14,6 +14,7 @@
 #'   Should be length `forecast_days - (f_fixed_start - nrow(daily_cases) -
 #'   1)`. I.e. one value per day after `f_fixed_start` day.
 #' @param iter MCMC iterations to include. Defaults to all.
+#' @param return_states Logical for whether to return the ODE states.
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #'
 #' @importFrom dplyr bind_rows
@@ -87,6 +88,7 @@ forecast_seir <- function(
                          f_fixed_start = NULL,
                          f_fixed = NULL,
                          iter = seq_along(obj$post$R0),
+                         return_states = FALSE,
                          ...) {
   if (!identical(class(obj), "covidseir")) {
     stop("`obj` must be of class `covidseir`.")
@@ -163,6 +165,10 @@ forecast_seir <- function(
   }
 
   # incl_progress <- (d$last_day_obs + forecast_days) > 100
+
+  pars <- c("R0", "f_s", "phi", "mu", "y_rep")
+  if (return_states) pars <- c("y_hat")
+
   out <- furrr::future_map_dfr(iter, function(i) {
   # out <- purrr::map_dfr(iter, function(i) {
   # out <- lapply(iter, function(i) {
@@ -173,26 +179,42 @@ forecast_seir <- function(
       iter = 1L,
       chains = 1L,
       init = function() initf_project(p, i, d),
-      pars = c("R0", "f_s", "phi", "mu", "y_rep"),
+      pars = pars,
       refresh = 0L,
       algorithm = "Fixed_param",
       ... = ...
     )
     post <- rstan::extract(fit)
-    df <- data.frame(day = rep(d$days, d$J))
-    df$data_type <- rep(seq_len(d$J), each = d$N)
-    df$mu <- as.vector(post$mu[1, , ])
-    df$y_rep <- as.vector(post$y_rep[1, , ])
-    df$phi <- rep(as.vector(post$phi[1, ]), each = d$N)
+    if (!return_states) {
+      df <- data.frame(day = rep(d$days, d$J))
+      df$data_type <- rep(seq_len(d$J), each = d$N)
+      df$mu <- as.vector(post$mu[1, , ])
+      df$y_rep <- as.vector(post$y_rep[1, , ])
+      df$phi <- rep(as.vector(post$phi[1, ]), each = d$N)
+    } else {
+      df <- reshape2::melt(post$y_hat)
+      df$iterations <- NULL
+    }
     df$.iteration <- i
     df
-  # }, .progress = incl_progress)
   })
   out <- bind_rows(out)
-  .forecast <- c(rep(FALSE, d$last_day_obs), rep(TRUE, forecast_days))
-  out$forecast <- rep(.forecast, length(iter) * d$J)
 
-  if (!is.null(f_fixed_start)) {
+  if (return_states) {
+    variables_df <- dplyr::tibble(
+      variable = names(obj$state_0),
+      variable_num = seq_along(obj$state_0)
+    )
+    ts_df <- dplyr::tibble(time = d$time, time_num = seq_along(d$time))
+    out <- dplyr::rename(out, time_num = Var2, variable_num = Var3)
+    out <- dplyr::left_join(out, variables_df, by = "variable_num")
+    out <- dplyr::left_join(out, ts_df, by = "time_num")
+  } else {
+    .forecast <- c(rep(FALSE, d$last_day_obs), rep(TRUE, forecast_days))
+    out$forecast <- rep(.forecast, length(iter) * d$J)
+  }
+
+  if (!is.null(f_fixed_start) && !return_states) {
     .f_fixed <- c(
       rep(FALSE, d$last_day_obs),
       rep(FALSE, est_f_forecast_days),

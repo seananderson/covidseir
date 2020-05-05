@@ -60,7 +60,8 @@ Imports:
     methods,
     Rcpp (>= 0.12.0),
     rstan (>= 2.18.1),
-    tibble
+    tibble,
+    reshape2
 Suggests:
     ggplot2,
     knitr,

@@ -19,6 +19,7 @@ NULL
 if (getRversion() >= "2.15.1") {
   utils::globalVariables(c(
     "value", "Var2", "iterations", "date", "day", "data_type",
-    "lambda_d", "y_rep", "variable", "R0", "f_s", "f_seg", "mu", "phi"
+    "lambda_d", "y_rep", "variable", "R0", "f_s", "f_seg", "mu", "phi",
+    "Var3", "Var2"
   ))
 }

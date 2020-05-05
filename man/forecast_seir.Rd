@@ -10,6 +10,7 @@ forecast_seir(
   f_fixed_start = NULL,
   f_fixed = NULL,
   iter = seq_along(obj$post$R0),
+  return_states = FALSE,
   ...
 )
 }
@@ -25,6 +26,8 @@ forecast_seir(
 Should be length \code{forecast_days - (f_fixed_start - nrow(daily_cases) - 1)}. I.e. one value per day after \code{f_fixed_start} day.}
 
 \item{iter}{MCMC iterations to include. Defaults to all.}
+
+\item{return_states}{Logical for whether to return the ODE states.}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}}.}
 }
