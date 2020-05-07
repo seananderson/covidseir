@@ -1,5 +1,12 @@
 # covidseir
 
+# covidseir 0.0.0.9002
+
+* `forecast_seir()` has been renamed to `project_seir()`.
+
+* `plot_projection()` and `tidy_sier()` have been added. See examples
+  in `project_seir()`.
+
 # covidseir 0.0.0.9001
 
 * `fit_seir()` now allows for multiple estimated blocks (segments) of fractions

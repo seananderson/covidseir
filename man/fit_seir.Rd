@@ -47,7 +47,7 @@ in likelihood). A vector will be turned into a one column matrix.}
 
 \item{forecast_days}{Number of days into the future to forecast. The model
 will run faster with fewer forecasted days. It is recommended to set this
-to 0 here and use \code{\link[=forecast_seir]{forecast_seir()}} for forecasts.}
+to 0 here and use \code{\link[=project_seir]{project_seir()}} for forecasts.}
 
 \item{time_increment}{Time increment for ODEs and Weibull delay-model
 integration in units of days. Larger numbers will run faster,
@@ -129,7 +129,7 @@ A named list object
 }
 \description{
 This function fits a Stan SEIR model to one or more sets of COVID-19 case
-data. See \code{\link[=forecast_seir]{forecast_seir()}} for making forecasts.
+data. See \code{\link[=project_seir]{project_seir()}} for making forecasts.
 }
 \examples{
 \donttest{

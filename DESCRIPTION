@@ -57,14 +57,17 @@ Depends:
 Imports: 
     dplyr,
     furrr,
-    methods,
-    Rcpp (>= 0.12.0),
-    rstan (>= 2.18.1),
-    tibble,
-    reshape2
-Suggests:
     ggplot2,
+    MASS,
+    methods,
+    purrr,
+    Rcpp (>= 0.12.0),
+    reshape2,
+    rstan (>= 2.18.1),
+    tibble
+Suggests:
     knitr,
+    magrittr,
     rmarkdown,
     rstantools (>= 2.0.0)
 LinkingTo: 

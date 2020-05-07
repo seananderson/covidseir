@@ -1,7 +1,7 @@
 #' Fit a Stan SEIR model
 #'
 #' This function fits a Stan SEIR model to one or more sets of COVID-19 case
-#' data. See [forecast_seir()] for making forecasts.
+#' data. See [project_seir()] for making forecasts.
 #'
 #' @param daily_cases Either a vector of daily new cases if fitting to a single
 #'   data type or a matrix of case data if fitting to multiple data types. Each
@@ -10,7 +10,7 @@
 #' @param obs_model Type of observation model.
 #' @param forecast_days Number of days into the future to forecast. The model
 #'   will run faster with fewer forecasted days. It is recommended to set this
-#'   to 0 here and use [forecast_seir()] for forecasts.
+#'   to 0 here and use [project_seir()] for forecasts.
 #' @param time_increment Time increment for ODEs and Weibull delay-model
 #'   integration in units of days. Larger numbers will run faster,
 #'   possibly at the expense of accuracy.

@@ -1,16 +1,16 @@
-#' Make a forecast with a SEIR fit
+#' Make a projection with a SEIR fit
 #'
-#' Project a fit from [fit_seir()], possibly with a forecast. By default, the
-#' forecast uses the estimated f values (fraction of normal
+#' Predict from a [fit_seir()] object, possibly with a future prediction. By default, the
+#' projection uses the estimated f values (fraction of normal
 #' contacts encountered for those physical distancing). The function also includes
 #' functionality to specify a vector of fixed f values starting on a given
 #' future date.
 #'
 #' @param obj Output from [fit_seir()].
-#' @param forecast_days Number of forecast days.
+#' @param forecast_days Number of projection days.
 #' @param f_fixed_start Optional day to start changing f. Must be set if
 #'   `f_fixed` is set.
-#' @param f_fixed An optional vector of fixed f values for the forecast.
+#' @param f_fixed An optional vector of fixed f values for the projection.
 #'   Should be length `forecast_days - (f_fixed_start - nrow(daily_cases) -
 #'   1)`. I.e. one value per day after `f_fixed_start` day.
 #' @param iter MCMC iterations to include. Defaults to all.
@@ -58,31 +58,23 @@
 #' # For parallel processing (more important for more iterations):
 #' # library(future)
 #' # plan(multisession)
-#' p <- forecast_seir(m)
+#' p <- project_seir(m)
 #' p
 #'
-#' plot_ts <- function(p) {
-#'   if (require("ggplot2")) { # just for R CMD check in this example
-#'     ggplot(p, aes(day, mu, group = .iteration)) +
-#'       geom_line(alpha = 0.4) +
-#'       geom_point(aes(y = y_rep), alpha = 0.2, pch = 21) +
-#'       geom_point(aes(x = day, y = cases), data.frame(day = seq_along(cases), cases),
-#'         colour = "red", inherit.aes = FALSE
-#'       ) +
-#'       labs(y = "Reported cases", x = "Day")
-#'   }
-#' }
-#' plot_ts(p)
+#' obs_dat <- data.frame(day = seq_along(cases), value = cases)
 #'
-#' p <- forecast_seir(m,
+#' library(magrittr) # for %>%
+#' tidy_seir(p) %>% plot_projection(obs_dat = obs_dat)
+#'
+#' p <- project_seir(m,
 #'   forecast_days = 100,
 #'   f_fixed_start = 53,
 #'   f_fixed = c(rep(0.7, 60), rep(0.2, 30)),
 #'   iter = 1:25
 #' )
 #' p
-#' plot_ts(p)
-forecast_seir <- function(
+#' tidy_seir(p) %>% plot_projection(obs_dat = obs_dat)
+project_seir <- function(
                          obj,
                          forecast_days = 30,
                          f_fixed_start = NULL,
@@ -164,8 +156,6 @@ forecast_seir <- function(
     list(R0 = R0, f_s = f_s, phi = phi, samp_frac = samp_frac)
   }
 
-  # incl_progress <- (d$last_day_obs + forecast_days) > 100
-
   pars <- c("R0", "f_s", "phi", "mu", "y_rep")
   if (return_states) pars <- c("y_hat")
 
@@ -198,7 +188,7 @@ forecast_seir <- function(
     df$.iteration <- i
     df
   })
-  out <- bind_rows(out)
+  # out <- bind_rows(out)
 
   if (return_states) {
     variables_df <- dplyr::tibble(
