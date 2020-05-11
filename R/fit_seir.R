@@ -1,7 +1,7 @@
 #' Fit a Stan SEIR model
 #'
 #' This function fits a Stan SEIR model to one or more sets of COVID-19 case
-#' data. See [project_seir()] for making forecasts.
+#' data. See [project_seir()] for making predictions/projections.
 #'
 #' @param daily_cases Either a vector of daily new cases if fitting to a single
 #'   data type or a matrix of case data if fitting to multiple data types. Each
