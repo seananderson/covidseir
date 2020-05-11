@@ -299,7 +299,7 @@ fit_seir <- function(daily_cases,
     est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L
   )
   initf <- function(stan_data) {
-    R0 <- stats::rlnorm(1, log(R0_prior[1]), R0_prior[2])
+    R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2])
     f <- stats::rbeta(
       1,
       get_beta_params(f_prior[1], f_prior[2])$alpha,
