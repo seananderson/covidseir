@@ -153,7 +153,10 @@ project_seir <- function(
     } else {
       samp_frac <- rep(1, stan_data$n_samp_frac) # fake
     }
-    list(R0 = R0, f_s = f_s, phi = phi, samp_frac = samp_frac)
+    start_decline <- post$start_decline[i]
+    end_decline <- post$end_decline[i]
+    list(R0 = R0, f_s = f_s, phi = phi, samp_frac = samp_frac,
+      start_decline = start_decline, end_decline = end_decline)
   }
 
   pars <- c("R0", "f_s", "phi", "mu", "y_rep")

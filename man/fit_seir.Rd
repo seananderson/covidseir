@@ -9,19 +9,19 @@ fit_seir(
   obs_model = c("NB2", "Poisson"),
   forecast_days = 0,
   time_increment = 0.2,
+  samp_frac_fixed = NULL,
+  samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
+  samp_frac_seg = NULL,
+  f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
   days_back = 45,
   R0_prior = c(log(2.6), 0.2),
   phi_prior = 1,
   f_prior = c(0.4, 0.2),
   samp_frac_prior = c(0.4, 0.2),
-  samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
-  samp_frac_seg = NULL,
   rw_sigma = 0.1,
-  f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
   seed = 42,
   chains = 4,
   iter = 2000,
-  samp_frac_fixed = NULL,
   pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f0 = 1,
     start_decline = 15, end_decline = 22),
   i0 = 8,
@@ -47,11 +47,29 @@ in likelihood). A vector will be turned into a one column matrix.}
 
 \item{forecast_days}{Number of days into the future to forecast. The model
 will run faster with fewer forecasted days. It is recommended to set this
-to 0 here and use \code{\link[=project_seir]{project_seir()}} for forecasts.}
+to 0 here and use \code{\link[=project_seir]{project_seir()}} for projections.}
 
 \item{time_increment}{Time increment for ODEs and Weibull delay-model
 integration in units of days. Larger numbers will run faster,
 possibly at the expense of accuracy.}
+
+\item{samp_frac_fixed}{A vector (or matrix) of sampled fractions. Should be
+of dimensions: \code{nrow(daily_cases) + forecast_days} (rows) by
+\verb{ncol(daily_cases} (columns). A vector will be turned into a one column
+matrix.}
+
+\item{samp_frac_type}{How to treat the sample fraction. Fixed, estimated, a
+constrained random walk, or segmented. Only applies to the first data type
+column. The other data types must always have a fixed sample fraction
+currently.}
+
+\item{samp_frac_seg}{A vector of sample fraction segment indexes of length
+\code{daily_cases} + \code{forecast_days}. Should start at 1. Applies if
+\code{samp_frac_type = "segmented"}.}
+
+\item{f_seg}{A vector of segment indexes of length \code{daily_cases} +
+\code{forecast_days}. The segment index values should start at 0 to represent
+the fixed "no social distancing" value \code{f0} from the \code{pars} argument.}
 
 \item{days_back}{Number of days to go back for the Weibull case-delay
 integration. Should be sufficiently large that the results do not change.}
@@ -71,32 +89,14 @@ or "rw" or "segmented". In the case of the random walk, this specifies the
 initial state prior. The two values correspond to the mean and SD of a Beta
 distribution. Only applies to first time series.}
 
-\item{samp_frac_type}{How to treat the sample fraction. Fixed, estimated, a
-constrained random walk, or segmented. Only applies to the first data type
-column. The other data types must always have a fixed sample fraction
-currently.}
-
-\item{samp_frac_seg}{A vector of sample fraction segment indexes of length
-\code{daily_cases} + \code{forecast_days}. Should start at 1. Applies if
-\code{samp_frac_type = "segmented"}.}
-
 \item{rw_sigma}{The fixed standard deviation on the optional \code{samp_frac}
 random walk.}
-
-\item{f_seg}{A vector of segment indexes of length \code{daily_cases} +
-\code{forecast_days}. The segment index values should start at 0 to represent
-the fixed "no social distancing" value \code{f0} from the \code{pars} argument.}
 
 \item{seed}{MCMC seed for \code{\link[rstan:stan]{rstan::stan()}}.}
 
 \item{chains}{Number of MCMC chains for \code{\link[rstan:stan]{rstan::stan()}}.}
 
 \item{iter}{MCMC iterations per chain for \code{\link[rstan:stan]{rstan::stan()}}.}
-
-\item{samp_frac_fixed}{A vector (or matrix) of sampled fractions. Should be
-of dimensions: \code{nrow(daily_cases) + forecast_days} (rows) by
-\verb{ncol(daily_cases} (columns). A vector will be turned into a one column
-matrix.}
 
 \item{pars}{A named numeric vector of fixed parameter values.}
 
@@ -129,7 +129,7 @@ A named list object
 }
 \description{
 This function fits a Stan SEIR model to one or more sets of COVID-19 case
-data. See \code{\link[=project_seir]{project_seir()}} for making forecasts.
+data. See \code{\link[=project_seir]{project_seir()}} for making predictions/projections.
 }
 \examples{
 \donttest{

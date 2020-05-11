@@ -10,10 +10,24 @@
 #' @param obs_model Type of observation model.
 #' @param forecast_days Number of days into the future to forecast. The model
 #'   will run faster with fewer forecasted days. It is recommended to set this
-#'   to 0 here and use [project_seir()] for forecasts.
+#'   to 0 here and use [project_seir()] for projections.
 #' @param time_increment Time increment for ODEs and Weibull delay-model
 #'   integration in units of days. Larger numbers will run faster,
 #'   possibly at the expense of accuracy.
+#' @param samp_frac_fixed A vector (or matrix) of sampled fractions. Should be
+#'   of dimensions: `nrow(daily_cases) + forecast_days` (rows) by
+#'   `ncol(daily_cases` (columns). A vector will be turned into a one column
+#'   matrix.
+#' @param samp_frac_type How to treat the sample fraction. Fixed, estimated, a
+#'   constrained random walk, or segmented. Only applies to the first data type
+#'   column. The other data types must always have a fixed sample fraction
+#'   currently.
+#' @param samp_frac_seg A vector of sample fraction segment indexes of length
+#'   `daily_cases` + `forecast_days`. Should start at 1. Applies if
+#'   `samp_frac_type = "segmented"`.
+#' @param f_seg A vector of segment indexes of length `daily_cases` +
+#'   `forecast_days`. The segment index values should start at 0 to represent
+#'   the fixed "no social distancing" value `f0` from the `pars` argument.
 #' @param days_back Number of days to go back for the Weibull case-delay
 #'   integration. Should be sufficiently large that the results do not change.
 #' @param R0_prior Lognormal log mean and SD for the R0 prior.
@@ -27,25 +41,17 @@
 #'   or "rw" or "segmented". In the case of the random walk, this specifies the
 #'   initial state prior. The two values correspond to the mean and SD of a Beta
 #'   distribution. Only applies to first time series.
-#' @param samp_frac_type How to treat the sample fraction. Fixed, estimated, a
-#'   constrained random walk, or segmented. Only applies to the first data type
-#'   column. The other data types must always have a fixed sample fraction
-#'   currently.
-#' @param samp_frac_seg A vector of sample fraction segment indexes of length
-#'   `daily_cases` + `forecast_days`. Should start at 1. Applies if
-#'   `samp_frac_type = "segmented"`.
+#' @param start_decline_prior Lognormal log mean and SD for the parameter
+#'   representing the day that social distancing starts ramping in
+#'   (`start_decline`).
+#' @param end_decline_prior Lognormal log mean and SD for the parameter
+#'   representing the day that the social distancing ramp finishes being ramped
+#'   in (`end_decline`).
 #' @param rw_sigma The fixed standard deviation on the optional `samp_frac`
 #'   random walk.
-#' @param f_seg A vector of segment indexes of length `daily_cases` +
-#'   `forecast_days`. The segment index values should start at 0 to represent
-#'   the fixed "no social distancing" value `f0` from the `pars` argument.
 #' @param seed MCMC seed for [rstan::stan()].
 #' @param chains Number of MCMC chains for [rstan::stan()].
 #' @param iter MCMC iterations per chain for [rstan::stan()].
-#' @param samp_frac_fixed A vector (or matrix) of sampled fractions. Should be
-#'   of dimensions: `nrow(daily_cases) + forecast_days` (rows) by
-#'   `ncol(daily_cases` (columns). A vector will be turned into a one column
-#'   matrix.
 #' @param pars A named numeric vector of fixed parameter values.
 #' @param i0 Infected people infected at initial point in time.
 #' @param fsi Fraction socially distancing. Derived parameter.
@@ -131,25 +137,25 @@ fit_seir <- function(daily_cases,
                      obs_model = c("NB2", "Poisson"),
                      forecast_days = 0,
                      time_increment = 0.2,
+                     samp_frac_fixed = NULL,
+                     samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
+                     samp_frac_seg = NULL,
+                     f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
                      days_back = 45,
                      R0_prior = c(log(2.6), 0.2),
                      phi_prior = 1,
                      f_prior = c(0.4, 0.2),
                      samp_frac_prior = c(0.4, 0.2),
-                     samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
-                     samp_frac_seg = NULL,
+                     start_decline_prior = c(log(15), 0.05),
+                     end_decline_prior = c(log(22), 0.05),
                      rw_sigma = 0.1,
-                     f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
                      seed = 42,
                      chains = 4,
                      iter = 2000,
-                     samp_frac_fixed = NULL,
                      pars = c(
                        N = 5.1e6, D = 5, k1 = 1 / 5,
                        k2 = 1, q = 0.05,
-                       r = 0.1, ur = 0.02, f0 = 1.0,
-                       start_decline = 15,
-                       end_decline = 22
+                       r = 0.1, ur = 0.02, f0 = 1.0
                      ),
                      i0 = 8,
                      fsi = pars[["r"]] / (pars[["r"]] + pars[["ur"]]),
@@ -196,7 +202,7 @@ fit_seir <- function(daily_cases,
 
   stopifnot(
     names(x_r) ==
-      c("N", "D", "k1", "k2", "q", "r", "ur", "f0", "start_decline", "end_decline")
+      c("N", "D", "k1", "k2", "q", "r", "ur", "f0")
   )
   stopifnot(
     names(state_0) == c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
@@ -289,6 +295,8 @@ fit_seir <- function(daily_cases,
     phi_prior = phi_prior,
     f_prior = c(beta_shape1, beta_shape2),
     samp_frac_prior = samp_frac_prior_trans,
+    start_decline_prior = start_decline_prior,
+    end_decline_prior = end_decline_prior,
     n_samp_frac = n_samp_frac,
     rw_sigma = rw_sigma,
     priors_only = 0L,
@@ -299,17 +307,19 @@ fit_seir <- function(daily_cases,
     est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L
   )
   initf <- function(stan_data) {
-    R0 <- stats::rlnorm(1, log(R0_prior[1]), R0_prior[2])
+    R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2])
+    start_decline <- stats::rlnorm(1, start_decline_prior[1], end_decline_prior[2])
+    end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2])
     f <- stats::rbeta(
       1,
       get_beta_params(f_prior[1], f_prior[2])$alpha,
       get_beta_params(f_prior[1], f_prior[2])$beta
     )
     f_s <- array(f, dim = stan_data$S)
-    init <- list(R0 = R0, f_s = f_s)
+    init <- list(R0 = R0, f_s = f_s, start_decline = start_decline, end_decline = end_decline)
     init
   }
-  pars_save <- c("R0", "f_s", "phi", "mu", "y_rep", "samp_frac")
+  pars_save <- c("R0", "f_s", "phi", "mu", "y_rep", "start_decline", "end_decline", "samp_frac")
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   fit <- rstan::sampling(
     stanmodels$seir,
@@ -325,6 +335,8 @@ fit_seir <- function(daily_cases,
   structure(list(
     fit = fit, post = post, phi_prior = phi_prior, R0_prior = R0_prior,
     f_prior = f_prior, obs_model = obs_model,
+    start_decline_prior = start_decline_prior,
+    end_decline_prior = end_decline_prior,
     samp_frac_fixed = samp_frac_fixed, state_0 = state_0,
     daily_cases = daily_cases, days = days, time = time,
     last_day_obs = last_day_obs, pars = x_r, f2_prior_beta_shape1 = beta_shape1,
