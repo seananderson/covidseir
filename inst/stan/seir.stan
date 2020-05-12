@@ -25,6 +25,7 @@ functions{
     real r     = x_r[6];
     real ur    = x_r[7];
     real f0    = x_r[8];
+    real f_ramp_rate = x_r[9];
 
     // real start_decline = x_r[9];
     // real end_decline = x_r[10];
@@ -34,6 +35,7 @@ functions{
     real R0 = theta[1];
     real start_decline = theta[2];
     real end_decline = theta[3];
+    real f1 = theta[4];
 
     int n_f = x_i[2]; // the number of f parameters in time (after f0)
     int f_seg_id[n_f]; // a lookup vector to grab the appropriate f parameter in time
@@ -42,12 +44,17 @@ functions{
 
     real dydt[12];
 
+    real X;
     // integer version of the day for this time point:
     // (must use this workaround since floor() in Stan produces a real number
     // that can't be used to index an array)
     int day;
     day = 1;
     while ((day + 1) < floor(t)) day = day + 1;
+    // int time_int;
+    // time_int = 1;
+    // while ((time_int + 1) < floor(t)) time_int = time_int + 1;
+    // this_time_id = f_seg_id[time_int];
 
     for (i in 1:n_f) {
       // `i + 2` because of number of x_i before `f_seg_id`
@@ -59,9 +66,13 @@ functions{
     if (t < start_decline) {
       f = f0;
     }
+    // if (t >= start_decline && t < end_decline) { // allow a ramp-in of physical distancing
+    //   f = f1 + (end_decline - t) *
+    //       (f0 - f1) / (end_decline - start_decline);
+    // }
     if (t >= start_decline && t < end_decline) { // allow a ramp-in of physical distancing
-      f = theta[f_seg_id[day]] + (end_decline - t) *
-          (f0 - theta[f_seg_id[day]]) / (end_decline - start_decline);
+      X = (f0 - f1) / (exp(f_ramp_rate * (end_decline - start_decline)) - 1);
+      f = f0 - X * (exp(f_ramp_rate * (t - start_decline)) - 1);
     }
     if (t >= end_decline) {
       f = theta[f_seg_id[day]];

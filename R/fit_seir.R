@@ -28,6 +28,7 @@
 #' @param f_seg A vector of segment indexes of length `daily_cases` +
 #'   `forecast_days`. The segment index values should start at 0 to represent
 #'   the fixed "no social distancing" value `f0` from the `pars` argument.
+#'   Doesn't come into play until after `end_decline` day.
 #' @param days_back Number of days to go back for the Weibull case-delay
 #'   integration. Should be sufficiently large that the results do not change.
 #' @param R0_prior Lognormal log mean and SD for the R0 prior.
@@ -47,6 +48,11 @@
 #' @param end_decline_prior Lognormal log mean and SD for the parameter
 #'   representing the day that the social distancing ramp finishes being ramped
 #'   in (`end_decline`).
+#' @param f_ramp_rate An exponential rate for the initial social distancing
+#'   ramp. A value near 0 result in a linear ramp. A value > 0 results in a ramp
+#'   that starts slowly and ends quickly. A value < 0 results in a ramp that
+#'   starts quickly and ends slowly. See the Stan model in
+#'   `inst/stan/seir.stan`.
 #' @param rw_sigma The fixed standard deviation on the optional `samp_frac`
 #'   random walk.
 #' @param seed MCMC seed for [rstan::stan()].
@@ -140,7 +146,7 @@ fit_seir <- function(daily_cases,
                      samp_frac_fixed = NULL,
                      samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
                      samp_frac_seg = NULL,
-                     f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
+                     f_seg = c(0, rep(1, nrow(daily_cases) + forecast_days - 1)),
                      days_back = 45,
                      R0_prior = c(log(2.6), 0.2),
                      phi_prior = 1,
@@ -148,6 +154,7 @@ fit_seir <- function(daily_cases,
                      samp_frac_prior = c(0.4, 0.2),
                      start_decline_prior = c(log(15), 0.05),
                      end_decline_prior = c(log(22), 0.05),
+                     f_ramp_rate = 0.0001,
                      rw_sigma = 0.1,
                      seed = 42,
                      chains = 4,
@@ -270,6 +277,7 @@ fit_seir <- function(daily_cases,
     samp_frac_seg <- rep(1, length(days))
   }
 
+  x_r <- c(x_r, "f_ramp_rate" = f_ramp_rate)
   stan_data <- list(
     T = length(time),
     days = days,
@@ -306,14 +314,18 @@ fit_seir <- function(daily_cases,
     ode_control = ode_control,
     est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L
   )
+  # map_estimate <- rstan::optimizing(
+  #   stanmodels$seir,
+  #   data = stan_data
+  # )
   initf <- function(stan_data) {
-    R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2])
-    start_decline <- stats::rlnorm(1, start_decline_prior[1], end_decline_prior[2])
-    end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2])
+    R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2]/2)
+    start_decline <- stats::rlnorm(1, start_decline_prior[1], end_decline_prior[2]/2)
+    end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2]/2)
     f <- stats::rbeta(
       1,
-      get_beta_params(f_prior[1], f_prior[2])$alpha,
-      get_beta_params(f_prior[1], f_prior[2])$beta
+      get_beta_params(f_prior[1], f_prior[2]/4)$alpha,
+      get_beta_params(f_prior[1], f_prior[2]/4)$beta
     )
     f_s <- array(f, dim = stan_data$S)
     init <- list(R0 = R0, f_s = f_s, start_decline = start_decline, end_decline = end_decline)
@@ -321,6 +333,7 @@ fit_seir <- function(daily_cases,
   }
   pars_save <- c("R0", "f_s", "phi", "mu", "y_rep", "start_decline", "end_decline", "samp_frac")
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
+  set.seed(seed)
   fit <- rstan::sampling(
     stanmodels$seir,
     data = stan_data,

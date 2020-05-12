@@ -12,18 +12,20 @@ fit_seir(
   samp_frac_fixed = NULL,
   samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
   samp_frac_seg = NULL,
-  f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
+  f_seg = c(0, rep(1, nrow(daily_cases) + forecast_days - 1)),
   days_back = 45,
   R0_prior = c(log(2.6), 0.2),
   phi_prior = 1,
   f_prior = c(0.4, 0.2),
   samp_frac_prior = c(0.4, 0.2),
+  start_decline_prior = c(log(15), 0.05),
+  end_decline_prior = c(log(22), 0.05),
+  f_ramp_rate = 1e-04,
   rw_sigma = 0.1,
   seed = 42,
   chains = 4,
   iter = 2000,
-  pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f0 = 1,
-    start_decline = 15, end_decline = 22),
+  pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f0 = 1),
   i0 = 8,
   fsi = pars[["r"]]/(pars[["r"]] + pars[["ur"]]),
   nsi = 1 - fsi,
@@ -69,7 +71,8 @@ currently.}
 
 \item{f_seg}{A vector of segment indexes of length \code{daily_cases} +
 \code{forecast_days}. The segment index values should start at 0 to represent
-the fixed "no social distancing" value \code{f0} from the \code{pars} argument.}
+the fixed "no social distancing" value \code{f0} from the \code{pars} argument.
+Doesn't come into play until after \code{end_decline} day.}
 
 \item{days_back}{Number of days to go back for the Weibull case-delay
 integration. Should be sufficiently large that the results do not change.}
@@ -88,6 +91,20 @@ parameters must have the same prior currently. This will be fixed.}
 or "rw" or "segmented". In the case of the random walk, this specifies the
 initial state prior. The two values correspond to the mean and SD of a Beta
 distribution. Only applies to first time series.}
+
+\item{start_decline_prior}{Lognormal log mean and SD for the parameter
+representing the day that social distancing starts ramping in
+(\code{start_decline}).}
+
+\item{end_decline_prior}{Lognormal log mean and SD for the parameter
+representing the day that the social distancing ramp finishes being ramped
+in (\code{end_decline}).}
+
+\item{f_ramp_rate}{An exponential rate for the initial social distancing
+ramp. A value near 0 result in a linear ramp. A value > 0 results in a ramp
+that starts slowly and ends quickly. A value < 0 results in a ramp that
+starts quickly and ends slowly. See the Stan model in
+\code{inst/stan/seir.stan}.}
 
 \item{rw_sigma}{The fixed standard deviation on the optional \code{samp_frac}
 random walk.}
@@ -129,7 +146,7 @@ A named list object
 }
 \description{
 This function fits a Stan SEIR model to one or more sets of COVID-19 case
-data. See \code{\link[=project_seir]{project_seir()}} for making predictions/projections.
+data. See \code{\link[=project_seir]{project_seir()}} for making forecasts.
 }
 \examples{
 \donttest{
