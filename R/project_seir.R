@@ -19,9 +19,9 @@
 #'
 #' @importFrom dplyr bind_rows
 #'
-#' @details
-#' Set a [future::plan()] and this function will operate in parallel
-#' across MCMC iterations using \pkg{furrr}.
+# @details
+# Set a [future::plan()] and this function will operate in parallel
+# across MCMC iterations using \pkg{furrr}.
 #'
 #' @return
 #' A data frame:
@@ -55,9 +55,9 @@
 #' )
 #' print(m)
 #'
-#' # For parallel processing (more important for more iterations):
-#' # library(future)
-#' # plan(multisession)
+# # For parallel processing (more important for more iterations):
+# # library(future)
+# # plan(multisession)
 #' p <- project_seir(m)
 #' p
 #'
@@ -162,8 +162,8 @@ project_seir <- function(
   pars <- c("R0", "f_s", "phi", "mu", "y_rep")
   if (return_states) pars <- c("y_hat")
 
-  out <- furrr::future_map_dfr(iter, function(i) {
-  # out <- purrr::map_dfr(iter, function(i) {
+  # out <- furrr::future_map_dfr(iter, function(i) {
+  out <- purrr::map_dfr(iter, function(i) {
   # out <- lapply(iter, function(i) {
   # out <- future.apply::future_lapply(iter, function(i) {
     fit <- rstan::sampling(
