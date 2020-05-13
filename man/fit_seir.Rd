@@ -9,21 +9,23 @@ fit_seir(
   obs_model = c("NB2", "Poisson"),
   forecast_days = 0,
   time_increment = 0.2,
+  samp_frac_fixed = NULL,
+  samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
+  samp_frac_seg = NULL,
+  f_seg = c(0, rep(1, nrow(daily_cases) + forecast_days - 1)),
   days_back = 45,
   R0_prior = c(log(2.6), 0.2),
   phi_prior = 1,
   f_prior = c(0.4, 0.2),
   samp_frac_prior = c(0.4, 0.2),
-  samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
-  samp_frac_seg = NULL,
+  start_decline_prior = c(log(15), 0.05),
+  end_decline_prior = c(log(22), 0.05),
+  f_ramp_rate = 1e-04,
   rw_sigma = 0.1,
-  f_seg = c(rep(0, 14), rep(1, nrow(daily_cases) + forecast_days - 14)),
   seed = 42,
   chains = 4,
   iter = 2000,
-  samp_frac_fixed = NULL,
-  pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f0 = 1,
-    start_decline = 15, end_decline = 22),
+  pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f0 = 1),
   i0 = 8,
   fsi = pars[["r"]]/(pars[["r"]] + pars[["ur"]]),
   nsi = 1 - fsi,
@@ -47,11 +49,30 @@ in likelihood). A vector will be turned into a one column matrix.}
 
 \item{forecast_days}{Number of days into the future to forecast. The model
 will run faster with fewer forecasted days. It is recommended to set this
-to 0 here and use \code{\link[=project_seir]{project_seir()}} for forecasts.}
+to 0 here and use \code{\link[=project_seir]{project_seir()}} for projections.}
 
 \item{time_increment}{Time increment for ODEs and Weibull delay-model
 integration in units of days. Larger numbers will run faster,
 possibly at the expense of accuracy.}
+
+\item{samp_frac_fixed}{A vector (or matrix) of sampled fractions. Should be
+of dimensions: \code{nrow(daily_cases) + forecast_days} (rows) by
+\verb{ncol(daily_cases} (columns). A vector will be turned into a one column
+matrix.}
+
+\item{samp_frac_type}{How to treat the sample fraction. Fixed, estimated, a
+constrained random walk, or segmented. Only applies to the first data type
+column. The other data types must always have a fixed sample fraction
+currently.}
+
+\item{samp_frac_seg}{A vector of sample fraction segment indexes of length
+\code{daily_cases} + \code{forecast_days}. Should start at 1. Applies if
+\code{samp_frac_type = "segmented"}.}
+
+\item{f_seg}{A vector of segment indexes of length \code{daily_cases} +
+\code{forecast_days}. The segment index values should start at 0 to represent
+the fixed "no social distancing" value \code{f0} from the \code{pars} argument.
+Doesn't come into play until after \code{end_decline} day.}
 
 \item{days_back}{Number of days to go back for the Weibull case-delay
 integration. Should be sufficiently large that the results do not change.}
@@ -71,32 +92,28 @@ or "rw" or "segmented". In the case of the random walk, this specifies the
 initial state prior. The two values correspond to the mean and SD of a Beta
 distribution. Only applies to first time series.}
 
-\item{samp_frac_type}{How to treat the sample fraction. Fixed, estimated, a
-constrained random walk, or segmented. Only applies to the first data type
-column. The other data types must always have a fixed sample fraction
-currently.}
+\item{start_decline_prior}{Lognormal log mean and SD for the parameter
+representing the day that social distancing starts ramping in
+(\code{start_decline}).}
 
-\item{samp_frac_seg}{A vector of sample fraction segment indexes of length
-\code{daily_cases} + \code{forecast_days}. Should start at 1. Applies if
-\code{samp_frac_type = "segmented"}.}
+\item{end_decline_prior}{Lognormal log mean and SD for the parameter
+representing the day that the social distancing ramp finishes being ramped
+in (\code{end_decline}).}
+
+\item{f_ramp_rate}{An exponential rate for the initial social distancing
+ramp. A value near 0 result in a linear ramp. A value > 0 results in a ramp
+that starts slowly and ends quickly. A value < 0 results in a ramp that
+starts quickly and ends slowly. See the Stan model in
+\code{inst/stan/seir.stan}.}
 
 \item{rw_sigma}{The fixed standard deviation on the optional \code{samp_frac}
 random walk.}
-
-\item{f_seg}{A vector of segment indexes of length \code{daily_cases} +
-\code{forecast_days}. The segment index values should start at 0 to represent
-the fixed "no social distancing" value \code{f0} from the \code{pars} argument.}
 
 \item{seed}{MCMC seed for \code{\link[rstan:stan]{rstan::stan()}}.}
 
 \item{chains}{Number of MCMC chains for \code{\link[rstan:stan]{rstan::stan()}}.}
 
 \item{iter}{MCMC iterations per chain for \code{\link[rstan:stan]{rstan::stan()}}.}
-
-\item{samp_frac_fixed}{A vector (or matrix) of sampled fractions. Should be
-of dimensions: \code{nrow(daily_cases) + forecast_days} (rows) by
-\verb{ncol(daily_cases} (columns). A vector will be turned into a one column
-matrix.}
 
 \item{pars}{A named numeric vector of fixed parameter values.}
 

@@ -25,13 +25,17 @@ functions{
     real r     = x_r[6];
     real ur    = x_r[7];
     real f0    = x_r[8];
+    real f_ramp_rate = x_r[9];
 
-    real start_decline = x_r[9];
-    real end_decline = x_r[10];
+    // real start_decline = x_r[9];
+    // real end_decline = x_r[10];
 
     real last_day_obs = x_i[1];
 
     real R0 = theta[1];
+    real start_decline = theta[2];
+    real end_decline = theta[3];
+    real f1 = theta[4];
 
     int n_f = x_i[2]; // the number of f parameters in time (after f0)
     int f_seg_id[n_f]; // a lookup vector to grab the appropriate f parameter in time
@@ -40,33 +44,36 @@ functions{
 
     real dydt[12];
 
+    real X;
     // integer version of the day for this time point:
     // (must use this workaround since floor() in Stan produces a real number
     // that can't be used to index an array)
     int day;
     day = 1;
     while ((day + 1) < floor(t)) day = day + 1;
+    // int time_int;
+    // time_int = 1;
+    // while ((time_int + 1) < floor(t)) time_int = time_int + 1;
+    // this_time_id = f_seg_id[time_int];
 
     for (i in 1:n_f) {
       // `i + 2` because of number of x_i before `f_seg_id`
-      // `+ 1` at end because of number of thetas (here just R0) before f_s thetas
-      f_seg_id[i] = x_i[i + 2] + 1;
+      // `+ 3` at end because of number of thetas before f_s thetas
+      f_seg_id[i] = x_i[i + 2] + 3;
     }
 
     f = f0; // business as usual before physical distancing
     if (t < start_decline) {
       f = f0;
     }
+    // if (t >= start_decline && t < end_decline) { // allow a ramp-in of physical distancing
+    //   f = f1 + (end_decline - t) *
+    //       (f0 - f1) / (end_decline - start_decline);
+    // }
     if (t >= start_decline && t < end_decline) { // allow a ramp-in of physical distancing
-      f = theta[f_seg_id[day]] + (end_decline - t) *
-          (f0 - theta[f_seg_id[day]]) / (end_decline - start_decline);
+      X = (f0 - f1) / (exp(f_ramp_rate * (end_decline - start_decline)) - 1);
+      f = f0 - X * (exp(f_ramp_rate * (t - start_decline)) - 1);
     }
-    // if (t >= end_decline && t <= last_day_obs) {
-    //   f = theta[f_seg_id[day]];
-    // }
-    // if (t > last_day_obs) {
-    //   f = x_r[11 + day - day_start_fixed_f_forecast_int];
-    // }
     if (t >= end_decline) {
       f = theta[f_seg_id[day]];
     }
@@ -114,6 +121,8 @@ data {
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
   real f_prior[2];   // beta prior for f2
   real samp_frac_prior[2];   // beta prior for samp_frac
+  real start_decline_prior[2];   // prior for start_decline day
+  real end_decline_prior[2];   // prior for end_decline day
   int<lower=0, upper=1> priors_only; // logical: include likelihood or just priors?
   int<lower=0, upper=J> est_phi; // estimate NB phi?
   int<lower=0, upper=N> n_samp_frac; // number of samp_frac
@@ -124,6 +133,8 @@ data {
 }
 parameters {
  real R0; // Stan ODE solver seems to be more efficient without this bounded at > 0
+ real<lower=0> start_decline;
+ real<lower=0> end_decline;
  real<lower=0, upper=1> f_s[S]; // strength of social distancing for segment `s`
  real<lower=0> phi[est_phi]; // NB2 (inverse) dispersion; `est_phi` turns on/off
  real<lower=0, upper=1> samp_frac[n_samp_frac];
@@ -137,17 +148,20 @@ transformed parameters {
   real k2; // from ODE
   real E2; // from ODE exposed and symptomatic
   real E2d; // from ODE exposed and symptomatic and distancing
-  real theta[S + 1]; // gathers up the parameters (which come in with various limits)
+  real theta[S + 3]; // gathers parameters (which come with various limits); + 3 is number of thetas before f_s
   real y_hat[T,12]; // predicted states for each time t from ODE
   real this_samp; // holds the sample fraction for a given day
 
   theta[1] = R0;
+  theta[2] = start_decline;
+  theta[3] = end_decline;
   for (s in 1:S) {
-    // `s + 1` because of number of thetas before f_s (just R0)
-    theta[s + 1] = f_s[s];
+    // `s + 3` because of number of thetas before f_s
+    theta[s + 3] = f_s[s];
   }
 
   y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i,
+  // y_hat = integrate_ode_bdf(sir, y0, t0, time, theta, x_r, x_i,
                              ode_control[1], ode_control[2], ode_control[3]);
 
   // Calculating the expected case counts given the delays in reporting:
@@ -203,6 +217,8 @@ model {
   }
   }
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
+  start_decline ~ lognormal(start_decline_prior[1], start_decline_prior[2]);
+  end_decline ~ lognormal(end_decline_prior[1], end_decline_prior[2]);
   for (s in 1:S) {
     f_s[s] ~ beta(f_prior[1], f_prior[2]); // FIXME: allow separate priors
   }

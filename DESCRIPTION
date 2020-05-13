@@ -56,7 +56,6 @@ Depends:
     R (>= 3.5.0)
 Imports: 
     dplyr,
-    furrr,
     ggplot2,
     MASS,
     methods,
