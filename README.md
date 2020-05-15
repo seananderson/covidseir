@@ -11,7 +11,7 @@
 
 **covidseir** fits a Bayesian SEIR (Susceptible, Exposed, Infectious, Recovered)
 model to daily COVID-19 case data. The package focuses on estimating the
-fraction of usual contacts encountered for individuals participating in physical
+fraction of the usual contact rate for individuals participating in physical
 distancing (social distancing). The model is coded in
 [**Stan**](https://mc-stan.org/). The model can accommodate multiple types of
 case data at once (e.g., reported cases, hospitalizations, ICU admissions) and
