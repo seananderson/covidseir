@@ -146,7 +146,7 @@ A named list object
 }
 \description{
 This function fits a Stan SEIR model to one or more sets of COVID-19 case
-data. See \code{\link[=project_seir]{project_seir()}} for making forecasts.
+data. See \code{\link[=project_seir]{project_seir()}} for making predictions/projections.
 }
 \examples{
 \donttest{

@@ -49,10 +49,6 @@ contacts encountered for those physical distancing). The function also includes
 functionality to specify a vector of fixed f values starting on a given
 future date.
 }
-\details{
-Set a \code{\link[future:plan]{future::plan()}} and this function will operate in parallel
-across MCMC iterations using \pkg{furrr}.
-}
 \examples{
 cases <- c(
   0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
@@ -74,9 +70,6 @@ m <- fit_seir(
 )
 print(m)
 
-# For parallel processing (more important for more iterations):
-# library(future)
-# plan(multisession)
 p <- project_seir(m)
 p
 
