@@ -100,7 +100,7 @@ data {
   int<lower=1> N;     // number of days
   int<lower=1> J;     // number of response data timeseries
   int<lower=1> S;     // number of physical distancing segments
-  real y0[12];        // initial state
+  real y0_vars[10];   // initial state
   real t0;            // first time step
   real time[T];       // time increments
   int days[N];        // day increments
@@ -118,6 +118,7 @@ data {
   int time_day_id[N]; // last time increment associated with each day
   int time_day_id0[N];// first time increment for Weibull integration of cases
   real R0_prior[2];   // lognormal log mean and SD for R0 prior
+  real i0_prior[2];   // lognormal log mean and SD for i0 prior
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
   real f_prior[2];   // beta prior for f2
   real samp_frac_prior[2];   // beta prior for samp_frac
@@ -132,6 +133,7 @@ data {
   real ode_control[3]; // vector of ODE control numbers
 }
 parameters {
+ real<lower=0, upper=x_r[1]> i0; // incidence at initial time point (default -30 days); upper = N
  real R0; // Stan ODE solver seems to be more efficient without this bounded at > 0
  real<lower=0> start_decline;
  real<lower=0> end_decline;
@@ -151,6 +153,29 @@ transformed parameters {
   real theta[S + 3]; // gathers parameters (which come with various limits); + 3 is number of thetas before f_s
   real y_hat[T,12]; // predicted states for each time t from ODE
   real this_samp; // holds the sample fraction for a given day
+  real y0[12]; // initial states
+  real fsi; // fraction social distancing
+  real nsi; // fraction not social distancing
+  real r = x_r[6]; // grab this rate input
+  real ur = x_r[7]; // grab this rate input
+  real N = x_r[1]; // grab population size
+
+  fsi = r / (r + ur); // fraction social distancing
+  nsi = 1 - fsi; // fraction not social distancing
+
+  // set up the initial state:
+  y0[1] = nsi * (N - i0); // S = nsi * (pars[["N"]] - i0)
+  y0[2] = y0_vars[1] * nsi * i0; // E1 = E1_frac * nsi * i0
+  y0[3] = y0_vars[2] * nsi * i0; // E2 = E2_frac * nsi * i0
+  y0[4] = y0_vars[3] * nsi * i0; // I = I_frac * nsi * i0
+  y0[5] = y0_vars[4]; // Q = Q_num
+  y0[6] = y0_vars[5]; // R = R_num
+  y0[7] = fsi * (N - i0); // Sd = fsi * (pars[["N"]] - i0)
+  y0[8] = y0_vars[6] * fsi * i0]; // E1d = E1d_frac * fsi * i0
+  y0[9] = y0_vars[7] * fsi * i0; // E2d = E2d_frac * fsi * i0
+  y0[10] = y0_vars[8] * fsi * i0; // Id = Id_frac * fsi * i0
+  y0[11] = y0_vars[9]; // Qd = Qd_num
+  y0[12] = y0_vars[10]; // Rd = Rd_num
 
   theta[1] = R0;
   theta[2] = start_decline;
@@ -217,6 +242,7 @@ model {
   }
   }
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
+  i0 ~ lognormal(i0_prior[1], i0_prior[2]);
   start_decline ~ lognormal(start_decline_prior[1], start_decline_prior[2]);
   end_decline ~ lognormal(end_decline_prior[1], end_decline_prior[2]);
   for (s in 1:S) {

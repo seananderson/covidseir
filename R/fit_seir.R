@@ -59,9 +59,7 @@
 #' @param chains Number of MCMC chains for [rstan::stan()].
 #' @param iter MCMC iterations per chain for [rstan::stan()].
 #' @param pars A named numeric vector of fixed parameter values.
-#' @param i0 Infected people infected at initial point in time.
-#' @param fsi Fraction socially distancing. Derived parameter.
-#' @param nsi Fraction not socially distancing. Derived parameter.
+#' @param i0_prior Infected people infected at initial point in time. Lognormal log mean and SD for the parameter.
 #' @param state_0 Initial state: a named numeric vector.
 #' @param save_state_predictions Include the state predictions? `y_hat` Will
 #'   make the resulting model object much larger.
@@ -164,22 +162,18 @@ fit_seir <- function(daily_cases,
                        k2 = 1, q = 0.05,
                        r = 0.1, ur = 0.02, f0 = 1.0
                      ),
-                     i0 = 8,
-                     fsi = pars[["r"]] / (pars[["r"]] + pars[["ur"]]),
-                     nsi = 1 - fsi,
+                     i0_prior = c(log(8), 0.2),
                      state_0 = c(
-                       S = nsi * (pars[["N"]] - i0),
-                       E1 = 0.4 * nsi * i0,
-                       E2 = 0.1 * nsi * i0,
-                       I = 0.5 * nsi * i0,
-                       Q = 0,
-                       R = 0,
-                       Sd = fsi * (pars[["N"]] - i0),
-                       E1d = 0.4 * fsi * i0,
-                       E2d = 0.1 * fsi * i0,
-                       Id = 0.5 * fsi * i0,
-                       Qd = 0,
-                       Rd = 0
+                       E1_frac = 0.4,
+                       E2_frac = 0.1,
+                       I_frac = 0.5,
+                       Q_num = 0,
+                       R_num = 0,
+                       E1d_frac = 0.4,
+                       E2d_frac = 0.1,
+                       Id_frac = 0.5,
+                       Qd_num = 0,
+                       Rd_num = 0
                      ),
                      save_state_predictions = FALSE,
                      delay_scale = 9.85,
@@ -211,8 +205,12 @@ fit_seir <- function(daily_cases,
     names(x_r) ==
       c("N", "D", "k1", "k2", "q", "r", "ur", "f0")
   )
+  if (names(state_0) == c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")) {
+    stop("It appears that you are using an old version of the package. Please update.", call. = FALSE)
+  }
   stopifnot(
-    names(state_0) == c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
+    names(state_0) == c("E1_frac", "E2_frac", "I_frac", "Q_num", "R_num", "E1d_frac",
+      "E2d_frac", "Id_frac", "Qd_num", "Rd_num")
   )
 
   # Checks and type conversions:
@@ -285,7 +283,7 @@ fit_seir <- function(daily_cases,
     J = ncol(daily_cases),
     N = length(days),
     S = length(unique(f_seg)) - 1, # - 1 because of 0 for fixed f0 before soc. dist.
-    y0 = state_0,
+    y0_vars = state_0,
     t0 = min(time) - 0.000001,
     time = time,
     n_x_r = length(x_r),
@@ -301,6 +299,7 @@ fit_seir <- function(daily_cases,
     time_day_id0 = time_day_id0,
     R0_prior = R0_prior,
     phi_prior = phi_prior,
+    i0_prior = i0_prior,
     f_prior = c(beta_shape1, beta_shape2),
     samp_frac_prior = samp_frac_prior_trans,
     start_decline_prior = start_decline_prior,
