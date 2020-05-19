@@ -158,20 +158,20 @@ transformed parameters {
   real nsi; // fraction not social distancing
   real r = x_r[6]; // grab this rate input
   real ur = x_r[7]; // grab this rate input
-  real N = x_r[1]; // grab population size
+  real N_pop = x_r[1]; // grab population size
 
   fsi = r / (r + ur); // fraction social distancing
   nsi = 1 - fsi; // fraction not social distancing
 
   // set up the initial state:
-  y0[1] = nsi * (N - i0); // S = nsi * (pars[["N"]] - i0)
+  y0[1] = nsi * (N_pop - i0); // S = nsi * (pars[["N"]] - i0)
   y0[2] = y0_vars[1] * nsi * i0; // E1 = E1_frac * nsi * i0
   y0[3] = y0_vars[2] * nsi * i0; // E2 = E2_frac * nsi * i0
   y0[4] = y0_vars[3] * nsi * i0; // I = I_frac * nsi * i0
   y0[5] = y0_vars[4]; // Q = Q_num
   y0[6] = y0_vars[5]; // R = R_num
-  y0[7] = fsi * (N - i0); // Sd = fsi * (pars[["N"]] - i0)
-  y0[8] = y0_vars[6] * fsi * i0]; // E1d = E1d_frac * fsi * i0
+  y0[7] = fsi * (N_pop - i0); // Sd = fsi * (pars[["N"]] - i0)
+  y0[8] = y0_vars[6] * fsi * i0; // E1d = E1d_frac * fsi * i0
   y0[9] = y0_vars[7] * fsi * i0; // E2d = E2d_frac * fsi * i0
   y0[10] = y0_vars[8] * fsi * i0; // Id = Id_frac * fsi * i0
   y0[11] = y0_vars[9]; // Qd = Qd_num
