@@ -25,13 +25,11 @@ fit_seir(
   seed = 42,
   chains = 4,
   iter = 2000,
-  pars = c(N = 5100000, D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f0 = 1),
-  i0 = 8,
-  fsi = pars[["r"]]/(pars[["r"]] + pars[["ur"]]),
-  nsi = 1 - fsi,
-  state_0 = c(S = nsi * (pars[["N"]] - i0), E1 = 0.4 * nsi * i0, E2 = 0.1 * nsi * i0, I
-    = 0.5 * nsi * i0, Q = 0, R = 0, Sd = fsi * (pars[["N"]] - i0), E1d = 0.4 * fsi * i0,
-    E2d = 0.1 * fsi * i0, Id = 0.5 * fsi * i0, Qd = 0, Rd = 0),
+  N_pop = 5100000,
+  pars = c(D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f0 = 1),
+  i0_prior = c(log(5), 1),
+  state_0 = c(E1_frac = 0.4, E2_frac = 0.1, I_frac = 0.5, Q_num = 0, R_num = 0,
+    E1d_frac = 0.4, E2d_frac = 0.1, Id_frac = 0.5, Qd_num = 0, Rd_num = 0),
   save_state_predictions = FALSE,
   delay_scale = 9.85,
   delay_shape = 1.73,
@@ -115,13 +113,13 @@ random walk.}
 
 \item{iter}{MCMC iterations per chain for \code{\link[rstan:stan]{rstan::stan()}}.}
 
+\item{N_pop}{Number of people in population.}
+
 \item{pars}{A named numeric vector of fixed parameter values.}
 
-\item{i0}{Infected people infected at initial point in time.}
-
-\item{fsi}{Fraction socially distancing. Derived parameter.}
-
-\item{nsi}{Fraction not socially distancing. Derived parameter.}
+\item{i0_prior}{Infected people infected at initial point in time. Lognormal
+log mean and SD for the parameter. Note that the default is set up for BC.
+You may need to use a lower prior.}
 
 \item{state_0}{Initial state: a named numeric vector.}
 

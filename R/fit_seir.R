@@ -58,8 +58,11 @@
 #' @param seed MCMC seed for [rstan::stan()].
 #' @param chains Number of MCMC chains for [rstan::stan()].
 #' @param iter MCMC iterations per chain for [rstan::stan()].
+#' @param N_pop Number of people in population.
 #' @param pars A named numeric vector of fixed parameter values.
-#' @param i0_prior Infected people infected at initial point in time. Lognormal log mean and SD for the parameter.
+#' @param i0_prior Infected people infected at initial point in time. Lognormal
+#'   log mean and SD for the parameter. Note that the default is set up for BC.
+#'   You may need to use a lower prior.
 #' @param state_0 Initial state: a named numeric vector.
 #' @param save_state_predictions Include the state predictions? `y_hat` Will
 #'   make the resulting model object much larger.
@@ -157,12 +160,12 @@ fit_seir <- function(daily_cases,
                      seed = 42,
                      chains = 4,
                      iter = 2000,
-                     pars = c(
-                       N = 5.1e6, D = 5, k1 = 1 / 5,
+                     N_pop = 5.1e6,
+                     pars = c(D = 5, k1 = 1 / 5,
                        k2 = 1, q = 0.05,
                        r = 0.1, ur = 0.02, f0 = 1.0
                      ),
-                     i0_prior = c(log(8), 0.2),
+                     i0_prior = c(log(5), 1),
                      state_0 = c(
                        E1_frac = 0.4,
                        E2_frac = 0.1,
@@ -201,13 +204,15 @@ fit_seir <- function(daily_cases,
       nrow(daily_cases)
     }
 
+  if (names(x_r[1]) == "N" || names(state_0[1]) == "S") {
+    stop("It appears you are using an old version of the package. Please update.",
+      call. = FALSE)
+  }
   stopifnot(
     names(x_r) ==
-      c("N", "D", "k1", "k2", "q", "r", "ur", "f0")
+      c("D", "k1", "k2", "q", "r", "ur", "f0")
   )
-  if (names(state_0) == c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")) {
-    stop("It appears that you are using an old version of the package. Please update.", call. = FALSE)
-  }
+  x_r <- c(c("N" = N_pop), x_r)
   stopifnot(
     names(state_0) == c("E1_frac", "E2_frac", "I_frac", "Q_num", "R_num", "E1d_frac",
       "E2d_frac", "Id_frac", "Qd_num", "Rd_num")
@@ -319,6 +324,7 @@ fit_seir <- function(daily_cases,
   # )
   initf <- function(stan_data) {
     R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2]/2)
+    i0 <- stats::rlnorm(1, i0_prior[1], i0_prior[2]/2)
     start_decline <- stats::rlnorm(1, start_decline_prior[1], end_decline_prior[2]/2)
     end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2]/2)
     f <- stats::rbeta(
@@ -327,10 +333,12 @@ fit_seir <- function(daily_cases,
       get_beta_params(f_prior[1], f_prior[2]/4)$beta
     )
     f_s <- array(f, dim = stan_data$S)
-    init <- list(R0 = R0, f_s = f_s, start_decline = start_decline, end_decline = end_decline)
+    init <- list(R0 = R0, f_s = f_s, i0 = i0,
+      start_decline = start_decline, end_decline = end_decline)
     init
   }
-  pars_save <- c("R0", "f_s", "phi", "mu", "y_rep", "start_decline", "end_decline", "samp_frac")
+  pars_save <- c("R0", "f_s", "i0", "phi", "mu", "y_rep",
+    "start_decline", "end_decline", "samp_frac")
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   set.seed(seed)
   fit <- rstan::sampling(

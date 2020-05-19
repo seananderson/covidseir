@@ -142,6 +142,7 @@ project_seir <- function(
 
   initf_project <- function(post, i, stan_data) {
     R0 <- post$R0[i]
+    i0 <- post$i0[i]
     f_s <- array(c(post$f_s[i, ], f_fixed))
     if ("phi" %in% names(post)) {
       phi <- array(post$phi[i, ])
@@ -155,11 +156,11 @@ project_seir <- function(
     }
     start_decline <- post$start_decline[i]
     end_decline <- post$end_decline[i]
-    list(R0 = R0, f_s = f_s, phi = phi, samp_frac = samp_frac,
+    list(R0 = R0, i0 = i0, f_s = f_s, phi = phi, samp_frac = samp_frac,
       start_decline = start_decline, end_decline = end_decline)
   }
 
-  pars <- c("R0", "f_s", "phi", "mu", "y_rep")
+  pars <- c("R0", "i0", "f_s", "phi", "mu", "y_rep")
   if (return_states) pars <- c("y_hat")
 
   # out <- furrr::future_map_dfr(iter, function(i) {
@@ -194,9 +195,10 @@ project_seir <- function(
   # out <- bind_rows(out)
 
   if (return_states) {
+    states <- c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
     variables_df <- dplyr::tibble(
-      variable = names(obj$state_0),
-      variable_num = seq_along(obj$state_0)
+      variable = states,
+      variable_num = seq_along(states)
     )
     ts_df <- dplyr::tibble(time = d$time, time_num = seq_along(d$time))
     out <- dplyr::rename(out, time_num = Var2, variable_num = Var3)
