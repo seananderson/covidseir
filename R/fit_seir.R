@@ -143,7 +143,7 @@
 fit_seir <- function(daily_cases,
                      obs_model = c("NB2", "Poisson"),
                      forecast_days = 0,
-                     time_increment = 0.2,
+                     time_increment = 0.25,
                      samp_frac_fixed = NULL,
                      samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
                      samp_frac_seg = NULL,
