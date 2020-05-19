@@ -6,7 +6,7 @@
 \usage{
 project_seir(
   obj,
-  forecast_days = 30,
+  forecast_days = 0,
   f_fixed_start = NULL,
   f_fixed = NULL,
   iter = seq_along(obj$post$R0),
@@ -66,6 +66,7 @@ m <- fit_seir(
   cases,
   iter = 100,
   chains = 1,
+  i0_prior = c(log(8), 0.2),
   samp_frac_fixed = s1
 )
 print(m)
@@ -86,4 +87,11 @@ p <- project_seir(m,
 )
 p
 tidy_seir(p) \%>\% plot_projection(obs_dat = obs_dat)
+
+states_with_Rt <- get_rt(m)
+states_with_Rt
+
+library(ggplot2)
+ggplot(states_with_Rt, aes(time, Rt, group = .iteration)) +
+  geom_line(alpha = 0.5)
 }
