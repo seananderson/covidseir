@@ -2,6 +2,7 @@
 
 S3method(print,covidseir)
 export(fit_seir)
+export(get_rt)
 export(plot_projection)
 export(project_seir)
 export(tidy_seir)

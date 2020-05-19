@@ -51,13 +51,11 @@
 #'   cases,
 #'   iter = 100,
 #'   chains = 1,
+#'   i0_prior = c(log(8), 0.2),
 #'   samp_frac_fixed = s1
 #' )
 #' print(m)
 #'
-# # For parallel processing (more important for more iterations):
-# # library(future)
-# # plan(multisession)
 #' p <- project_seir(m)
 #' p
 #'
@@ -74,9 +72,16 @@
 #' )
 #' p
 #' tidy_seir(p) %>% plot_projection(obs_dat = obs_dat)
+#'
+#' states_with_Rt <- get_rt(m)
+#' states_with_Rt
+#'
+#' library(ggplot2)
+#' ggplot(states_with_Rt, aes(time, Rt, group = .iteration)) +
+#'   geom_line(alpha = 0.5)
 project_seir <- function(
                          obj,
-                         forecast_days = 30,
+                         forecast_days = 0,
                          f_fixed_start = NULL,
                          f_fixed = NULL,
                          iter = seq_along(obj$post$R0),
@@ -204,6 +209,8 @@ project_seir <- function(
     out <- dplyr::rename(out, time_num = Var2, variable_num = Var3)
     out <- dplyr::left_join(out, variables_df, by = "variable_num")
     out <- dplyr::left_join(out, ts_df, by = "time_num")
+    out$variable_num <- NULL
+    out$time_num <- NULL
   } else {
     .forecast <- c(rep(FALSE, d$last_day_obs), rep(TRUE, forecast_days))
     out$forecast <- rep(.forecast, length(iter) * d$J)

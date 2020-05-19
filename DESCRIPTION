@@ -63,7 +63,8 @@ Imports:
     Rcpp (>= 0.12.0),
     reshape2,
     rstan (>= 2.18.1),
-    tibble
+    tibble,
+    tidyr
 Suggests:
     knitr,
     magrittr,
