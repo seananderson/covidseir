@@ -17,6 +17,7 @@ fit_seir(
   R0_prior = c(log(2.6), 0.2),
   phi_prior = 1,
   f_prior = c(0.4, 0.2),
+  e_prior = c(0.8, 0.1),
   samp_frac_prior = c(0.4, 0.2),
   start_decline_prior = c(log(15), 0.05),
   end_decline_prior = c(log(22), 0.05),
@@ -26,8 +27,8 @@ fit_seir(
   chains = 4,
   iter = 2000,
   N_pop = 5100000,
-  pars = c(D = 5, k1 = 1/5, k2 = 1, q = 0.05, r = 0.1, ur = 0.02, f0 = 1),
-  i0_prior = c(log(5), 1),
+  pars = c(D = 5, k1 = 1/5, k2 = 1, q = 0.05, ud = 0.1, ur = 0.02, f0 = 1),
+  i0_prior = c(log(8), 1),
   state_0 = c(E1_frac = 0.4, E2_frac = 0.1, I_frac = 0.5, Q_num = 0, R_num = 0,
     E1d_frac = 0.4, E2d_frac = 0.1, Id_frac = 0.5, Qd_num = 0, Rd_num = 0),
   save_state_predictions = FALSE,
@@ -85,6 +86,9 @@ Choice Recommendations}.}
 \item{f_prior}{Beta mean and SD for the \code{f} parameters. FIXME: all \code{f}
 parameters must have the same prior currently. This will be fixed.}
 
+\item{e_prior}{Beta mean and SD for the \code{e} (derived) parameter.
+\code{e} represents the fraction of people who are social distancing.}
+
 \item{samp_frac_prior}{\code{samp_frac} prior if \code{samp_frac_type} is "estimated"
 or "rw" or "segmented". In the case of the random walk, this specifies the
 initial state prior. The two values correspond to the mean and SD of a Beta
@@ -119,7 +123,7 @@ random walk.}
 
 \item{i0_prior}{Infected people infected at initial point in time. Lognormal
 log mean and SD for the parameter. Note that the default is set up for BC.
-You may need to use a lower prior.}
+You may need to use a lower prior for other regions.}
 
 \item{state_0}{Initial state: a named numeric vector.}
 
@@ -134,7 +138,7 @@ length as the data types.}
 format as for \code{delay_scale}.}
 
 \item{ode_control}{Control options for the Stan ODE solver. First is relative
-difference, that absolute difference, and then maximum iterations. These
+difference, then absolute difference, and then maximum iterations. These
 can likely be left as is.}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}}.}

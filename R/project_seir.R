@@ -148,6 +148,7 @@ project_seir <- function(
   initf_project <- function(post, i, stan_data) {
     R0 <- post$R0[i]
     i0 <- post$i0[i]
+    ur <- post$ur[i]
     f_s <- array(c(post$f_s[i, ], f_fixed))
     if ("phi" %in% names(post)) {
       phi <- array(post$phi[i, ])
@@ -161,7 +162,7 @@ project_seir <- function(
     }
     start_decline <- post$start_decline[i]
     end_decline <- post$end_decline[i]
-    list(R0 = R0, i0 = i0, f_s = f_s, phi = phi, samp_frac = samp_frac,
+    list(R0 = R0, i0 = i0, f_s = f_s, ur = ur, phi = phi, samp_frac = samp_frac,
       start_decline = start_decline, end_decline = end_decline)
   }
 

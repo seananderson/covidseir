@@ -22,8 +22,8 @@ functions{
     real k1    = x_r[3];
     real k2    = x_r[4];
     real q     = x_r[5];
-    real r     = x_r[6];
-    real ur    = x_r[7];
+    real ud     = x_r[6];
+    // real ur    = x_r[7];
     real f0    = x_r[8];
     real f_ramp_rate = x_r[9];
 
@@ -35,7 +35,8 @@ functions{
     real R0 = theta[1];
     real start_decline = theta[2];
     real end_decline = theta[3];
-    real f1 = theta[4];
+    real ur = theta[4];
+    real f1 = theta[5];
 
     int n_f = x_i[2]; // the number of f parameters in time (after f0)
     int f_seg_id[n_f]; // a lookup vector to grab the appropriate f parameter in time
@@ -58,8 +59,8 @@ functions{
 
     for (i in 1:n_f) {
       // `i + 2` because of number of x_i before `f_seg_id`
-      // `+ 3` at end because of number of thetas before f_s thetas
-      f_seg_id[i] = x_i[i + 2] + 3;
+      // `+ 4` at end because of number of thetas before f_s thetas
+      f_seg_id[i] = x_i[i + 2] + 4;
     }
 
     f = f0; // business as usual before physical distancing
@@ -78,19 +79,19 @@ functions{
       f = theta[f_seg_id[day]];
     }
 
-    dydt[1]  = -(R0/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - r*S + ur*Sd;
-    dydt[2]  = (R0/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - k1*E1 -r*E1 + ur*E1d;
-    dydt[3]  = k1*E1 - k2*E2 - r*E2 + ur*E2d;
-    dydt[4]  = k2*E2 - q*I - I/D - r*I + ur*Id;
-    dydt[5]  = q*I - Q/D - r*Q + ur*Qd;
-    dydt[6]  = I/D + Q/D - r*R + ur*Rd;
+    dydt[1]  = -(R0/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - ud*S + ur*Sd;
+    dydt[2]  = (R0/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - k1*E1 -ud*E1 + ur*E1d;
+    dydt[3]  = k1*E1 - k2*E2 - ud*E2 + ur*E2d;
+    dydt[4]  = k2*E2 - q*I - I/D - ud*I + ur*Id;
+    dydt[5]  = q*I - Q/D - ud*Q + ur*Qd;
+    dydt[6]  = I/D + Q/D - ud*R + ur*Rd;
 
-    dydt[7]  = -(f*R0/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N + r*S - ur*Sd;
-    dydt[8]  = (f*R0/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N - k1*E1d +r*E1 - ur*E1d;
-    dydt[9]  = k1*E1d - k2*E2d + r*E2 - ur*E2d;
-    dydt[10] = k2*E2d - q*Id - Id/D + r*I - ur*Id;
-    dydt[11] = q*Id - Qd/D + r*Q - ur*Qd;
-    dydt[12] = Id/D + Qd/D + r*R - ur*Rd;
+    dydt[7]  = -(f*R0/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N + ud*S - ur*Sd;
+    dydt[8]  = (f*R0/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N - k1*E1d +ud*E1 - ur*E1d;
+    dydt[9]  = k1*E1d - k2*E2d + ud*E2 - ur*E2d;
+    dydt[10] = k2*E2d - q*Id - Id/D + ud*I - ur*Id;
+    dydt[11] = q*Id - Qd/D + ud*Q - ur*Qd;
+    dydt[12] = Id/D + Qd/D + ud*R - ur*Rd;
 
     return dydt;
   }
@@ -119,6 +120,7 @@ data {
   int time_day_id0[N];// first time increment for Weibull integration of cases
   real R0_prior[2];   // lognormal log mean and SD for R0 prior
   real i0_prior[2];   // lognormal log mean and SD for i0 prior
+  real e_prior[2];   // beta prior on fraction social distancing (e)
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
   real f_prior[2];   // beta prior for f2
   real samp_frac_prior[2];   // beta prior for samp_frac
@@ -140,6 +142,7 @@ parameters {
  real<lower=0, upper=1> f_s[S]; // strength of social distancing for segment `s`
  real<lower=0> phi[est_phi]; // NB2 (inverse) dispersion; `est_phi` turns on/off
  real<lower=0, upper=1> samp_frac[n_samp_frac];
+ real<lower=0, upper=1> ur; // reasonable for ud ~= 0.1; about 10% FIXME
 }
 transformed parameters {
   real dx = time[2] - time[1]; // time increment
@@ -150,17 +153,17 @@ transformed parameters {
   real k2; // from ODE
   real E2; // from ODE exposed and symptomatic
   real E2d; // from ODE exposed and symptomatic and distancing
-  real theta[S + 3]; // gathers parameters (which come with various limits); + 3 is number of thetas before f_s
+  real theta[S + 4]; // gathers parameters (which come with various limits); + 4 is number of thetas before f_s
   real y_hat[T,12]; // predicted states for each time t from ODE
   real this_samp; // holds the sample fraction for a given day
   real y0[12]; // initial states
   real fsi; // fraction social distancing
   real nsi; // fraction not social distancing
-  real r = x_r[6]; // grab this rate input
-  real ur = x_r[7]; // grab this rate input
+  real ud = x_r[6]; // grab this rate input
+  //real ur = x_r[7]; // grab this rate input
   real N_pop = x_r[1]; // grab population size
 
-  fsi = r / (r + ur); // fraction social distancing
+  fsi = ud / (ud + ur); // fraction social distancing
   nsi = 1 - fsi; // fraction not social distancing
 
   // set up the initial state:
@@ -180,9 +183,10 @@ transformed parameters {
   theta[1] = R0;
   theta[2] = start_decline;
   theta[3] = end_decline;
+  theta[4] = ur;
   for (s in 1:S) {
-    // `s + 3` because of number of thetas before f_s
-    theta[s + 3] = f_s[s];
+    // `s + 4` because of number of thetas before f_s
+    theta[s + 4] = f_s[s];
   }
 
   y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i,
@@ -235,7 +239,8 @@ model {
   // priors:
   if (est_phi > 0 && obs_model == 1) { // NB2
   // https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations
-  // D(expression(1/sqrt(x)), "x"); log(0.5 * x^-0.5/sqrt(x)^2
+  // log(abs(D(expression(1/sqrt(x)), "x"))); log(0.5 * x^-0.5/sqrt(x)^2
+  // log absolute derivative of the transform
   for (j in 1:J) {
     1/sqrt(phi[j]) ~ normal(0, phi_prior);
     target += log(0.5) - 1.5 * log(phi[j]); // Jacobian adjustment
@@ -243,6 +248,11 @@ model {
   }
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
   i0 ~ lognormal(i0_prior[1], i0_prior[2]);
+  fsi ~ beta(e_prior[1], e_prior[2]); // two names
+  // log(abs(D(expression(ud / (ud + ur)), "ur"))); log(abs(-(ud/(ud + ur)^2))
+  // log absolute derivative of the transform
+  target += log(ud) - 2 * log(ud + ur); // Jacobian adjustment
+
   start_decline ~ lognormal(start_decline_prior[1], start_decline_prior[2]);
   end_decline ~ lognormal(end_decline_prior[1], end_decline_prior[2]);
   for (s in 1:S) {
@@ -288,6 +298,7 @@ model {
   }
 }
 generated quantities{
+  real e; // renamed fsi
   int y_rep[N,J]; // posterior predictive replicates
   for (j in 1:J) {
     for (n in 1:N) {
@@ -298,5 +309,5 @@ generated quantities{
       }
     }
   }
+  e = fsi; // renamed
 }
-
