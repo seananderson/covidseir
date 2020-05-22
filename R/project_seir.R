@@ -13,6 +13,7 @@
 #' @param f_fixed An optional vector of fixed f values for the projection.
 #'   Should be length `forecast_days - (f_fixed_start - nrow(daily_cases) -
 #'   1)`. I.e. one value per day after `f_fixed_start` day.
+#' @param f_multi Multiplicative vector of f values. Same structure as `f_fixed`.
 #' @param iter MCMC iterations to include. Defaults to all.
 #' @param return_states Logical for whether to return the ODE states.
 #' @param ... Other arguments to pass to [rstan::sampling()].
@@ -84,6 +85,7 @@ project_seir <- function(
                          forecast_days = 0,
                          f_fixed_start = NULL,
                          f_fixed = NULL,
+                         f_multi = NULL,
                          iter = seq_along(obj$post$R0),
                          return_states = FALSE,
                          ...) {
@@ -94,12 +96,20 @@ project_seir <- function(
   d <- obj$stan_data
   p <- obj$post
 
-  stopifnot(
-    (is.null(f_fixed_start) && is.null(f_fixed_start)) ||
-      (!is.null(f_fixed_start) && !is.null(f_fixed_start))
-  )
+  # stopifnot(
+  #   (is.null(f_fixed_start) && is.null(f_fixed_start)) ||
+  #     (!is.null(f_fixed_start) && !is.null(f_fixed_start))
+  # )
 
-  stopifnot(length(f_fixed) == forecast_days - (f_fixed_start - nrow(d$daily_cases) - 1))
+  if (!is.null(f_fixed) && !is.null(f_multi)) {
+    stop("!is.null(f_fixed) && !is.null(f_multi)", call. = FALSE)
+  }
+
+  if (!is.null(f_fixed))
+    stopifnot(length(f_fixed) == forecast_days - (f_fixed_start - nrow(d$daily_cases) - 1))
+
+  if (!is.null(f_multi))
+    stopifnot(length(f_multi) == forecast_days - (f_fixed_start - nrow(d$daily_cases) - 1))
 
   days <- seq(1L, nrow(d$daily_cases) + forecast_days)
   time_increment <- d$time[2] - d$time[1]
@@ -142,6 +152,18 @@ project_seir <- function(
   } else {
     d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], forecast_days))
   }
+
+  # FIXME: DRY
+  if (!is.null(f_multi)) {
+    d$S <- d$S + length(f_multi)
+    est_f_forecast_days <- f_fixed_start - nrow(d$daily_cases) - 1
+    d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], est_f_forecast_days))
+    fixed_f_forecast_ids <- seq(max_f_seg_id + 1, max_f_seg_id + length(f_multi))
+    d$x_i <- c(d$x_i, fixed_f_forecast_ids)
+  } else {
+    d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], forecast_days))
+  }
+
   d$x_i[["n_f_s"]] <- length(d$x_i) - 2 # 2 is number of non-f_s x_i values
   d$n_x_i <- length(d$x_i)
 
@@ -149,7 +171,21 @@ project_seir <- function(
     R0 <- post$R0[i]
     i0 <- post$i0[i]
     ur <- post$ur[i]
-    f_s <- array(c(post$f_s[i, ], f_fixed))
+    if (!is.null(f_fixed)) {
+      f_s <- array(c(post$f_s[i, ], f_fixed))
+    }
+    if (!is.null(f_multi)) {
+      fs <- post$f_s[i, ]
+      last_f <- fs[length(fs)] # FIXME multiple data_types!
+      f_s <- array(c(post$f_s[i, ], f_multi * last_f))
+      if (max(f_s) >= 0.999) {
+        warning("f_s >= 0.999! Setting to 0.999.", call. = FALSE)
+        f_s <- ifelse(f_s >= 0.999, 0.999, f_s)
+      }
+    }
+    if (is.null(f_fixed) && is.null(f_multi)) {
+      f_s <- array(c(post$f_s[i, ], f_fixed))
+    }
     if ("phi" %in% names(post)) {
       phi <- array(post$phi[i, ])
     } else {

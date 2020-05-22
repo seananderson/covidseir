@@ -9,6 +9,7 @@ project_seir(
   forecast_days = 0,
   f_fixed_start = NULL,
   f_fixed = NULL,
+  f_multi = NULL,
   iter = seq_along(obj$post$R0),
   return_states = FALSE,
   ...
@@ -24,6 +25,8 @@ project_seir(
 
 \item{f_fixed}{An optional vector of fixed f values for the projection.
 Should be length \code{forecast_days - (f_fixed_start - nrow(daily_cases) - 1)}. I.e. one value per day after \code{f_fixed_start} day.}
+
+\item{f_multi}{Multiplicative vector of f values. Same structure as \code{f_fixed}.}
 
 \item{iter}{MCMC iterations to include. Defaults to all.}
 

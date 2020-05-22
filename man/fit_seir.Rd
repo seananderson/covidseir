@@ -17,7 +17,7 @@ fit_seir(
   R0_prior = c(log(2.6), 0.2),
   phi_prior = 1,
   f_prior = c(0.4, 0.2),
-  e_prior = c(0.8, 0.1),
+  e_prior = c(0.8, 0.05),
   samp_frac_prior = c(0.4, 0.2),
   start_decline_prior = c(log(15), 0.05),
   end_decline_prior = c(log(22), 0.05),
