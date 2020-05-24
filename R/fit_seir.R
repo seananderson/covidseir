@@ -38,6 +38,8 @@
 #'   Choice Recommendations}.
 #' @param f_prior Beta mean and SD for the `f` parameters. FIXME: all `f`
 #'   parameters must have the same prior currently. This will be fixed.
+#' @param e_prior Beta mean and SD for the `e` (derived) parameter.
+#'   `e` represents the fraction of people who are social distancing.
 #' @param samp_frac_prior `samp_frac` prior if `samp_frac_type` is "estimated"
 #'   or "rw" or "segmented". In the case of the random walk, this specifies the
 #'   initial state prior. The two values correspond to the mean and SD of a Beta
@@ -58,10 +60,11 @@
 #' @param seed MCMC seed for [rstan::stan()].
 #' @param chains Number of MCMC chains for [rstan::stan()].
 #' @param iter MCMC iterations per chain for [rstan::stan()].
+#' @param N_pop Number of people in population.
 #' @param pars A named numeric vector of fixed parameter values.
-#' @param i0 Infected people infected at initial point in time.
-#' @param fsi Fraction socially distancing. Derived parameter.
-#' @param nsi Fraction not socially distancing. Derived parameter.
+#' @param i0_prior Infected people infected at initial point in time. Lognormal
+#'   log mean and SD for the parameter. Note that the default is set up for BC.
+#'   You may need to use a lower prior for other regions.
 #' @param state_0 Initial state: a named numeric vector.
 #' @param save_state_predictions Include the state predictions? `y_hat` Will
 #'   make the resulting model object much larger.
@@ -71,7 +74,7 @@
 #' @param delay_shape Weibull shape parameter for the delay in reporting. Same
 #'   format as for `delay_scale`.
 #' @param ode_control Control options for the Stan ODE solver. First is relative
-#'   difference, that absolute difference, and then maximum iterations. These
+#'   difference, then absolute difference, and then maximum iterations. These
 #'   can likely be left as is.
 #' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()].
 #' @export
@@ -142,7 +145,7 @@
 fit_seir <- function(daily_cases,
                      obs_model = c("NB2", "Poisson"),
                      forecast_days = 0,
-                     time_increment = 0.2,
+                     time_increment = 0.25,
                      samp_frac_fixed = NULL,
                      samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
                      samp_frac_seg = NULL,
@@ -151,6 +154,7 @@ fit_seir <- function(daily_cases,
                      R0_prior = c(log(2.6), 0.2),
                      phi_prior = 1,
                      f_prior = c(0.4, 0.2),
+                     e_prior = c(0.8, 0.05),
                      samp_frac_prior = c(0.4, 0.2),
                      start_decline_prior = c(log(15), 0.05),
                      end_decline_prior = c(log(22), 0.05),
@@ -159,27 +163,23 @@ fit_seir <- function(daily_cases,
                      seed = 42,
                      chains = 4,
                      iter = 2000,
-                     pars = c(
-                       N = 5.1e6, D = 5, k1 = 1 / 5,
+                     N_pop = 5.1e6,
+                     pars = c(D = 5, k1 = 1 / 5,
                        k2 = 1, q = 0.05,
-                       r = 0.1, ur = 0.02, f0 = 1.0
+                       ud = 0.1, ur = 0.02, f0 = 1.0
                      ),
-                     i0 = 8,
-                     fsi = pars[["r"]] / (pars[["r"]] + pars[["ur"]]),
-                     nsi = 1 - fsi,
+                     i0_prior = c(log(8), 1),
                      state_0 = c(
-                       S = nsi * (pars[["N"]] - i0),
-                       E1 = 0.4 * nsi * i0,
-                       E2 = 0.1 * nsi * i0,
-                       I = 0.5 * nsi * i0,
-                       Q = 0,
-                       R = 0,
-                       Sd = fsi * (pars[["N"]] - i0),
-                       E1d = 0.4 * fsi * i0,
-                       E2d = 0.1 * fsi * i0,
-                       Id = 0.5 * fsi * i0,
-                       Qd = 0,
-                       Rd = 0
+                       E1_frac = 0.4,
+                       E2_frac = 0.1,
+                       I_frac = 0.5,
+                       Q_num = 0,
+                       R_num = 0,
+                       E1d_frac = 0.4,
+                       E2d_frac = 0.1,
+                       Id_frac = 0.5,
+                       Qd_num = 0,
+                       Rd_num = 0
                      ),
                      save_state_predictions = FALSE,
                      delay_scale = 9.85,
@@ -207,12 +207,21 @@ fit_seir <- function(daily_cases,
       nrow(daily_cases)
     }
 
+  if (names(x_r[1]) == "N" || names(state_0[1]) == "S") {
+    stop(
+      "It appears your code is set up for an older version ",
+      "of the package. ",
+      "(`names(x_r[1]) == 'N' || names(state_0[1]) == 'S')",
+      call. = FALSE)
+  }
   stopifnot(
     names(x_r) ==
-      c("N", "D", "k1", "k2", "q", "r", "ur", "f0")
+      c("D", "k1", "k2", "q", "ud", "ur", "f0")
   )
+  x_r <- c(c("N" = N_pop), x_r)
   stopifnot(
-    names(state_0) == c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
+    names(state_0) == c("E1_frac", "E2_frac", "I_frac", "Q_num", "R_num", "E1d_frac",
+      "E2d_frac", "Id_frac", "Qd_num", "Rd_num")
   )
 
   # Checks and type conversions:
@@ -260,7 +269,10 @@ fit_seir <- function(daily_cases,
     get_beta_params(samp_frac_prior[1], samp_frac_prior[2])$alpha,
     get_beta_params(samp_frac_prior[1], samp_frac_prior[2])$beta
   )
-
+  e_prior_trans <- c(
+    get_beta_params(e_prior[1], e_prior[2])$alpha,
+    get_beta_params(e_prior[1], e_prior[2])$beta
+  )
 
   daily_cases_stan <- daily_cases
   if (sum(is.na(daily_cases)) > 0) {
@@ -285,7 +297,7 @@ fit_seir <- function(daily_cases,
     J = ncol(daily_cases),
     N = length(days),
     S = length(unique(f_seg)) - 1, # - 1 because of 0 for fixed f0 before soc. dist.
-    y0 = state_0,
+    y0_vars = state_0,
     t0 = min(time) - 0.000001,
     time = time,
     n_x_r = length(x_r),
@@ -301,8 +313,10 @@ fit_seir <- function(daily_cases,
     time_day_id0 = time_day_id0,
     R0_prior = R0_prior,
     phi_prior = phi_prior,
+    i0_prior = i0_prior,
     f_prior = c(beta_shape1, beta_shape2),
     samp_frac_prior = samp_frac_prior_trans,
+    e_prior = e_prior_trans,
     start_decline_prior = start_decline_prior,
     end_decline_prior = end_decline_prior,
     n_samp_frac = n_samp_frac,
@@ -320,18 +334,23 @@ fit_seir <- function(daily_cases,
   # )
   initf <- function(stan_data) {
     R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2]/2)
-    start_decline <- stats::rlnorm(1, start_decline_prior[1], end_decline_prior[2]/2)
+    i0 <- stats::rlnorm(1, i0_prior[1], i0_prior[2]/2)
+    start_decline <- stats::rlnorm(1, start_decline_prior[1], start_decline_prior[2]/2)
     end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2]/2)
     f <- stats::rbeta(
       1,
       get_beta_params(f_prior[1], f_prior[2]/4)$alpha,
       get_beta_params(f_prior[1], f_prior[2]/4)$beta
     )
+    ur <- get_ur(e_prior[1], pars[["ud"]])
     f_s <- array(f, dim = stan_data$S)
-    init <- list(R0 = R0, f_s = f_s, start_decline = start_decline, end_decline = end_decline)
+    init <- list(R0 = R0, f_s = f_s, i0 = i0,
+      ur = ur,
+      start_decline = start_decline, end_decline = end_decline)
     init
   }
-  pars_save <- c("R0", "f_s", "phi", "mu", "y_rep", "start_decline", "end_decline", "samp_frac")
+  pars_save <- c("R0", "f_s", "i0", "e", "ur", "phi", "mu", "y_rep",
+    "start_decline", "end_decline", "samp_frac")
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   set.seed(seed)
   fit <- rstan::sampling(
@@ -348,12 +367,15 @@ fit_seir <- function(daily_cases,
   structure(list(
     fit = fit, post = post, phi_prior = phi_prior, R0_prior = R0_prior,
     f_prior = f_prior, obs_model = obs_model,
+    e_prior_trans = e_prior_trans,
     start_decline_prior = start_decline_prior,
     end_decline_prior = end_decline_prior,
     samp_frac_fixed = samp_frac_fixed, state_0 = state_0,
     daily_cases = daily_cases, days = days, time = time,
-    last_day_obs = last_day_obs, pars = x_r, f2_prior_beta_shape1 = beta_shape1,
-    f2_prior_beta_shape2 = beta_shape2, stan_data = stan_data, days_back = days_back
+    last_day_obs = last_day_obs, pars = x_r,
+    f2_prior_beta_shape1 = beta_shape1,
+    f2_prior_beta_shape2 = beta_shape2,
+    stan_data = stan_data, days_back = days_back
   ), class = "covidseir")
 }
 
@@ -376,4 +398,5 @@ get_time_day_id0 <- function(day, time, days_back) {
   }
 }
 
+get_ur <- function(e, ud) (ud - e * ud) / e
 getu <- function(f, r) (r - f * r) / f

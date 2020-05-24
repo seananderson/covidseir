@@ -63,6 +63,12 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
 #'   ylab theme geom_line geom_point element_blank aes_string
 #' @importFrom dplyr tibble
 plot_projection <- function(pred_dat, obs_dat, col = "#377EB8") {
+  if (!"value" %in% names(obs_dat)) {
+    stop("`obs_dat` must contain a column named `value` that contains the case counts.", call. = FALSE)
+  }
+  if (!"day" %in% names(obs_dat)) {
+    stop("`obs_dat` must contain a column named `day` that contains the numeric day (or date).", call. = FALSE)
+  }
   g <- ggplot(pred_dat, aes_string(x = "day")) +
     geom_ribbon(aes_string(ymin = "y_rep_0.05", ymax = "y_rep_0.95"),
       alpha = 0.2, fill = col) +
