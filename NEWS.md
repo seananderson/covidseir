@@ -1,5 +1,17 @@
 # covidseir
 
+# covidseir 0.0.0.9003
+
+* Add estimation of the fraction distancing (e). In most cases there will not be
+  information in the data to inform this parameter; however, the prior allows for
+  the inclusion of uncertainty on this fraction.
+
+* Add estimation of i0, the total number of infected people at the initial
+  point in time (default -30 days), rather than requiring it to be a fixed value.
+
+* Add estimation of the starting and ending dates of the initial ramp in of
+  physical_distancing.
+
 # covidseir 0.0.0.9002
 
 * `forecast_seir()` has been renamed to `project_seir()`.
