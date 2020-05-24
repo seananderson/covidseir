@@ -2,6 +2,11 @@
 
 # covidseir 0.0.0.9003
 
+* Some of the default arguments you have changed to accommodate the new
+  estimated parameters and to make the model easier to work with. In particular,
+  population size is now specified via the `N_pop` argument and `i0` is now
+  `i0_prior` and requires a vector of length 2 to specify the full prior.
+
 * Add estimation of the fraction distancing (e). In most cases there will not be
   information in the data to inform this parameter; however, the prior allows for
   the inclusion of uncertainty on this fraction.
