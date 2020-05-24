@@ -42,8 +42,6 @@ remotes::install_github("seananderson/covidseir")
 
 See the examples in `?fit_seir` and `?project_seir`.
 
-See the development branch `est-i0` for a version that estimates i0, the total number of infected people at the initial point in time (default -30 days), rather than requiring it to be a fixed value. This branch also includes the fraction distancing as a prior and estimated parameter.
-
 ```r
 remotes::install_github("seananderson/covidseir", ref = "est-i0")
 ```
