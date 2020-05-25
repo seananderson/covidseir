@@ -14,6 +14,7 @@
 #'   Should be length `forecast_days - (f_fixed_start - nrow(daily_cases) -
 #'   1)`. I.e. one value per day after `f_fixed_start` day.
 #' @param f_multi Multiplicative vector of f values. Same structure as `f_fixed`.
+#' @param f_multi_seg Which `f` to use for `f_multi`.
 #' @param iter MCMC iterations to include. Defaults to all.
 #' @param return_states Logical for whether to return the ODE states.
 #' @param ... Other arguments to pass to [rstan::sampling()].
@@ -86,6 +87,7 @@ project_seir <- function(
                          f_fixed_start = NULL,
                          f_fixed = NULL,
                          f_multi = NULL,
+                         f_multi_seg = NULL,
                          iter = seq_along(obj$post$R0),
                          return_states = FALSE,
                          ...) {
@@ -176,8 +178,11 @@ project_seir <- function(
     }
     if (!is.null(f_multi)) {
       fs <- post$f_s[i, ]
-      last_f <- fs[length(fs)] # FIXME multiple data_types!
-      f_s <- array(c(post$f_s[i, ], f_multi * last_f))
+      if (f_multi_seg > length(fs)) {
+        stop("`f_multi_seg` to large.", call. = FALSE)
+      }
+      proj_f <- fs[f_multi_seg]
+      f_s <- array(c(post$f_s[i, ], f_multi * proj_f))
       if (max(f_s) >= 0.999) {
         warning("f_s >= 0.999! Setting to 0.999.", call. = FALSE)
         f_s <- ifelse(f_s >= 0.999, 0.999, f_s)
