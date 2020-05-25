@@ -41,7 +41,3 @@ remotes::install_github("seananderson/covidseir")
 ```
 
 See the examples in `?fit_seir` and `?project_seir`.
-
-```r
-remotes::install_github("seananderson/covidseir", ref = "est-i0")
-```
