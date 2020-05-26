@@ -1,5 +1,9 @@
 # covidseir
 
+# covidseir 0.0.0.9004
+
+* Add the ability to incorporate imported cases during the production period.
+
 # covidseir 0.0.0.9003
 
 * Some of the default arguments you have changed to accommodate the new
