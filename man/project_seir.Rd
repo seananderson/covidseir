@@ -13,6 +13,8 @@ project_seir(
   f_multi_seg = NULL,
   iter = seq_along(obj$post$R0),
   return_states = FALSE,
+  imported_cases = 0,
+  imported_window = 1,
   ...
 )
 }
@@ -34,6 +36,10 @@ Should be length \code{forecast_days - (f_fixed_start - nrow(daily_cases) - 1)}.
 \item{iter}{MCMC iterations to include. Defaults to all.}
 
 \item{return_states}{Logical for whether to return the ODE states.}
+
+\item{imported_cases}{Number of cases to import starting on first projection day.}
+
+\item{imported_window}{Number of days over which to distribute imported cases.}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}}.}
 }

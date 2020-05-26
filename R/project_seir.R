@@ -15,6 +15,8 @@
 #'   1)`. I.e. one value per day after `f_fixed_start` day.
 #' @param f_multi Multiplicative vector of f values. Same structure as `f_fixed`.
 #' @param f_multi_seg Which `f` to use for `f_multi`.
+#' @param imported_cases Number of cases to import starting on first projection day.
+#' @param imported_window Number of days over which to distribute imported cases.
 #' @param iter MCMC iterations to include. Defaults to all.
 #' @param return_states Logical for whether to return the ODE states.
 #' @param ... Other arguments to pass to [rstan::sampling()].
@@ -90,6 +92,8 @@ project_seir <- function(
                          f_multi_seg = NULL,
                          iter = seq_along(obj$post$R0),
                          return_states = FALSE,
+                         imported_cases = 0,
+                         imported_window = 1,
                          ...) {
   if (!identical(class(obj), "covidseir")) {
     stop("`obj` must be of class `covidseir`.")
@@ -168,6 +172,8 @@ project_seir <- function(
 
   d$x_i[["n_f_s"]] <- length(d$x_i) - 2 # 2 is number of non-f_s x_i values
   d$n_x_i <- length(d$x_i)
+  d$x_r[names(d$x_r) == "imported_cases"] <- imported_cases * time_increment
+  d$x_r[names(d$x_r) == "imported_window"] <- imported_window
 
   initf_project <- function(post, i, stan_data) {
     R0 <- post$R0[i]

@@ -26,6 +26,8 @@ functions{
     // real ur    = x_r[7];
     real f0    = x_r[8];
     real f_ramp_rate = x_r[9];
+    real imported_cases = x_r[10];
+    real imported_window = x_r[11];
 
     // real start_decline = x_r[9];
     // real end_decline = x_r[10];
@@ -42,6 +44,7 @@ functions{
     int f_seg_id[n_f]; // a lookup vector to grab the appropriate f parameter in time
 
     real f; // will store the f value for this time point
+    real introduced; // will store the introduced cases
 
     real dydt[12];
 
@@ -67,21 +70,30 @@ functions{
     if (t < start_decline) {
       f = f0;
     }
-    // if (t >= start_decline && t < end_decline) { // allow a ramp-in of physical distancing
-    //   f = f1 + (end_decline - t) *
-    //       (f0 - f1) / (end_decline - start_decline);
-    // }
-    if (t >= start_decline && t < end_decline) { // allow a ramp-in of physical distancing
+     // allow a ramp-in of physical distancing:
+    if (f_ramp_rate == 0.0) {
+      if (t >= start_decline && t < end_decline) {
+      f = f1 + (end_decline - t) *
+      (f0 - f1) / (end_decline - start_decline);
+      }
+    } else {
+      if (t >= start_decline && t < end_decline) {
       X = (f0 - f1) / (exp(f_ramp_rate * (end_decline - start_decline)) - 1);
       f = f0 - X * (exp(f_ramp_rate * (t - start_decline)) - 1);
+      }
     }
     if (t >= end_decline) {
-      f = theta[f_seg_id[day]];
+      f = theta[f_seg_id[day]]; // the respective f segment
+    }
+    if (t > last_day_obs && t <= (last_day_obs + imported_window)) {
+      introduced = imported_cases / imported_window;
+    } else {
+      introduced = 0.0;
     }
 
     dydt[1]  = -(R0/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - ud*S + ur*Sd;
     dydt[2]  = (R0/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - k1*E1 -ud*E1 + ur*E1d;
-    dydt[3]  = k1*E1 - k2*E2 - ud*E2 + ur*E2d;
+    dydt[3]  = k1*E1 - k2*E2 - ud*E2 + ur*E2d + introduced;
     dydt[4]  = k2*E2 - q*I - I/D - ud*I + ur*Id;
     dydt[5]  = q*I - Q/D - ud*Q + ur*Qd;
     dydt[6]  = I/D + Q/D - ud*R + ur*Rd;

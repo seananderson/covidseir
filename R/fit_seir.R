@@ -290,6 +290,8 @@ fit_seir <- function(daily_cases,
   }
 
   x_r <- c(x_r, "f_ramp_rate" = f_ramp_rate)
+  x_r <- c(x_r, "imported_cases" = 0) # not used until projections
+  x_r <- c(x_r, "imported_window" = 1) # not used until projections
   stan_data <- list(
     T = length(time),
     days = days,
