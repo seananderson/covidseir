@@ -34,7 +34,7 @@ fit_seir(
   save_state_predictions = FALSE,
   delay_scale = 9.85,
   delay_shape = 1.73,
-  ode_control = c(1e-06, 1e-05, 1e+05),
+  ode_control = c(1e-07, 1e-06, 1e+06),
   ...
 )
 }
