@@ -1,5 +1,9 @@
 # covidseir
 
+# covidseir 0.0.0.9005
+
+* Fix a bug in the imported cases.
+
 # covidseir 0.0.0.9004
 
 * Add the ability to incorporate imported cases during the projection period.
