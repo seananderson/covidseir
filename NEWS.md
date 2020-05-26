@@ -2,7 +2,7 @@
 
 # covidseir 0.0.0.9004
 
-* Add the ability to incorporate imported cases during the production period.
+* Add the ability to incorporate imported cases during the projection period.
 
 # covidseir 0.0.0.9003
 
