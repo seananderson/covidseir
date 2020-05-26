@@ -184,7 +184,7 @@ fit_seir <- function(daily_cases,
                      save_state_predictions = FALSE,
                      delay_scale = 9.85,
                      delay_shape = 1.73,
-                     ode_control = c(1e-6, 1e-5, 1e5),
+                     ode_control = c(1e-7, 1e-6, 1e6),
                      ...) {
   obs_model <- match.arg(obs_model)
   obs_model <-
