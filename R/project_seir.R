@@ -172,8 +172,20 @@ project_seir <- function(
 
   d$x_i[["n_f_s"]] <- length(d$x_i) - 2 # 2 is number of non-f_s x_i values
   d$n_x_i <- length(d$x_i)
+
+  if (!"imported_cases" %in% names(d$x_r)) {
+    warning("Adding to `d$x_r`. Looks like an old model.", call. = FALSE)
+    d$x_r <- c(d$x_r, "imported_cases" = 0)
+  }
+  if (!"imported_window" %in% names(d$x_r)) {
+    warning("Adding to `d$x_r`. Looks like an old model.", call. = FALSE)
+    d$x_r <- c(d$x_r, "imported_window" = 1)
+  }
+  stopifnot(identical(names(d$x_r), c("N", "D", "k1", "k2", "q", "ud", "ur", "f0", "f_ramp_rate",
+    "imported_cases", "imported_window")))
   d$x_r[names(d$x_r) == "imported_cases"] <- imported_cases * time_increment
   d$x_r[names(d$x_r) == "imported_window"] <- imported_window
+  d$n_x_r <- length(d$x_r)
 
   initf_project <- function(post, i, stan_data) {
     R0 <- post$R0[i]
