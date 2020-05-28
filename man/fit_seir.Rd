@@ -21,7 +21,7 @@ fit_seir(
   samp_frac_prior = c(0.4, 0.2),
   start_decline_prior = c(log(15), 0.05),
   end_decline_prior = c(log(22), 0.05),
-  f_ramp_rate = 1e-04,
+  f_ramp_rate = 0,
   rw_sigma = 0.1,
   seed = 42,
   chains = 4,
