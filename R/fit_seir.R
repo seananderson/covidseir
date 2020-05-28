@@ -158,7 +158,7 @@ fit_seir <- function(daily_cases,
                      samp_frac_prior = c(0.4, 0.2),
                      start_decline_prior = c(log(15), 0.05),
                      end_decline_prior = c(log(22), 0.05),
-                     f_ramp_rate = 0.0001,
+                     f_ramp_rate = 0,
                      rw_sigma = 0.1,
                      seed = 42,
                      chains = 4,
@@ -257,13 +257,6 @@ fit_seir <- function(daily_cases,
   if (samp_frac_type == "fixed") {
     samp_frac_prior <- c(1, 1) # fake
   }
-  # samp_frac_prior_trans <- matrix(nrow = 2, ncol = ncol(daily_cases))
-  # for (i in seq_len(ncol(daily_cases))) {
-  #   samp_frac_prior_trans[1,i] <-
-  #     get_beta_params(samp_frac_prior[1,i], samp_frac_prior[2,i])$alpha
-  #   samp_frac_prior_trans[2,i] <-
-  #     get_beta_params(samp_frac_prior[1,i], samp_frac_prior[2,i])$beta
-  # }
 
   samp_frac_prior_trans <- c(
     get_beta_params(samp_frac_prior[1], samp_frac_prior[2])$alpha,
