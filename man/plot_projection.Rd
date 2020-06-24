@@ -4,16 +4,29 @@
 \alias{plot_projection}
 \title{Plot a SEIR model projection}
 \usage{
-plot_projection(pred_dat, obs_dat, col = "#377EB8")
+plot_projection(
+  pred_dat,
+  obs_dat,
+  col = "#377EB8",
+  value_column = "value",
+  date_column = "day",
+  ylab = "Reported cases"
+)
 }
 \arguments{
 \item{pred_dat}{Output from \code{\link[=tidy_seir]{tidy_seir()}}.}
 
-\item{obs_dat}{A data frame of observed data. Should have a
-column of \code{day} and \code{value} that matches \code{pred_dat}. If
-using multiple data types, should also have \code{data_type}.}
+\item{obs_dat}{A data frame of observed data. Should have a column of \code{day}
+and \code{value} that matches \code{pred_dat}. If using multiple data types, should
+also have \code{data_type}.}
 
 \item{col}{Colour for the line and ribbon.}
+
+\item{value_column}{Column in \code{obs_dat} that contains the reported cases.}
+
+\item{date_column}{Date or day column name.}
+
+\item{ylab}{Y axis label.}
 }
 \value{
 A ggplot object

@@ -1,7 +1,7 @@
 Package: covidseir
 Title: Bayesian SEIR Modelling for Multivariate COVID-19 Case
     Data
-Version: 0.0.0.9006
+Version: 0.0.0.9007
 Authors@R: 
     c(person(given = c("Sean", "C."),
              family = "Anderson",
@@ -57,6 +57,7 @@ Depends:
 Imports: 
     dplyr,
     ggplot2,
+    glue,
     MASS,
     methods,
     purrr,

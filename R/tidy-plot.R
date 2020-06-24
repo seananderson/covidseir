@@ -48,10 +48,13 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
 #' Plot a SEIR model projection
 #'
 #' @param pred_dat Output from [tidy_seir()].
-#' @param obs_dat A data frame of observed data. Should have a
-#'   column of `day` and `value` that matches `pred_dat`. If
-#'   using multiple data types, should also have `data_type`.
+#' @param obs_dat A data frame of observed data. Should have a column of `day`
+#'   and `value` that matches `pred_dat`. If using multiple data types, should
+#'   also have `data_type`.
 #' @param col Colour for the line and ribbon.
+#' @param value_column Column in `obs_dat` that contains the reported cases.
+#' @param date_column Date or day column name.
+#' @param ylab Y axis label.
 #'
 #' @details
 #' See [project_seir()] for an example.
@@ -62,22 +65,26 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
 #' @importFrom ggplot2 geom_ribbon ggplot facet_wrap coord_cartesian
 #'   ylab theme geom_line geom_point element_blank aes_string
 #' @importFrom dplyr tibble
-plot_projection <- function(pred_dat, obs_dat, col = "#377EB8") {
-  if (!"value" %in% names(obs_dat)) {
-    stop("`obs_dat` must contain a column named `value` that contains the case counts.", call. = FALSE)
+#' @importFrom glue glue
+plot_projection <- function(pred_dat, obs_dat, col = "#377EB8", value_column = "value", date_column = "day", ylab = "Reported cases") {
+  if (!value_column %in% names(obs_dat)) {
+    stop(glue("`obs_dat` must contain a column `{value_column}` that contains the reported case counts."), call. = FALSE)
   }
-  if (!"day" %in% names(obs_dat)) {
-    stop("`obs_dat` must contain a column named `day` that contains the numeric day (or date).", call. = FALSE)
+  if (!date_column %in% names(obs_dat)) {
+    stop(glue("`obs_dat` must contain a column named `{date_column}` that contains the numeric day (or date)."), call. = FALSE)
   }
-  g <- ggplot(pred_dat, aes_string(x = "day")) +
+  if (!date_column %in% names(pred_dat)) {
+    stop(glue("`pred_dat` must contain a column named `{date_column}` that contains the numeric day (or date)."), call. = FALSE)
+  }
+  g <- ggplot(pred_dat, aes_string(x = date_column)) +
     geom_ribbon(aes_string(ymin = "y_rep_0.05", ymax = "y_rep_0.95"),
       alpha = 0.2, fill = col) +
     geom_ribbon(aes_string(ymin = "y_rep_0.25", ymax = "y_rep_0.75"),
       alpha = 0.2, fill = col) +
     geom_line(aes_string(y = "mu_0.50"), lwd = 0.9, col = col) +
     facet_wrap(~data_type) +
-    coord_cartesian(expand = FALSE, xlim = range(pred_dat$day)) +
-    ylab("Cases") +
+    coord_cartesian(expand = FALSE, xlim = range(pred_dat[[date_column]])) +
+    ylab(ylab) +
     theme(axis.title.x = element_blank())
   g <- g +
     geom_line(
