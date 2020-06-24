@@ -37,3 +37,6 @@ Plot a SEIR model projection
 \details{
 See \code{\link[=project_seir]{project_seir()}} for an example.
 }
+\examples{
+# See ?project_seir
+}

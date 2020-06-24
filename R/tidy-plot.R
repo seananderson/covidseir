@@ -66,6 +66,8 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
 #'   ylab theme geom_line geom_point element_blank aes_string
 #' @importFrom dplyr tibble
 #' @importFrom glue glue
+#' @examples
+#' # See ?project_seir
 plot_projection <- function(pred_dat, obs_dat, col = "#377EB8", value_column = "value", date_column = "day", ylab = "Reported cases") {
   if (!value_column %in% names(obs_dat)) {
     stop(glue("`obs_dat` must contain a column `{value_column}` that contains the reported case counts."), call. = FALSE)
