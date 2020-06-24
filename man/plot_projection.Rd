@@ -24,7 +24,10 @@ also have \code{data_type}.}
 
 \item{value_column}{Column in \code{obs_dat} that contains the reported cases.}
 
-\item{date_column}{Date or day column name.}
+\item{date_column}{Date or day column name. A column by this name must be in
+\code{obs_dat} and \code{pred_dat}. Note that \code{\link[=tidy_seir]{tidy_seir()}} will return a data frame
+with \code{day} in it. If you want dates then you will need to add such a
+column.}
 
 \item{ylab}{Y axis label.}
 }

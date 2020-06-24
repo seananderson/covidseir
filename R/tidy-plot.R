@@ -25,20 +25,20 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
   }
   out <- dplyr::group_by(x, data_type, day)
   out <- dplyr::summarise(out,
-      y_rep_0.05 = stats::quantile(y_rep, probs = 0.05),
-      y_rep_0.25 = stats::quantile(y_rep, probs = 0.25),
-      y_rep_mean = mean(y_rep),
-      y_rep_0.50 = stats::quantile(y_rep, probs = 0.50),
-      y_rep_0.75 = stats::quantile(y_rep, probs = 0.75),
-      y_rep_0.95 = stats::quantile(y_rep, probs = 0.95),
-      mu_0.05 = stats::quantile(mu, probs = 0.05),
-      mu_0.25 = stats::quantile(mu, probs = 0.25),
-      mu_mean = mean(mu),
-      mu_0.50 = stats::quantile(mu, probs = 0.50),
-      mu_0.75 = stats::quantile(mu, probs = 0.75),
-      mu_0.95 = stats::quantile(mu, probs = 0.95),
-      mu_0.5 = stats::quantile(mu, probs = 0.50)
-    )
+    y_rep_0.05 = stats::quantile(y_rep, probs = 0.05),
+    y_rep_0.25 = stats::quantile(y_rep, probs = 0.25),
+    y_rep_mean = mean(y_rep),
+    y_rep_0.50 = stats::quantile(y_rep, probs = 0.50),
+    y_rep_0.75 = stats::quantile(y_rep, probs = 0.75),
+    y_rep_0.95 = stats::quantile(y_rep, probs = 0.95),
+    mu_0.05 = stats::quantile(mu, probs = 0.05),
+    mu_0.25 = stats::quantile(mu, probs = 0.25),
+    mu_mean = mean(mu),
+    mu_0.50 = stats::quantile(mu, probs = 0.50),
+    mu_0.75 = stats::quantile(mu, probs = 0.75),
+    mu_0.95 = stats::quantile(mu, probs = 0.95),
+    mu_0.5 = stats::quantile(mu, probs = 0.50)
+  )
   if (!is.null(data_type_names)) {
     out$data_type <- names(data_type_names[as.numeric(out$data_type)])
   }
@@ -53,7 +53,10 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
 #'   also have `data_type`.
 #' @param col Colour for the line and ribbon.
 #' @param value_column Column in `obs_dat` that contains the reported cases.
-#' @param date_column Date or day column name.
+#' @param date_column Date or day column name. A column by this name must be in
+#'   `obs_dat` and `pred_dat`. Note that [tidy_seir()] will return a data frame
+#'   with `day` in it. If you want dates then you will need to add such a
+#'   column.
 #' @param ylab Y axis label.
 #'
 #' @details
@@ -68,7 +71,8 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
 #' @importFrom glue glue
 #' @examples
 #' # See ?project_seir
-plot_projection <- function(pred_dat, obs_dat, col = "#377EB8", value_column = "value", date_column = "day", ylab = "Reported cases") {
+plot_projection <- function(pred_dat, obs_dat, col = "#377EB8",
+                            value_column = "value", date_column = "day", ylab = "Reported cases") {
   if (!value_column %in% names(obs_dat)) {
     stop(glue("`obs_dat` must contain a column `{value_column}` that contains the reported case counts."), call. = FALSE)
   }
@@ -80,9 +84,11 @@ plot_projection <- function(pred_dat, obs_dat, col = "#377EB8", value_column = "
   }
   g <- ggplot(pred_dat, aes_string(x = date_column)) +
     geom_ribbon(aes_string(ymin = "y_rep_0.05", ymax = "y_rep_0.95"),
-      alpha = 0.2, fill = col) +
+      alpha = 0.2, fill = col
+    ) +
     geom_ribbon(aes_string(ymin = "y_rep_0.25", ymax = "y_rep_0.75"),
-      alpha = 0.2, fill = col) +
+      alpha = 0.2, fill = col
+    ) +
     geom_line(aes_string(y = "mu_0.50"), lwd = 0.9, col = col) +
     facet_wrap(~data_type) +
     coord_cartesian(expand = FALSE, xlim = range(pred_dat[[date_column]])) +
@@ -92,13 +98,13 @@ plot_projection <- function(pred_dat, obs_dat, col = "#377EB8", value_column = "
     geom_line(
       data = obs_dat,
       col = "black", inherit.aes = FALSE,
-      aes_string(x = "day", y = "value"),
+      aes_string(x = date_column, y = value_column),
       lwd = 0.35, alpha = 0.9
     ) +
     geom_point(
       data = obs_dat,
       col = "grey30", inherit.aes = FALSE,
-      aes_string(x = "day", y = "value"),
+      aes_string(x = date_column, y = value_column),
       pch = 21, fill = "grey95", size = 1.25
     )
   g
