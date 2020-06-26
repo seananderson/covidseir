@@ -17,10 +17,10 @@ distancing (social distancing). The model is coded in
 case data at once (e.g., reported cases, hospitalizations, ICU admissions) and
 accounts for delays between symptom onset and case appearance.
 
-The model is a continuation of the model described in the preprint:\
+The model is a continuation of the model described in the preprints:
+
 Anderson, S. C., Edwards, A. M., Yerlanov, M., Mulberry, N., Stockdale, J., Iyaniwura, S. A., Falcao, R. C., Otterstatter, M. C., Irvine, M. A., Janjua, N. Z., Coombs, D., & Colijn, C. (2020). Estimating the impact of COVID-19 control measures using a Bayesian model of physical distancing. medRxiv, 2020.04.17.20070086. https://doi.org/10.1101/2020.04.17.20070086
 
-and:\
 Anderson, S. C., Mulberry, N., Edwards, A. M., Stockdale, J. E., Iyaniwura, S. A., Falcao, R. C., Otterstatter, M. C., Janjua, N. Z., Coombs, D., and Colijn, C. (2020). How much leeway is there to relax COVID-19 control measures? medRxiv 2020.06.12.20129833. https://doi.org/10.1101/2020.06.12.20129833
 
 ### This package is a work in progress. Arguments and output format may still change and not all functionality has been tested yet. ###
