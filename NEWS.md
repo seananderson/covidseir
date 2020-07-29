@@ -1,8 +1,13 @@
 # covidseir
 
+# covidseir 0.0.0.9006
+
+* Remove estimation of fraction distancing (e and e_prior). There isn't 
+  generally information to inform this parameter and it slows everything down.
+
 # covidseir 0.0.0.9005
 
-* Fix a bug in the imported cases.
+* Fix a bug in the imported cases during the projection period.
 
 # covidseir 0.0.0.9004
 

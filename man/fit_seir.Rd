@@ -17,7 +17,6 @@ fit_seir(
   R0_prior = c(log(2.6), 0.2),
   phi_prior = 1,
   f_prior = c(0.4, 0.2),
-  e_prior = c(0.8, 0.05),
   samp_frac_prior = c(0.4, 0.2),
   start_decline_prior = c(log(15), 0.05),
   end_decline_prior = c(log(22), 0.05),
@@ -86,9 +85,6 @@ Choice Recommendations}.}
 \item{f_prior}{Beta mean and SD for the \code{f} parameters. FIXME: all \code{f}
 parameters must have the same prior currently. This will be fixed.}
 
-\item{e_prior}{Beta mean and SD for the \code{e} (derived) parameter.
-\code{e} represents the fraction of people who are social distancing.}
-
 \item{samp_frac_prior}{\code{samp_frac} prior if \code{samp_frac_type} is "estimated"
 or "rw" or "segmented". In the case of the random walk, this specifies the
 initial state prior. The two values correspond to the mean and SD of a Beta
@@ -141,7 +137,7 @@ format as for \code{delay_scale}.}
 difference, then absolute difference, and then maximum iterations. These
 can likely be left as is.}
 
-\item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}}.}
+\item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}}.}
 }
 \value{
 A named list object
