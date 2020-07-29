@@ -2,6 +2,10 @@
 
 # covidseir 0.0.0.9006
 
+* Change default `time_increment` to 0.5 now that the pandemic
+  has been going on for many months. You could even increase this
+  to 1 for more speed.
+  
 * Remove estimation of fraction distancing (e and e_prior). There isn't 
   generally information to inform this parameter and it slows everything down.
 
