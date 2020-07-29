@@ -21,6 +21,7 @@ addons:
       - libgdal-dev
       - libproj-dev
       - devscripts
+      - libnode-dev
 
 before_install:
   - mkdir -p ~/.R
