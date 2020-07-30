@@ -4,27 +4,21 @@
 \alias{get_rt}
 \title{Get equivalent Rt values}
 \usage{
-get_rt(
-  obj,
-  lag = 30,
-  ff = 1.25,
-  forecast_days = 0,
-  iter = seq_along(obj$post$R0)
-)
+get_rt(obj, lag = 30, forecast_days = 0, iter = seq_along(obj$post$R0))
 }
 \arguments{
 \item{obj}{Output from \code{\link[=fit_seir]{fit_seir()}}.}
 
 \item{lag}{Time lag for the inputs for Rt.}
 
+\item{forecast_days}{Number of projection days.}
+
+\item{iter}{MCMC iterations to include. Defaults to all.}
+
 \item{ff}{Unfortunately, a "fudge factor" to account for the "infectivity
 kernel" not being quite right due to the fact that infectiousness is not
 exponentially distributed. See J. Math. Biol. (2007) 55:803–816 Roberts and
 Hesterbeek. FIXME}
-
-\item{forecast_days}{Number of projection days.}
-
-\item{iter}{MCMC iterations to include. Defaults to all.}
 }
 \value{
 A data frame of state values with a column of Rt values. Number of
