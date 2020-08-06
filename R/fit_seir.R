@@ -372,8 +372,8 @@ fit_seir <- function(daily_cases,
     samp_frac_fixed = samp_frac_fixed, state_0 = state_0,
     daily_cases = daily_cases, days = days, time = time,
     last_day_obs = last_day_obs, pars = x_r,
-    f2_prior_beta_shape1 = beta_shape1,
-    f2_prior_beta_shape2 = beta_shape2,
+    f2_prior_beta_shape1 = f_seg_prior[1,],
+    f2_prior_beta_shape2 = f_seg_prior[2,],
     stan_data = stan_data, days_back = days_back
   ), class = "covidseir")
 }
