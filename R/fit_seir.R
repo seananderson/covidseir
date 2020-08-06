@@ -248,13 +248,14 @@ fit_seir <- function(daily_cases,
   stopifnot(ncol(samp_frac_fixed) == ncol(daily_cases))
 
   # f_prior
+  f_seg_prior <- f_prior
   S = length(unique(f_seg)) - 1 # - 1 because of 0 for fixed f0 before soc. dist.
   for (s in 1:S) {
-    beta_sd <- f_prior[s,2]
-    beta_mean <- f_prior[s,1]
+    beta_sd <- f_seg_prior[s,2]
+    beta_mean <- f_seg_prior[s,1]
     beta_shape1 <- get_beta_params(beta_mean, beta_sd)$alpha
     beta_shape2 <- get_beta_params(beta_mean, beta_sd)$beta
-    f_prior[s,] = c(beta_shape1, beta_shape2)
+    f_seg_prior[s,] = c(beta_shape1, beta_shape2)
   }
 
 
@@ -309,7 +310,7 @@ fit_seir <- function(daily_cases,
     R0_prior = R0_prior,
     phi_prior = phi_prior,
     i0_prior = i0_prior,
-    f_prior = f_prior,
+    f_prior = f_seg_prior,
     samp_frac_prior = samp_frac_prior_trans,
     start_decline_prior = start_decline_prior,
     end_decline_prior = end_decline_prior,
@@ -336,7 +337,14 @@ fit_seir <- function(daily_cases,
       get_beta_params(f_prior[1,1], f_prior[1,2]/4)$alpha,
       get_beta_params(f_prior[1,1], f_prior[1,2]/4)$beta
     )
-    f_s <- array(f, dim = stan_data$S) # FIX?
+    f_s <- array(0, dim = stan_data$S) 
+    for (s in 1:stan_data$S) {
+        f_s[s] <- stats::rbeta( # FIX?
+              1,
+              get_beta_params(f_prior[s,1], f_prior[s,2]/4)$alpha,
+              get_beta_params(f_prior[s,1], f_prior[s,2]/4)$beta
+            )
+    }
     init <- list(R0 = R0, f_s = f_s, i0 = i0,
       start_decline = start_decline, end_decline = end_decline)
     init
