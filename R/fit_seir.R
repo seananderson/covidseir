@@ -36,8 +36,8 @@
 #'   phi) and `Var(Y) = mu + mu^2 / phi`. See the Stan
 #'   \href{https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations}{Prior
 #'   Choice Recommendations}.
-#' @param f_prior Beta mean and SD for the `f` parameters. FIXME: all `f`
-#'   parameters must have the same prior currently. This will be fixed.
+#' @param f_prior Beta mean and SD for the `f` parameters. If S segments
+#'   are used, should be a Sx2 matrix.
 #' @param samp_frac_prior `samp_frac` prior if `samp_frac_type` is "estimated"
 #'   or "rw" or "segmented". In the case of the random walk, this specifies the
 #'   initial state prior. The two values correspond to the mean and SD of a Beta
@@ -225,6 +225,7 @@ fit_seir <- function(daily_cases,
   if (!is.matrix(daily_cases)) daily_cases <- matrix(daily_cases, ncol = 1)
   if (!is.matrix(samp_frac_prior)) samp_frac_prior <- matrix(samp_frac_prior, ncol = 1)
   if (!is.matrix(samp_frac_fixed)) samp_frac_fixed <- matrix(samp_frac_fixed, ncol = 1)
+  if (!is.matrix(f_prior)) f_prior <- matrix(f_prior, ncol = 2)
   stopifnot(length(delay_scale) == ncol(daily_cases))
   stopifnot(length(delay_shape) == ncol(daily_cases))
 
@@ -246,10 +247,16 @@ fit_seir <- function(daily_cases,
   stopifnot(nrow(samp_frac_fixed) == length(days))
   stopifnot(ncol(samp_frac_fixed) == ncol(daily_cases))
 
-  beta_sd <- f_prior[2]
-  beta_mean <- f_prior[1]
-  beta_shape1 <- get_beta_params(beta_mean, beta_sd)$alpha
-  beta_shape2 <- get_beta_params(beta_mean, beta_sd)$beta
+  # f_prior
+  S = length(unique(f_seg)) - 1 # - 1 because of 0 for fixed f0 before soc. dist.
+  for (s in 1:S) {
+    beta_sd <- f_prior[s,2]
+    beta_mean <- f_prior[s,1]
+    beta_shape1 <- get_beta_params(beta_mean, beta_sd)$alpha
+    beta_shape2 <- get_beta_params(beta_mean, beta_sd)$beta
+    f_prior[s,] = c(beta_shape1, beta_shape2)
+  }
+
 
   if (samp_frac_type == "fixed") {
     samp_frac_prior <- c(1, 1) # fake
@@ -284,7 +291,7 @@ fit_seir <- function(daily_cases,
     daily_cases = daily_cases_stan,
     J = ncol(daily_cases),
     N = length(days),
-    S = length(unique(f_seg)) - 1, # - 1 because of 0 for fixed f0 before soc. dist.
+    S = S, 
     y0_vars = state_0,
     t0 = min(time) - 0.000001,
     time = time,
@@ -302,7 +309,7 @@ fit_seir <- function(daily_cases,
     R0_prior = R0_prior,
     phi_prior = phi_prior,
     i0_prior = i0_prior,
-    f_prior = c(beta_shape1, beta_shape2),
+    f_prior = f_prior,
     samp_frac_prior = samp_frac_prior_trans,
     start_decline_prior = start_decline_prior,
     end_decline_prior = end_decline_prior,
@@ -324,12 +331,12 @@ fit_seir <- function(daily_cases,
     i0 <- stats::rlnorm(1, i0_prior[1], i0_prior[2]/2)
     start_decline <- stats::rlnorm(1, start_decline_prior[1], start_decline_prior[2]/2)
     end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2]/2)
-    f <- stats::rbeta(
+    f <- stats::rbeta( # FIX?
       1,
-      get_beta_params(f_prior[1], f_prior[2]/4)$alpha,
-      get_beta_params(f_prior[1], f_prior[2]/4)$beta
+      get_beta_params(f_prior[1,1], f_prior[1,2]/4)$alpha,
+      get_beta_params(f_prior[1,1], f_prior[1,2]/4)$beta
     )
-    f_s <- array(f, dim = stan_data$S)
+    f_s <- array(f, dim = stan_data$S) # FIX?
     init <- list(R0 = R0, f_s = f_s, i0 = i0,
       start_decline = start_decline, end_decline = end_decline)
     init

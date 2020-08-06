@@ -132,7 +132,7 @@ data {
   real R0_prior[2];   // lognormal log mean and SD for R0 prior
   real i0_prior[2];   // lognormal log mean and SD for i0 prior
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
-  real f_prior[2];   // beta prior for f2
+  real f_prior[S,2];   // beta priors for f2 
   real samp_frac_prior[2];   // beta prior for samp_frac
   real start_decline_prior[2];   // prior for start_decline day
   real end_decline_prior[2];   // prior for end_decline day
@@ -260,7 +260,7 @@ model {
   start_decline ~ lognormal(start_decline_prior[1], start_decline_prior[2]);
   end_decline ~ lognormal(end_decline_prior[1], end_decline_prior[2]);
   for (s in 1:S) {
-    f_s[s] ~ beta(f_prior[1], f_prior[2]); // FIXME: allow separate priors
+    f_s[s] ~ beta(f_prior[s,1], f_prior[s,2]); // allow separate f priors
   }
   if (n_samp_frac > 0 && samp_frac_type != 4) { // samp_frac estimated but not segmented
     samp_frac[1] ~ beta(samp_frac_prior[1], samp_frac_prior[2]);
