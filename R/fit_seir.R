@@ -130,7 +130,7 @@
 #'
 #' # Estimate a second f_s segment:
 #' f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14))
-#' f_prior <- matrix(c(0.4,0.6), rep(0.2,2)), ncol=2, nrow=2) # nrow corresponds to num f_s segments
+#' f_prior <- matrix(c(0.4,0.6, rep(0.2,2)), ncol=2, nrow=2) # nrow corresponds to num f_s segments
 #' m3 <- fit_seir(
 #'   cases,
 #'   iter = 100,
@@ -226,7 +226,7 @@ fit_seir <- function(daily_cases,
       "E2d_frac", "Id_frac", "Qd_num", "Rd_num"
     )
   )
-
+  
   # Checks and type conversions:
   if (!is.matrix(daily_cases)) daily_cases <- matrix(daily_cases, ncol = 1)
   if (!is.matrix(samp_frac_prior)) samp_frac_prior <- matrix(samp_frac_prior, ncol = 1)

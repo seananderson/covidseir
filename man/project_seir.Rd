@@ -41,7 +41,7 @@ Should be length \code{forecast_days - (f_fixed_start - nrow(daily_cases) - 1)}.
 
 \item{imported_window}{Number of days over which to distribute imported cases.}
 
-\item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}}.}
+\item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}}.}
 }
 \value{
 A data frame:

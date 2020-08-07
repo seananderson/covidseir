@@ -137,7 +137,7 @@ format as for \code{delay_scale}.}
 difference, then absolute difference, and then maximum iterations. These
 can likely be left as is.}
 
-\item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}}.}
+\item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}}.}
 }
 \value{
 A named list object
@@ -199,11 +199,13 @@ print(m2)
 
 # Estimate a second f_s segment:
 f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14))
+f_prior <- matrix(c(0.4,0.6, rep(0.2,2)), ncol=2, nrow=2) # nrow corresponds to num f_s segments
 m3 <- fit_seir(
   cases,
   iter = 100,
   chains = 1,
   f_seg = f_seg,
+  f_prior = f_prior,
   samp_frac_fixed = s1
 )
 print(m3)
