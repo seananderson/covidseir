@@ -34,7 +34,7 @@ fit_seir(
   delay_scale = 9.85,
   delay_shape = 1.73,
   ode_control = c(1e-06, 1e-05, 1e+05),
-  algorithm = c("sampling", "vb", "optimizing"),
+  fit_type = c("NUTS", "VB", "optimizing"),
   ...
 )
 }
@@ -138,9 +138,12 @@ format as for \code{delay_scale}.}
 difference, then absolute difference, and then maximum iterations. These
 can likely be left as is.}
 
-\item{algorithm}{Stan algorithm to use.}
+\item{fit_type}{Stan sampling/fitting algorithm to use. NUTS =
+\code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} or \code{\link[rstan:stan]{rstan::stan()}}; VB = \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}}; optimizing =
+\code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}.}
 
-\item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}} / \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}}.}
+\item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}} /
+\code{\link[rstan:stanmodel-method-vb]{rstan::vb()}} / \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}.}
 }
 \value{
 A named list object

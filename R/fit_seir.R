@@ -74,8 +74,11 @@
 #' @param ode_control Control options for the Stan ODE solver. First is relative
 #'   difference, then absolute difference, and then maximum iterations. These
 #'   can likely be left as is.
-#' @param algorithm Stan algorithm to use.
-#' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()] / [rstan::vb()].
+#' @param fit_type Stan sampling/fitting algorithm to use. NUTS =
+#'   [rstan::sampling()] or [rstan::stan()]; VB = [rstan::vb()]; optimizing =
+#'   [rstan::optimizing()].
+#' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()] /
+#'   [rstan::vb()] / [rstan::optimizing()].
 #' @export
 #' @return A named list object
 #' @examples
@@ -183,7 +186,7 @@ fit_seir <- function(daily_cases,
                      delay_scale = 9.85,
                      delay_shape = 1.73,
                      ode_control = c(1e-6, 1e-5, 1e5),
-                     algorithm = c("sampling", "vb", "optimizing"),
+                     fit_type = c("NUTS", "VB", "optimizing"),
                      ...) {
   obs_model <- match.arg(obs_model)
   obs_model <-
@@ -341,10 +344,10 @@ fit_seir <- function(daily_cases,
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   set.seed(seed)
 
-  algorithm <- match.arg(algorithm)
+  fit_type <- match.arg(fit_type)
 
   opt <- NA
-  if (algorithm != "vb") {
+  if (fit_type != "VB") {
     opt <- tryCatch({
       cat("Finding the MAP estimate.\n")
       rstan::optimizing(
@@ -354,15 +357,16 @@ fit_seir <- function(daily_cases,
         seed = seed,
         hessian = TRUE,
         draws = iter,
+        iter = 1e5,
         as_vector = TRUE,
         ...
       )
     }, error = function(e) NA)
   }
 
-  if (identical(opt, NA) || algorithm == "vb") {
+  if ((identical(opt, NA) || fit_type == "VB")) {
     .initf <- function() initf(stan_data)
-  } else {
+  } else if (fit_type == "NUTS") {
     cat("Using the MAP estimate for initialization.\n")
     p <- opt$par
     np <- names(p)
@@ -377,7 +381,7 @@ fit_seir <- function(daily_cases,
     }
   }
 
-  if (algorithm == "sampling") {
+  if (fit_type == "NUTS") {
     cat("Sampling with the NUTS HMC sampler.\n")
     fit <- rstan::sampling(
       stanmodels$seir,
@@ -390,7 +394,7 @@ fit_seir <- function(daily_cases,
       ... = ...
     )
   }
-  if (algorithm == "vb") {
+  if (fit_type == "VB") {
     cat("Sampling with the VB algorithm.\n")
     fit <- rstan::vb(
       stanmodels$seir,
@@ -405,7 +409,7 @@ fit_seir <- function(daily_cases,
       ... = ...
     )
   }
-  if (algorithm != "optimizing") {
+  if (fit_type != "optimizing") {
     post <- rstan::extract(fit)
   } else {
     post <- convert_theta_tilde_to_list(opt$theta_tilde)
@@ -423,7 +427,7 @@ fit_seir <- function(daily_cases,
     f2_prior_beta_shape1 = beta_shape1,
     f2_prior_beta_shape2 = beta_shape2,
     stan_data = stan_data, days_back = days_back,
-    opt = opt, algorithm = algorithm
+    opt = opt, fit_type = fit_type
   ), class = "covidseir")
 }
 

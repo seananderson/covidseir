@@ -56,7 +56,7 @@
 #'   iter = 100,
 #'   i0_prior = c(log(8), 0.2),
 #'   samp_frac_fixed = s1,
-#'   algorithm = "optimizing"
+#'   fit_type = "optimizing"
 #' )
 #' print(m)
 #'
