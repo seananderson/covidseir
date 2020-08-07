@@ -232,6 +232,7 @@ fit_seir <- function(daily_cases,
   if (!is.matrix(f_prior)) f_prior <- matrix(f_prior, ncol = 2)
   stopifnot(length(delay_scale) == ncol(daily_cases))
   stopifnot(length(delay_shape) == ncol(daily_cases))
+  stopifnot((length(unique(f_seg))-1) == nrow(f_prior))
 
   days <- seq(1, nrow(daily_cases) + forecast_days)
   last_day_obs <- nrow(daily_cases)
@@ -336,14 +337,14 @@ fit_seir <- function(daily_cases,
     i0 <- stats::rlnorm(1, i0_prior[1], i0_prior[2] / 2)
     start_decline <- stats::rlnorm(1, start_decline_prior[1], start_decline_prior[2] / 2)
     end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2] / 2)
-    f <- stats::rbeta( # FIX?
+    f <- stats::rbeta(
       1,
       get_beta_params(f_prior[1, 1], f_prior[1, 2] / 4)$alpha,
       get_beta_params(f_prior[1, 1], f_prior[1, 2] / 4)$beta
     )
     f_s <- array(0, dim = stan_data$S)
     for (s in 1:stan_data$S) {
-      f_s[s] <- stats::rbeta( # FIX?
+      f_s[s] <- stats::rbeta(
         1,
         get_beta_params(f_prior[s, 1], f_prior[s, 2] / 4)$alpha,
         get_beta_params(f_prior[s, 1], f_prior[s, 2] / 4)$beta
