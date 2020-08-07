@@ -33,7 +33,8 @@ fit_seir(
   save_state_predictions = FALSE,
   delay_scale = 9.85,
   delay_shape = 1.73,
-  ode_control = c(1e-07, 1e-06, 1e+06),
+  ode_control = c(1e-06, 1e-05, 1e+05),
+  algorithm = c("sampling", "vb", "optimizing"),
   ...
 )
 }
@@ -137,7 +138,9 @@ format as for \code{delay_scale}.}
 difference, then absolute difference, and then maximum iterations. These
 can likely be left as is.}
 
-\item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}}.}
+\item{algorithm}{Stan algorithm to use.}
+
+\item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}} / \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}}.}
 }
 \value{
 A named list object

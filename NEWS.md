@@ -1,5 +1,9 @@
 # covidseir
 
+# covidseir 0.0.0.9007
+
+* Add VB and MAP algorithm options.
+
 # covidseir 0.0.0.9006
 
 * Change default `time_increment` to 0.5 now that the pandemic

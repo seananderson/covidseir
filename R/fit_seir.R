@@ -74,7 +74,8 @@
 #' @param ode_control Control options for the Stan ODE solver. First is relative
 #'   difference, then absolute difference, and then maximum iterations. These
 #'   can likely be left as is.
-#' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()].
+#' @param algorithm Stan algorithm to use.
+#' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()] / [rstan::vb()].
 #' @export
 #' @return A named list object
 #' @examples
@@ -181,7 +182,8 @@ fit_seir <- function(daily_cases,
                      save_state_predictions = FALSE,
                      delay_scale = 9.85,
                      delay_shape = 1.73,
-                     ode_control = c(1e-7, 1e-6, 1e6),
+                     ode_control = c(1e-6, 1e-5, 1e5),
+                     algorithm = c("sampling", "vb", "optimizing"),
                      ...) {
   obs_model <- match.arg(obs_model)
   obs_model <-
@@ -338,17 +340,78 @@ fit_seir <- function(daily_cases,
     "start_decline", "end_decline", "samp_frac")
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   set.seed(seed)
-  fit <- rstan::sampling(
-    stanmodels$seir,
-    data = stan_data,
-    iter = iter,
-    chains = chains,
-    init = function() initf(stan_data),
-    seed = seed, # https://xkcd.com/221/
-    pars = pars_save,
-    ... = ...
-  )
-  post <- rstan::extract(fit)
+
+  algorithm <- match.arg(algorithm)
+
+  opt <- NA
+  if (algorithm != "vb") {
+    opt <- tryCatch({
+      cat("Finding the MAP estimate.\n")
+      rstan::optimizing(
+        stanmodels$seir,
+        data = stan_data,
+        init = function() initf(stan_data),
+        seed = seed,
+        hessian = TRUE,
+        draws = iter,
+        as_vector = TRUE,
+        ...
+      )
+    }, error = function(e) NA)
+  }
+
+  if (identical(opt, NA) || algorithm == "vb") {
+    .initf <- function() initf(stan_data)
+  } else {
+    cat("Using the MAP estimate for initialization.\n")
+    p <- opt$par
+    np <- names(p)
+    .initf <- function() {
+      list(
+        R0 = unname(p[np == "R0"]),
+        f_s = unname(p[grep("f_s\\[", np)]),
+        i0 = unname(p[np == "i0"]),
+        start_decline = unname(p[np == "start_decline"]),
+        end_decline = unname(p[np == "end_decline"])
+      )
+    }
+  }
+
+  if (algorithm == "sampling") {
+    cat("Sampling with the NUTS HMC sampler.\n")
+    fit <- rstan::sampling(
+      stanmodels$seir,
+      data = stan_data,
+      iter = iter,
+      chains = chains,
+      init = .initf,
+      seed = seed,
+      pars = pars_save,
+      ... = ...
+    )
+  }
+  if (algorithm == "vb") {
+    cat("Sampling with the VB algorithm.\n")
+    fit <- rstan::vb(
+      stanmodels$seir,
+      data = stan_data,
+      iter = iter,
+      init = .initf,
+      seed = seed,
+      pars = pars_save,
+      algorithm = "fullrank",
+      tol_rel_obj = 0.0001,
+      importance_resampling = TRUE,
+      ... = ...
+    )
+  }
+  if (algorithm != "optimizing") {
+    post <- rstan::extract(fit)
+  } else {
+    post <- convert_theta_tilde_to_list(opt$theta_tilde)
+    fit <- opt
+  }
+
   structure(list(
     fit = fit, post = post, phi_prior = phi_prior, R0_prior = R0_prior,
     f_prior = f_prior, obs_model = obs_model,
@@ -359,7 +422,8 @@ fit_seir <- function(daily_cases,
     last_day_obs = last_day_obs, pars = x_r,
     f2_prior_beta_shape1 = beta_shape1,
     f2_prior_beta_shape2 = beta_shape2,
-    stan_data = stan_data, days_back = days_back
+    stan_data = stan_data, days_back = days_back,
+    opt = opt, algorithm = algorithm
   ), class = "covidseir")
 }
 
@@ -384,3 +448,19 @@ get_time_day_id0 <- function(day, time, days_back) {
 
 get_ur <- function(e, ud) (ud - e * ud) / e
 getu <- function(f, r) (r - f * r) / f
+
+convert_theta_tilde_to_list <- function(s) {
+  if (!any(grepl("phi\\[", colnames(s))))
+    stop("Optimizing isn't set up for the Poisson distribution.", call. = FALSE)
+  phi_n <- grep("phi\\[", colnames(s))
+  s <- s[, seq_len(phi_n)]
+  f_s_n <- grep("f_s\\[", colnames(s))
+  s1 <- s[, f_s_n, drop = FALSE]
+  s2 <- s[, -f_s_n, drop = FALSE]
+  l2 <- lapply(seq_len(ncol(s2)), function(i) s2[, i])
+  names(l2) <- colnames(s2)
+  out <- c(l2, list(f_s = s1))
+  names(out) <- sub("phi\\[1\\]", "phi", names(out))
+  out$phi <- matrix(out$phi, ncol = 1L)
+  out
+}

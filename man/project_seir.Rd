@@ -73,13 +73,13 @@ s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
 # To use parallel processing with multiple chains:
 # options(mc.cores = parallel::detectCores() / 2)
 
-# Only using 100 iterations and 1 chain for a quick example:
+# Using the MAP estimate for speed in this example:
 m <- fit_seir(
   cases,
   iter = 100,
-  chains = 1,
   i0_prior = c(log(8), 0.2),
-  samp_frac_fixed = s1
+  samp_frac_fixed = s1,
+  algorithm = "optimizing"
 )
 print(m)
 
