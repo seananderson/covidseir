@@ -105,7 +105,7 @@ project_seir <- function(
   #   (is.null(f_fixed_start) && is.null(f_fixed_start)) ||
   #     (!is.null(f_fixed_start) && !is.null(f_fixed_start))
   # )
-  
+
   if (!is.null(f_fixed) && !is.null(f_multi)) {
     stop("!is.null(f_fixed) && !is.null(f_multi)", call. = FALSE)
   }
@@ -153,7 +153,10 @@ project_seir <- function(
   if (!is.null(f_fixed_start)) {
     d$f_prior <- rbind(
       d$f_prior,
-      matrix(c(rep(beta_mean_ext, f_fixed), rep(beta_sd_ext, f_fixed)), ncol = 2, nrow = f_fixed)
+      matrix(c(
+        rep(beta_mean_ext, length(f_fixed)),
+        rep(beta_sd_ext, length(f_fixed))
+      ), ncol = 2, nrow = length(f_fixed))
     )
     d$S <- d$S + length(f_fixed)
     est_f_forecast_days <- f_fixed_start - nrow(d$daily_cases) - 1
@@ -168,7 +171,10 @@ project_seir <- function(
   if (!is.null(f_multi)) {
     d$f_prior <- rbind(
       d$f_prior,
-      matrix(c(rep(beta_mean_ext, f_multi), rep(beta_sd_ext, f_fixed)), ncol = 2, nrow = f_multi)
+      matrix(c(
+        rep(beta_mean_ext, length(f_multi)),
+        rep(beta_sd_ext, length(f_multi))
+      ), ncol = 2, nrow = length(f_multi))
     )
     d$S <- d$S + length(f_multi)
     est_f_forecast_days <- f_fixed_start - nrow(d$daily_cases) - 1
