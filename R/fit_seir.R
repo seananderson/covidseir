@@ -335,7 +335,7 @@ fit_seir <- function(daily_cases,
     init
   }
   pars_save <- c("R0", "f_s", "i0", "phi", "mu", "y_rep",
-    "start_decline", "end_decline", "samp_frac")
+    "start_decline", "end_decline", "samp_frac", "log_lik")
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   set.seed(seed)
   fit <- rstan::sampling(

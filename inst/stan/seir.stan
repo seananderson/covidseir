@@ -303,12 +303,20 @@ model {
 }
 generated quantities{
   int y_rep[N,J]; // posterior predictive replicates
+  real log_lik[last_day_obs,J]; // log likelihood for LOOIC
   for (j in 1:J) {
     for (n in 1:N) {
       if (obs_model == 0) {
         y_rep[n,j] = poisson_log_rng(eta[n,j]);
       } else if (obs_model == 1) {
-        y_rep[n,j] = neg_binomial_2_log_rng(eta[n,j], phi[1]);
+        y_rep[n,j] = neg_binomial_2_log_rng(eta[n,j], phi[j]);
+      }
+    }
+    for (n in 1:last_day_obs) {
+      if (obs_model == 0) {
+        log_lik[n,j] = poisson_log_lpmf(daily_cases[n,j] | eta[n,j]);
+      } else if (obs_model == 1) {
+        log_lik[n,j] = neg_binomial_2_log_lpmf(daily_cases[n,j] | eta[n,j], phi[j]);
       }
     }
   }
