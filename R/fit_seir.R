@@ -161,7 +161,8 @@ fit_seir <- function(daily_cases,
                      chains = 4,
                      iter = 2000,
                      N_pop = 5.1e6,
-                     pars = c(D = 5, k1 = 1 / 5,
+                     pars = c(
+                       D = 5, k1 = 1 / 5,
                        k2 = 1, q = 0.05,
                        ud = 0.1, ur = 0.02, f0 = 1.0
                      ),
@@ -209,7 +210,8 @@ fit_seir <- function(daily_cases,
       "It appears your code is set up for an older version ",
       "of the package. ",
       "(`names(x_r[1]) == 'N' || names(state_0[1]) == 'S')",
-      call. = FALSE)
+      call. = FALSE
+    )
   }
   stopifnot(
     names(x_r) ==
@@ -217,8 +219,10 @@ fit_seir <- function(daily_cases,
   )
   x_r <- c(c("N" = N_pop), x_r)
   stopifnot(
-    names(state_0) == c("E1_frac", "E2_frac", "I_frac", "Q_num", "R_num", "E1d_frac",
-      "E2d_frac", "Id_frac", "Qd_num", "Rd_num")
+    names(state_0) == c(
+      "E1_frac", "E2_frac", "I_frac", "Q_num", "R_num", "E1d_frac",
+      "E2d_frac", "Id_frac", "Qd_num", "Rd_num"
+    )
   )
 
   # Checks and type conversions:
@@ -249,13 +253,13 @@ fit_seir <- function(daily_cases,
 
   # f_prior
   f_seg_prior <- f_prior
-  S = length(unique(f_seg)) - 1 # - 1 because of 0 for fixed f0 before soc. dist.
+  S <- length(unique(f_seg)) - 1 # - 1 because of 0 for fixed f0 before soc. dist.
   for (s in 1:S) {
-    beta_sd <- f_seg_prior[s,2]
-    beta_mean <- f_seg_prior[s,1]
+    beta_sd <- f_seg_prior[s, 2]
+    beta_mean <- f_seg_prior[s, 1]
     beta_shape1 <- get_beta_params(beta_mean, beta_sd)$alpha
     beta_shape2 <- get_beta_params(beta_mean, beta_sd)$beta
-    f_seg_prior[s,] = c(beta_shape1, beta_shape2)
+    f_seg_prior[s, ] <- c(beta_shape1, beta_shape2)
   }
 
 
@@ -292,7 +296,7 @@ fit_seir <- function(daily_cases,
     daily_cases = daily_cases_stan,
     J = ncol(daily_cases),
     N = length(days),
-    S = S, 
+    S = S,
     y0_vars = state_0,
     t0 = min(time) - 0.000001,
     time = time,
@@ -328,29 +332,33 @@ fit_seir <- function(daily_cases,
   #   data = stan_data
   # )
   initf <- function(stan_data) {
-    R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2]/2)
-    i0 <- stats::rlnorm(1, i0_prior[1], i0_prior[2]/2)
-    start_decline <- stats::rlnorm(1, start_decline_prior[1], start_decline_prior[2]/2)
-    end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2]/2)
+    R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2] / 2)
+    i0 <- stats::rlnorm(1, i0_prior[1], i0_prior[2] / 2)
+    start_decline <- stats::rlnorm(1, start_decline_prior[1], start_decline_prior[2] / 2)
+    end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2] / 2)
     f <- stats::rbeta( # FIX?
       1,
-      get_beta_params(f_prior[1,1], f_prior[1,2]/4)$alpha,
-      get_beta_params(f_prior[1,1], f_prior[1,2]/4)$beta
+      get_beta_params(f_prior[1, 1], f_prior[1, 2] / 4)$alpha,
+      get_beta_params(f_prior[1, 1], f_prior[1, 2] / 4)$beta
     )
-    f_s <- array(0, dim = stan_data$S) 
+    f_s <- array(0, dim = stan_data$S)
     for (s in 1:stan_data$S) {
-        f_s[s] <- stats::rbeta( # FIX?
-              1,
-              get_beta_params(f_prior[s,1], f_prior[s,2]/4)$alpha,
-              get_beta_params(f_prior[s,1], f_prior[s,2]/4)$beta
-            )
+      f_s[s] <- stats::rbeta( # FIX?
+        1,
+        get_beta_params(f_prior[s, 1], f_prior[s, 2] / 4)$alpha,
+        get_beta_params(f_prior[s, 1], f_prior[s, 2] / 4)$beta
+      )
     }
-    init <- list(R0 = R0, f_s = f_s, i0 = i0,
-      start_decline = start_decline, end_decline = end_decline)
+    init <- list(
+      R0 = R0, f_s = f_s, i0 = i0,
+      start_decline = start_decline, end_decline = end_decline
+    )
     init
   }
-  pars_save <- c("R0", "f_s", "i0", "phi", "mu", "y_rep",
-    "start_decline", "end_decline", "samp_frac")
+  pars_save <- c(
+    "R0", "f_s", "i0", "phi", "mu", "y_rep",
+    "start_decline", "end_decline", "samp_frac"
+  )
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   set.seed(seed)
   fit <- rstan::sampling(
@@ -372,8 +380,8 @@ fit_seir <- function(daily_cases,
     samp_frac_fixed = samp_frac_fixed, state_0 = state_0,
     daily_cases = daily_cases, days = days, time = time,
     last_day_obs = last_day_obs, pars = x_r,
-    f2_prior_beta_shape1 = f_seg_prior[1,],
-    f2_prior_beta_shape2 = f_seg_prior[2,],
+    f2_prior_beta_shape1 = f_seg_prior[, 1],
+    f2_prior_beta_shape2 = f_seg_prior[, 2],
     stan_data = stan_data, days_back = days_back
   ), class = "covidseir")
 }

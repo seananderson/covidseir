@@ -82,8 +82,8 @@ phi) and \code{Var(Y) = mu + mu^2 / phi}. See the Stan
 \href{https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations}{Prior
 Choice Recommendations}.}
 
-\item{f_prior}{Beta mean and SD for the \code{f} parameters. FIXME: all \code{f}
-parameters must have the same prior currently. This will be fixed.}
+\item{f_prior}{Beta mean and SD for the \code{f} parameters. If S segments
+are used, should be a Sx2 matrix.}
 
 \item{samp_frac_prior}{\code{samp_frac} prior if \code{samp_frac_type} is "estimated"
 or "rw" or "segmented". In the case of the random walk, this specifies the
@@ -137,7 +137,7 @@ format as for \code{delay_scale}.}
 difference, then absolute difference, and then maximum iterations. These
 can likely be left as is.}
 
-\item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}}.}
+\item{...}{Other arguments to pass to \code{\link[rstan:sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}}.}
 }
 \value{
 A named list object
