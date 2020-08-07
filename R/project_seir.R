@@ -105,7 +105,7 @@ project_seir <- function(
   #   (is.null(f_fixed_start) && is.null(f_fixed_start)) ||
   #     (!is.null(f_fixed_start) && !is.null(f_fixed_start))
   # )
-  browser()
+  
   if (!is.null(f_fixed) && !is.null(f_multi)) {
     stop("!is.null(f_fixed) && !is.null(f_multi)", call. = FALSE)
   }
