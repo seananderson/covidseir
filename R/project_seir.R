@@ -98,7 +98,6 @@ project_seir <- function(
   if (!identical(class(obj), "covidseir")) {
     stop("`obj` must be of class `covidseir`.")
   }
-
   d <- obj$stan_data
   p <- obj$post
 
@@ -110,12 +109,13 @@ project_seir <- function(
   if (!is.null(f_fixed) && !is.null(f_multi)) {
     stop("!is.null(f_fixed) && !is.null(f_multi)", call. = FALSE)
   }
-
-  if (!is.null(f_fixed))
+  if (!is.null(f_fixed)) {
     stopifnot(length(f_fixed) == forecast_days - (f_fixed_start - nrow(d$daily_cases) - 1))
+  }
 
-  if (!is.null(f_multi))
+  if (!is.null(f_multi)) {
     stopifnot(length(f_multi) == forecast_days - (f_fixed_start - nrow(d$daily_cases) - 1))
+  }
 
   days <- seq(1L, nrow(d$daily_cases) + forecast_days)
   time_increment <- d$time[2] - d$time[1]
@@ -148,8 +148,16 @@ project_seir <- function(
   .f_id <- d$x_i[length(d$x_i)]
 
   max_f_seg_id <- max(d$x_i[-c(1:2)]) # 1:2 is the non-f_s x_i values
-
+  beta_sd_ext <- d$f_prior[d$S, 2]
+  beta_mean_ext <- d$f_prior[d$S, 1]
   if (!is.null(f_fixed_start)) {
+    d$f_prior <- rbind(
+      d$f_prior,
+      matrix(c(
+        rep(beta_mean_ext, length(f_fixed)),
+        rep(beta_sd_ext, length(f_fixed))
+      ), ncol = 2, nrow = length(f_fixed))
+    )
     d$S <- d$S + length(f_fixed)
     est_f_forecast_days <- f_fixed_start - nrow(d$daily_cases) - 1
     d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], est_f_forecast_days))
@@ -161,6 +169,13 @@ project_seir <- function(
 
   # FIXME: DRY
   if (!is.null(f_multi)) {
+    d$f_prior <- rbind(
+      d$f_prior,
+      matrix(c(
+        rep(beta_mean_ext, length(f_multi)),
+        rep(beta_sd_ext, length(f_multi))
+      ), ncol = 2, nrow = length(f_multi))
+    )
     d$S <- d$S + length(f_multi)
     est_f_forecast_days <- f_fixed_start - nrow(d$daily_cases) - 1
     d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], est_f_forecast_days))
@@ -181,8 +196,10 @@ project_seir <- function(
     warning("Adding to `d$x_r`. Looks like an old model.", call. = FALSE)
     d$x_r <- c(d$x_r, "imported_window" = 1)
   }
-  stopifnot(identical(names(d$x_r), c("N", "D", "k1", "k2", "q", "ud", "ur", "f0", "f_ramp_rate",
-    "imported_cases", "imported_window")))
+  stopifnot(identical(names(d$x_r), c(
+    "N", "D", "k1", "k2", "q", "ud", "ur", "f0", "f_ramp_rate",
+    "imported_cases", "imported_window"
+  )))
   d$x_r[names(d$x_r) == "imported_cases"] <- imported_cases
   d$x_r[names(d$x_r) == "imported_window"] <- imported_window
   d$n_x_r <- length(d$x_r)
@@ -220,8 +237,10 @@ project_seir <- function(
     }
     start_decline <- post$start_decline[i]
     end_decline <- post$end_decline[i]
-    list(R0 = R0, i0 = i0, f_s = f_s, phi = phi, samp_frac = samp_frac,
-      start_decline = start_decline, end_decline = end_decline)
+    list(
+      R0 = R0, i0 = i0, f_s = f_s, phi = phi, samp_frac = samp_frac,
+      start_decline = start_decline, end_decline = end_decline
+    )
   }
 
   pars <- c("R0", "i0", "f_s", "phi", "mu", "y_rep")
@@ -229,8 +248,8 @@ project_seir <- function(
 
   # out <- furrr::future_map_dfr(iter, function(i) {
   out <- purrr::map_dfr(iter, function(i) {
-  # out <- lapply(iter, function(i) {
-  # out <- future.apply::future_lapply(iter, function(i) {
+    # out <- lapply(iter, function(i) {
+    # out <- future.apply::future_lapply(iter, function(i) {
     fit <- rstan::sampling(
       stanmodels$seir,
       data = d,

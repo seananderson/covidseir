@@ -83,8 +83,8 @@ phi) and \code{Var(Y) = mu + mu^2 / phi}. See the Stan
 \href{https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations}{Prior
 Choice Recommendations}.}
 
-\item{f_prior}{Beta mean and SD for the \code{f} parameters. FIXME: all \code{f}
-parameters must have the same prior currently. This will be fixed.}
+\item{f_prior}{Beta mean and SD for the \code{f} parameters. If S segments
+are used, should be a Sx2 matrix.}
 
 \item{samp_frac_prior}{\code{samp_frac} prior if \code{samp_frac_type} is "estimated"
 or "rw" or "segmented". In the case of the random walk, this specifies the
@@ -205,11 +205,13 @@ print(m2)
 
 # Estimate a second f_s segment:
 f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14))
+f_prior <- matrix(c(0.4,0.6, rep(0.2,2)), ncol=2, nrow=2) # nrow corresponds to num f_s segments
 m3 <- fit_seir(
   cases,
   iter = 100,
   chains = 1,
   f_seg = f_seg,
+  f_prior = f_prior,
   samp_frac_fixed = s1
 )
 print(m3)
