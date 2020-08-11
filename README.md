@@ -1,4 +1,4 @@
-# covidseir <img src='man/figures/logo.png' align="right" height="139" />
+# covidseir <img src='man/figures/covidseir-logo.png' align="right" height="139" />
 
 > Bayesian SEIR Modelling for Multivariate COVID-19 Case Data
 
