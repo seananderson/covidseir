@@ -83,8 +83,9 @@ phi) and \code{Var(Y) = mu + mu^2 / phi}. See the Stan
 \href{https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations}{Prior
 Choice Recommendations}.}
 
-\item{f_prior}{Beta mean and SD for the \code{f} parameters. If S segments
-are used, should be a Sx2 matrix.}
+\item{f_prior}{Beta mean and SD for the \code{f} parameters. If S segments are
+used, should be a Sx2 matrix. If multiple \code{f} segments are used but
+only one mean and SD are specified, they will be repeated as needed.}
 
 \item{samp_frac_prior}{\code{samp_frac} prior if \code{samp_frac_type} is "estimated"
 or "rw" or "segmented". In the case of the random walk, this specifies the

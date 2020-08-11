@@ -36,8 +36,9 @@
 #'   phi) and `Var(Y) = mu + mu^2 / phi`. See the Stan
 #'   \href{https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations}{Prior
 #'   Choice Recommendations}.
-#' @param f_prior Beta mean and SD for the `f` parameters. If S segments
-#'   are used, should be a Sx2 matrix.
+#' @param f_prior Beta mean and SD for the `f` parameters. If S segments are
+#'   used, should be a Sx2 matrix. If multiple `f` segments are used but
+#'   only one mean and SD are specified, they will be repeated as needed.
 #' @param samp_frac_prior `samp_frac` prior if `samp_frac_type` is "estimated"
 #'   or "rw" or "segmented". In the case of the random walk, this specifies the
 #'   initial state prior. The two values correspond to the mean and SD of a Beta
@@ -239,7 +240,15 @@ fit_seir <- function(daily_cases,
   if (!is.matrix(f_prior)) f_prior <- matrix(f_prior, ncol = 2)
   stopifnot(length(delay_scale) == ncol(daily_cases))
   stopifnot(length(delay_shape) == ncol(daily_cases))
-  stopifnot((length(unique(f_seg))-1) == nrow(f_prior))
+
+  S <- length(unique(f_seg)) - 1 # - 1 because of 0 for fixed f0 before soc. dist.
+  if (nrow(f_prior) == 1 && S > 1) {
+    warning("Expanding `f_prior` to match `f_seg`.", call. = FALSE)
+    f_prior <- do.call("rbind", replicate(S, f_prior, simplify = FALSE))
+  }
+  if (S != nrow(f_prior) && nrow(f_prior) > 1) {
+    stop("`nrow(f_prior)` does not match `length(unique(f_seg)) - 1`.", call. = FALSE)
+  }
 
   days <- seq(1, nrow(daily_cases) + forecast_days)
   last_day_obs <- nrow(daily_cases)
@@ -261,7 +270,6 @@ fit_seir <- function(daily_cases,
 
   # f_prior
   f_seg_prior <- f_prior
-  S <- length(unique(f_seg)) - 1 # - 1 because of 0 for fixed f0 before soc. dist.
   for (s in 1:S) {
     beta_sd <- f_seg_prior[s, 2]
     beta_mean <- f_seg_prior[s, 1]
