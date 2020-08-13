@@ -150,7 +150,7 @@ project_seir <- function(
   max_f_seg_id <- max(d$x_i[-c(1:2)]) # 1:2 is the non-f_s x_i values
   beta_sd_ext <- d$f_prior[d$S, 2]
   beta_mean_ext <- d$f_prior[d$S, 1]
-  if (!is.null(f_fixed_start)) {
+  if (!is.null(f_fixed)) {
     d$f_prior <- rbind(
       d$f_prior,
       matrix(c(
