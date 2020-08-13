@@ -163,12 +163,8 @@ project_seir <- function(
     d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], est_f_forecast_days))
     fixed_f_forecast_ids <- seq(max_f_seg_id + 1, max_f_seg_id + length(f_fixed))
     d$x_i <- c(d$x_i, fixed_f_forecast_ids)
-  } else {
-    d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], forecast_days))
-  }
-
-  # FIXME: DRY
-  if (!is.null(f_multi)) {
+  } else if (!is.null(f_multi)) {
+    # FIXME: DRY
     d$f_prior <- rbind(
       d$f_prior,
       matrix(c(
@@ -223,7 +219,7 @@ project_seir <- function(
       }
     }
     if (is.null(f_fixed) && is.null(f_multi)) {
-      f_s <- array(c(post$f_s[i, ], f_fixed))
+      f_s <- array(c(post$f_s[i, ], f_fixed)) # TODO: what is this?
     }
     if ("phi" %in% names(post)) {
       phi <- array(post$phi[i, ])
