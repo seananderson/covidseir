@@ -359,11 +359,6 @@ fit_seir <- function(daily_cases,
     i0 <- stats::rlnorm(1, i0_prior[1], i0_prior[2] / 2)
     start_decline <- stats::rlnorm(1, start_decline_prior[1], start_decline_prior[2] / 2)
     end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2] / 2)
-    f <- stats::rbeta(
-      1,
-      get_beta_params(f_prior[1, 1], f_prior[1, 2] / 4)$alpha,
-      get_beta_params(f_prior[1, 1], f_prior[1, 2] / 4)$beta
-    )
     f_s <- array(0, dim = stan_data$S)
     for (s in 1:stan_data$S) {
       f_s[s] <- stats::rbeta(
