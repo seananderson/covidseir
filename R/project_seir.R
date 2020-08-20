@@ -23,9 +23,9 @@
 #'
 #' @importFrom dplyr bind_rows
 #'
-# @details
-# Set a [future::plan()] and this function will operate in parallel
-# across MCMC iterations using \pkg{furrr}.
+#' @details
+#' Set a [future::plan()] and this function will operate in parallel
+#' across MCMC iterations using \pkg{future} and \pkg{furrr}.
 #'
 #' @return
 #' A data frame:
@@ -76,6 +76,15 @@
 #' )
 #' p
 #' tidy_seir(p) %>% plot_projection(obs_dat = obs_dat)
+#'
+#'
+#' # Get threshold for increase:
+#' library(future) # for parallel processing (optional)
+#' plan(multisession) # for parallel processing (optional)
+#' # (only using 40 iterations for a fast example)
+#' thresh <- get_threshold(m, iter = 1:40, show_plot = TRUE)
+#' mean(thresh)
+#' plan(sequential)
 #'
 #' states_with_Rt <- get_rt(m)
 #' states_with_Rt
@@ -242,8 +251,8 @@ project_seir <- function(
   pars <- c("R0", "i0", "f_s", "phi", "mu", "y_rep")
   if (return_states) pars <- c("y_hat")
 
-  # out <- furrr::future_map_dfr(iter, function(i) {
-  out <- purrr::map_dfr(iter, function(i) {
+  out <- furrr::future_map_dfr(iter, function(i) {
+    # out <- purrr::map_dfr(iter, function(i) {
     # out <- lapply(iter, function(i) {
     # out <- future.apply::future_lapply(iter, function(i) {
     fit <- rstan::sampling(
