@@ -168,11 +168,12 @@ s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
 # To use parallel processing with multiple chains:
 # options(mc.cores = parallel::detectCores() / 2)
 
-# Only using 100 iterations and 1 chain for a quick example:
+# Only using 200 iterations and MAP (optimizing) fitting for example speed:
 m <- fit_seir(
   cases,
-  iter = 100,
+  iter = 200,
   chains = 1,
+  fit_type = "optimizing",
   samp_frac_fixed = s1
 )
 print(m)
@@ -192,28 +193,34 @@ hosp <- c(
   7, 19, 23, 13, 11, 3, 13, 21, 14, 17, 29, 21, 19, 19, 10, 6,
   11, 8, 11, 8, 7, 6
 )
+
+# Only using 200 iterations and MAP (optimizing) fitting for example speed:
 m2 <- fit_seir(
   daily_cases = cbind(cases, hosp),
-  iter = 100,
+  iter = 200,
   chains = 1,
   samp_frac_type = "segmented", # `samp_frac_type` affects the first data type only
   samp_frac_seg = samp_frac_seg,
   samp_frac_fixed = cbind(s1, s2), # s1 is ignored and could be anything
   delay_scale = c(9.8, 11.2),
   delay_shape = c(1.7, 1.9),
+  fit_type = "optimizing"
 )
 print(m2)
 
 # Estimate a second f_s segment:
 f_seg <- c(rep(0, 14), rep(1, 20), rep(2, length(cases) - 20 - 14))
 f_prior <- matrix(c(0.4,0.6, rep(0.2,2)), ncol=2, nrow=2) # nrow corresponds to num f_s segments
+
+# Only using 200 iterations and MAP (optimizing) fitting for example speed:
 m3 <- fit_seir(
   cases,
-  iter = 100,
+  iter = 200,
   chains = 1,
   f_seg = f_seg,
   f_prior = f_prior,
-  samp_frac_fixed = s1
+  samp_frac_fixed = s1,
+  fit_type = "optimizing"
 )
 print(m3)
 }

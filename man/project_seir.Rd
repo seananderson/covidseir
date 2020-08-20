@@ -61,6 +61,10 @@ contacts encountered for those physical distancing). The function also includes
 functionality to specify a vector of fixed f values starting on a given
 future date.
 }
+\details{
+Set a \code{\link[future:plan]{future::plan()}} and this function will operate in parallel
+across MCMC iterations using \pkg{future} and \pkg{furrr}.
+}
 \examples{
 cases <- c(
   0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
@@ -99,6 +103,15 @@ p <- project_seir(m,
 )
 p
 tidy_seir(p) \%>\% plot_projection(obs_dat = obs_dat)
+
+
+# Get threshold for increase:
+library(future) # for parallel processing (optional)
+plan(multisession) # for parallel processing (optional)
+# (only using 40 iterations for a fast example)
+thresh <- get_threshold(m, iter = 1:40, show_plot = TRUE)
+mean(thresh)
+plan(sequential)
 
 states_with_Rt <- get_rt(m)
 states_with_Rt
