@@ -1,0 +1,207 @@
+---
+title: "Fitting COVID-19 case data with covidseir"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Fitting COVID-19 case data with covidseir}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  cache = TRUE,
+  autodep = TRUE,
+  fig.asp = 0.62,
+  fig.width = 5
+)
+```
+
+```{r setup, message=FALSE, warning=FALSE}
+library(covidseir)
+library(dplyr)
+library(ggplot2)
+ymd <- lubridate::ymd
+```
+
+First, we will read in the British Columbia, Canada COVID-19 reported-case data:
+
+```{r dat}
+dat <- structure(list(value = c(0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 
+18, 9, 22, 38, 53, 45, 40, 77, 76, 48, 67, 78, 42, 66, 67, 92, 
+16, 70, 43, 53, 55, 53, 29, 26, 37, 25, 45, 34, 40, 35, 25, 20, 
+27, 44, 14, 43, 29, 29, 23, 25, 71, 29, 29, 95, 39, 11, 55, 34, 
+25, 33, 26, 34, 19, 8, 23, 33, 27, 15, NA, NA, 7, 16, 16, 15, 
+21, 8, 8, 2, 21, 12, 28, 10, 6, 7, 11, 9, 8, 4, 11, 12, 12, 4, 
+22, 9, 0, 9, 9, 9, 10, 11, 14, 15, 12, 12, 12, 11, 19, 8, 7, 
+11, 10, 11, 13, 14, 20, 9, 12, 12, 2, 12, 12, 12, 7, 9, 15, 7, 
+12, 18, 20, 25, 20, 21, 21, 13, 21, 21, 28, 34, 34, 34, 28, 34, 
+30, 27, 27, 27, 27, 23, 39, 29, 50, 43, 29, 46, 28, 47, 47, 53, 
+50, 30, 51, 46, 85, 78, 84, 100, 88, 48, 83), day = 1:171), 
+  row.names = c(NA, -171L), class = "data.frame")
+dat <- dplyr::as_tibble(dat)
+dat$date <- ymd("2020-03-01") + dat$day - 1
+```
+
+```{r print-dat}
+dat
+```
+
+```{r plot-raw-dat}
+ggplot(dat, aes(date, value)) + geom_line()
+```
+
+We need an estimate of the fraction of positive cases that are sampled/detected. This could be based on serology testing and known changes in testing policy. In this case, we are basing the sampled fractions on known dates of changes in testing policy combined with numbers of hospitalizations and an assumed hospitalization rate from a model fit elsewhere.
+
+We will set up a vector of assumed sampling fractions with one value per day and changes on the appropriate days:
+
+```{r samp-frac}
+# Based on estimation with hospital data in other model:
+samp_frac <- c(rep(0.14, 13), rep(0.21, 40 - 13), rep(0.21, 11))
+samp_frac <- c(samp_frac, rep(0.37, nrow(dat) - length(samp_frac)))
+samp_frac
+ggplot(dat, aes(date, samp_frac)) + geom_point()
+```
+
+We then need to set up a vector of 'f' segment IDs. These start at 0 (before any social distancing) and increment by 1 every time we want to estimate a new contact rate, say because of known social distancing policy changes. Here we will estimate new 'f' segments starting May 1 and June 1. Note that the vector needs to switch from 0 to 1 before the first estimated date of the social distancing ramp. The start and end of the ramp are estimated parameters. It is simplest to start the value `1` on the 2nd day.
+
+```{r f-seg}
+f_seg <- c(0, rep(1, nrow(dat) - 1))
+day_new_f <- which(dat$date == ymd("2020-05-01"))
+f_seg[seq(day_new_f, length(f_seg))] <- 2
+day_ch <- which(dat$date == ymd("2020-06-01"))
+f_seg[seq(day_ch, length(f_seg))] <- 3
+f_seg
+```
+
+```{r plot-f-seg}
+ggplot(dat, aes(date, f_seg)) + geom_point()
+```
+
+Now we can fit the SEIR model. This requires specifying a prior on 'i0' (people infected at initial point in time), the starting and ending of the ramp-in of social distancing (`start_decline_prior` and `end_decline_prior`), 'R0', and 'f'. The f prior by default is mean 0.4 and SD 0.2 from a beta distribution and applies to all f segments. You can extend it to be different for each f segment by using a matrix, which likely makes sense if you think that social distancing has relaxed over time. See `?fit_seir` for details and default values.
+
+In the following example, we will use `rstan::optimizing()` to find the MAP (maximum a posteriori probability) estimate combined with sampling from the covariance matrix to generate samples. Alternatives are variational Bayes (`"VB"`) and full Bayesian NUTS MCMC sampling (`"NUTS"`). We recommend NUTS sampling for final inference; however, the MAP estimate can be useful for model experimentation and is what we will use here for speed:
+
+```{r fit1, warning=FALSE}
+fit <- covidseir::fit_seir(
+  daily_cases = dat$value,
+  samp_frac_fixed = samp_frac, 
+  f_seg = f_seg,
+  i0_prior = c(log(8), 1),
+  start_decline_prior = c(log(15), 0.1),
+  end_decline_prior = c(log(22), 0.1),
+  f_prior = cbind(c(0.4, 0.5, 0.6), c(0.2, 0.2, 0.2)),
+  R0_prior = c(log(2.6), 0.2),
+  N_pop = 5.1e6, # BC population
+  iter = 500, # number of samples
+  fit_type = "optimizing" # for speed only
+)
+```
+
+```{r print-fit}
+print(fit)
+```
+
+If you would like, you can choose to use parallel processing for the projections:
+
+```{r future, eval=FALSE}
+future::plan(future::multisession)
+```
+
+Now we will take the fitted model and calculate the corresponding model predictions. This can be slow, especially with future projections, and so we only use the first 80 posterior samples for this example:
+
+```{r proj}
+proj <- covidseir::project_seir(fit, iter = 1:80)
+proj
+```
+
+Then we will take the posterior samples, re-sample 20 times from the negative binomial observation model to generate smother predictions, and transform the output into a tidy data frame for plotting:
+
+```{r tidy-proj}
+tidy_proj <- covidseir::tidy_seir(proj, resample_y_rep = 20)
+tidy_proj
+```
+
+For plotting, we need to join a date column back on, since our projections only have a column for a numeric day. Here we do that by making a look-up-table (`lut`).
+
+```{r join-date1}
+first_day <- min(dat$date)
+last_day <- 300 # how many days to create dates for
+lut <- dplyr::tibble(
+  day = seq_len(last_day),
+  date = seq(first_day, first_day + length(day) - 1, by = "1 day")
+)
+tidy_proj <- dplyr::left_join(tidy_proj, lut, by = "day")
+dplyr::glimpse(tidy_proj)
+```
+
+You can plot the output however you would like; however, the package includes a built-in basic plotting function. The `value_column` and `date_column` must both be columns present in the projection and observed data.
+
+```{r plot-projection}
+covidseir::plot_projection(tidy_proj, obs_dat = dat,
+  value_column = "value", date_column = "date")
+```
+
+If we wanted to make our projection assuming that social distancing changes in the future, we can do that as follows. For this example we will project 45 days into the future and change the contact ratio 'f' to be two-thirds of it's final estimated value (f segment `3`) starting after 5 days from the last observation. We will use only the first 50 posterior samples for speed of this example.
+
+```{r reduction-fit}
+days_project <- 45
+day_start_reduction <- 5
+proj2 <- covidseir::project_seir(
+  fit,
+  iter = 1:50,
+  forecast_days = days_project,
+  f_fixed_start = max(fit$days) + day_start_reduction,
+  f_multi = rep(0.67, days_project - day_start_reduction + 1),
+  f_multi_seg = 3 # which f segment to use
+)
+tidy_proj2 <- covidseir::tidy_seir(proj2, resample_y_rep = 30)
+tidy_proj2 <- dplyr::left_join(tidy_proj2, lut, by = "day")
+```
+
+```{r plot-proj2}
+covidseir::plot_projection(tidy_proj2, obs_dat = dat,
+  value_column = "value", date_column = "date")
+```
+
+We can also calculate the threshold for expected increases in prevalence:
+
+```{r thresh, fig.asp=1}
+threshold <- covidseir::get_threshold(fit, iter = 1:50, 
+  fs = seq(0.3, 0.8, length.out = 3))
+```
+
+We need to check that the above plot looks reasonable to fit a linear regression to. Here it looks reasonable. The output is a posterior distribution of the threshold:
+
+```{r hist-thresh, fig.asp=1}
+hist(threshold)
+```
+
+We can calculate the ratio between the posterior f values for each segment and the threshold:
+
+```{r f-ratios}
+f_ratios <- fit$post$f_s[seq_along(threshold), ] / threshold
+```
+
+Here is an example of visualizing the output:
+
+```{r violins, fig.asp=0.72}
+reshape2::melt(f_ratios) %>% 
+  ggplot(aes(Var2, value)) + geom_violin() +
+  geom_hline(yintercept = 1, lty = 2) +
+  xlab("f segment") + ylab("Contact threshold ratio")
+```
+
+We can also calculate the implied Rt. The output includes the various SEIR states as well:
+
+```{r get-rt}
+rt <- covidseir::get_rt(fit, iter = 1:50)
+dplyr::glimpse(rt)
+```
+
+```{r plot-rt}
+ggplot(rt, aes(time, Rt, group = .iteration)) + 
+  geom_line(alpha = 0.2, na.rm = TRUE) +
+  geom_hline(yintercept = 1, lty = 2)
+```

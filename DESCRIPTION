@@ -71,6 +71,7 @@ Imports:
 Suggests:
     knitr,
     future,
+    lubridate,
     magrittr,
     rmarkdown,
     rstantools (>= 2.0.0)
