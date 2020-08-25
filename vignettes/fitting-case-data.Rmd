@@ -168,10 +168,12 @@ We can also calculate the threshold for expected increases in prevalence:
 
 ```{r thresh, fig.asp=1}
 threshold <- covidseir::get_threshold(fit, iter = 1:50, 
-  fs = seq(0.3, 0.8, length.out = 3))
+  fs = seq(0.3, 0.8, length.out = 4))
 ```
 
-We need to check that the above plot looks reasonable to fit a linear regression to. Here it looks reasonable. The output is a posterior distribution of the threshold:
+We need to check that the above plot looks reasonable to fit a straight line through so we can extrapolate the point at which the slope values cross zero. It is possible the upper f values (`fs`) will cause the population to reach heard immunity, resulting in prevalence decreasing over time and negative slopes. In that case, it wouldn't make sense to fit a straight line through the points and the upper limit of explored f values or the number of forecasted days should be reduced. Here, it looks reasonable.
+
+The output is a posterior distribution of the threshold:
 
 ```{r hist-thresh, fig.asp=1}
 hist(threshold)
