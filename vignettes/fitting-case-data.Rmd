@@ -164,7 +164,7 @@ covidseir::plot_projection(tidy_proj2, obs_dat = dat,
   value_column = "value", date_column = "date")
 ```
 
-We can also calculate the threshold for expected increases in prevalence. We estimate the threshold by determining which f value gives a 0 rate of growth using the following procedure (Anderson et al., In press at PLOS Computational Biology):
+We can also calculate the threshold for expected increases in prevalence. We estimate the threshold by determining which f value gives a 0 rate of growth using the following procedure:
 
 - For a sequence of fractions of normal contacts (f), project the model posterior for N days into the future.
 - Fit a linear regression to determine the slope of log(prevalence) vs. time for the last X days of the projection period for each of the f values.
