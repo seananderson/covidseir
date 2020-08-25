@@ -142,7 +142,7 @@ covidseir::plot_projection(tidy_proj, obs_dat = dat,
   value_column = "value", date_column = "date")
 ```
 
-If we wanted to make our projection assuming that social distancing changes in the future, we can do that as follows. For this example we will project 45 days into the future and change the contact ratio 'f' to be two-thirds of it's final estimated value (f segment `3`) starting after 5 days from the last observation. We will use only the first 50 posterior samples for speed of this example.
+If we wanted to make our projection assuming that social distancing changes in the future, we can do that as follows. For this example we will project 45 days into the future and change the contact ratio 'f' to be two-thirds of its final estimated value (f segment `3`) starting after 5 days from the last observation. We will use only the first 50 posterior samples for speed of this example.
 
 ```{r reduction-fit}
 days_project <- 45
