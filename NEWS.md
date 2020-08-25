@@ -2,7 +2,9 @@
 
 # covidseir 0.0.0.9007
 
-* Add VB and MAP algorithm options.
+* Add a vignette
+
+* Add VB and MAP algorithm options
 
 # covidseir 0.0.0.9006
 
