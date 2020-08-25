@@ -85,7 +85,6 @@
 #' # (only using 40 iterations for a fast example)
 #' thresh <- get_threshold(m, iter = 1:40, show_plot = TRUE)
 #' mean(thresh)
-#' plan(sequential)
 #'
 #' states_with_Rt <- get_rt(m)
 #' states_with_Rt
