@@ -47,7 +47,7 @@ remotes::install_github("seananderson/covidseir")
 
 See the examples in `?fit_seir` and `?project_seir`.
 
-If you would like to view rendered [vignette](vignettes/fitting-case-data.Rmd), install the package with:
+If you would like to view the rendered [vignette](vignettes/fitting-case-data.Rmd), install the package with:
 
 ```r
 remotes::install_github("seananderson/covidseir", build_vignettes = TRUE)
