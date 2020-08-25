@@ -90,7 +90,6 @@ plot_projection <- function(pred_dat, obs_dat, col = "#377EB8",
       alpha = 0.2, fill = col
     ) +
     geom_line(aes_string(y = "mu_0.50"), lwd = 0.9, col = col) +
-    facet_wrap(~data_type) +
     coord_cartesian(expand = FALSE, xlim = range(pred_dat[[date_column]])) +
     ylab(ylab) +
     theme(axis.title.x = element_blank())
@@ -107,5 +106,7 @@ plot_projection <- function(pred_dat, obs_dat, col = "#377EB8",
       aes_string(x = date_column, y = value_column),
       pch = 21, fill = "grey95", size = 1.25
     )
+
+  if (max(pred_dat[["data_type"]]) > 1) g <- g + facet_wrap(~data_type)
   g
 }
