@@ -68,6 +68,8 @@
 #' library(magrittr) # for %>%
 #' tidy_seir(p) %>% plot_projection(obs_dat = obs_dat)
 #'
+#' # for parallel processing (optional)
+#' # future::plan(future::multisession)
 #' p <- project_seir(m,
 #'   forecast_days = 100,
 #'   f_fixed_start = 53,
@@ -79,8 +81,7 @@
 #'
 #'
 #' # Get threshold for increase:
-#' library(future) # for parallel processing (optional)
-#' plan(multisession) # for parallel processing (optional)
+#' # future::plan(future::multisession) # for parallel processing (optional)
 #' # (only using 40 iterations for a fast example)
 #' thresh <- get_threshold(m, iter = 1:40, show_plot = TRUE)
 #' mean(thresh)
@@ -252,7 +253,7 @@ project_seir <- function(
   if (return_states) pars <- c("y_hat")
 
   out <- furrr::future_map_dfr(iter, function(i) {
-    # out <- purrr::map_dfr(iter, function(i) {
+  # out <- purrr::map_dfr(iter, function(i) {
     # out <- lapply(iter, function(i) {
     # out <- future.apply::future_lapply(iter, function(i) {
     fit <- rstan::sampling(
