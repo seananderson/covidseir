@@ -11,8 +11,6 @@ vignette: >
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>",
-  cache = TRUE,
-  autodep = TRUE,
   fig.asp = 0.62,
   fig.width = 5
 )
