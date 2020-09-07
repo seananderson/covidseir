@@ -79,10 +79,14 @@ sir <- function(.t, state, theta, x_r, x_i) {
         f = theta[4 + s] # EDITTED
       }
     }
-    # f = theta[f_seg_id[day]] # // the respective f segment FIXME WITH PROJECTIONS!!
   }
   cat("t =", .t, "\n")
   cat("f =", f, "\n\n")
+
+  if (.t > last_day_obs) { # // THIS HAS MOVED AND CHANGED
+    f = theta[f_seg_id[day]] # // the respective f segment
+  }
+
   if (.t > last_day_obs && .t <= (last_day_obs + imported_window)) {
     introduced = imported_cases / imported_window
   } else {
