@@ -41,6 +41,7 @@ functions{
 
     int n_f = x_i[2]; // the number of f parameters in time (after f0)
     int f_seg_id[n_f]; // a lookup vector to grab the appropriate f parameter in time
+    int n_breaks; // number of f_s breaks after ramp in of distancing
 
     real f; // will store the f value for this time point
     real introduced; // will store the introduced cases
@@ -60,9 +61,9 @@ functions{
     // this_time_id = f_seg_id[time_int];
 
     for (i in 1:n_f) {
-      // `i + 2` because of number of x_i before `f_seg_id`
+      // `i + 3` because of number of x_i before `f_seg_id`
       // `+ 3` at end because of number of thetas before f_s thetas
-      f_seg_id[i] = x_i[i + 2] + 3;
+      f_seg_id[i] = x_i[i + 3] + 3;
     }
 
     f = f0; // business as usual before physical distancing
@@ -82,8 +83,28 @@ functions{
       }
     }
     if (t >= end_decline) {
+      f = f1;  // default until a break gets possibly triggered...
+      n_breaks = x_i[3];
+      if (n_breaks > 0) {
+        for (s in 1:n_breaks) {
+          if (t >= theta[4 + n_breaks + s]) {
+            f = theta[4 + s];
+          }
+        }
+      }
+    }
+    // print(theta)
+    // cat("t =", t, "\n")
+    // cat("f =", f, "\n\n")
+
+    if (t > last_day_obs) { // THIS HAS MOVED AND CHANGED
       f = theta[f_seg_id[day]]; // the respective f segment
     }
+    // if (t < theta[4 + n_breaks + n_breaks]) {
+    // print("theta =", theta);
+    // print("t =", t, "; f =", f);
+    // print("---");
+    // }
     if (t > last_day_obs && t <= (last_day_obs + imported_window)) {
       introduced = imported_cases / imported_window;
     } else {
@@ -132,10 +153,11 @@ data {
   real R0_prior[2];   // lognormal log mean and SD for R0 prior
   real i0_prior[2];   // lognormal log mean and SD for i0 prior
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
-  real f_prior[S,2];   // beta priors for f2 
+  real f_prior[S,2];   // beta priors for f2
   real samp_frac_prior[2];   // beta prior for samp_frac
   real start_decline_prior[2];   // prior for start_decline day
   real end_decline_prior[2];   // prior for end_decline day
+  real f_break_prior[S-1,2];   // prior for f_break-point days
   int<lower=0, upper=1> priors_only; // logical: include likelihood or just priors?
   int<lower=0, upper=J> est_phi; // estimate NB phi?
   int<lower=0, upper=N> n_samp_frac; // number of samp_frac
@@ -152,6 +174,8 @@ parameters {
  real<lower=0, upper=1> f_s[S]; // strength of social distancing for segment `s`
  real<lower=0> phi[est_phi]; // NB2 (inverse) dispersion; `est_phi` turns on/off
  real<lower=0, upper=1> samp_frac[n_samp_frac];
+ // ordered[S-1] f_breaks;
+ real<lower=0> f_breaks[S-1];
 }
 transformed parameters {
   real dx = time[2] - time[1]; // time increment
@@ -162,7 +186,7 @@ transformed parameters {
   real k2; // from ODE
   real E2; // from ODE exposed and symptomatic
   real E2d; // from ODE exposed and symptomatic and distancing
-  real theta[S + 3]; // gathers parameters (which come with various limits); + 4 is number of thetas before f_s
+  real theta[3 + S + (S - 1)]; // gathers parameters (which come with various limits); + 4 is number of thetas before f_s; S is number f_s; S - 1 is number of f_s breaks after the ramp
   real y_hat[T,12]; // predicted states for each time t from ODE
   real this_samp; // holds the sample fraction for a given day
   real y0[12]; // initial states
@@ -196,6 +220,12 @@ transformed parameters {
     // `s + 3` because of number of thetas before f_s
     theta[s + 3] = f_s[s];
   }
+   for (s in 1:(S-1)) {
+    // `s + 3` because of number of thetas before f_s
+    // `+ S` because of number of f_s thetas before day break points
+    theta[s + 3 + S] = f_breaks[s];
+  }
+  // print(theta)
 
   y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i,
   // y_hat = integrate_ode_bdf(sir, y0, t0, time, theta, x_r, x_i,
@@ -259,6 +289,11 @@ model {
 
   start_decline ~ lognormal(start_decline_prior[1], start_decline_prior[2]);
   end_decline ~ lognormal(end_decline_prior[1], end_decline_prior[2]);
+
+  for (s in 1:(S-1)) {
+    f_breaks[s] ~ lognormal(f_break_prior[s,1], f_break_prior[s,2]);
+  }
+
   for (s in 1:S) {
     f_s[s] ~ beta(f_prior[s,1], f_prior[s,2]); // allow separate f priors
   }

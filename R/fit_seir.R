@@ -49,6 +49,8 @@
 #' @param end_decline_prior Lognormal log mean and SD for the parameter
 #'   representing the day that the social distancing ramp finishes being ramped
 #'   in (`end_decline`).
+#' @param f_break_prior Lognormal log mean and SD for f break day breakpoints.
+#'   Matrix with first column log mean and second column SD.
 #' @param f_ramp_rate An exponential rate for the initial social distancing
 #'   ramp. A value near 0 result in a linear ramp. A value > 0 results in a ramp
 #'   that starts slowly and ends quickly. A value < 0 results in a ramp that
@@ -169,6 +171,7 @@ fit_seir <- function(daily_cases,
                      samp_frac_prior = c(0.4, 0.2),
                      start_decline_prior = c(log(15), 0.05),
                      end_decline_prior = c(log(22), 0.05),
+                     f_break_prior = NULL,
                      f_ramp_rate = 0,
                      rw_sigma = 0.1,
                      seed = 42,
@@ -263,7 +266,7 @@ fit_seir <- function(daily_cases,
 
   x_i <- c("last_day_obs" = last_day_obs)
   f_seg <- stats::setNames(f_seg, paste0("f_seg_id_", seq_along(f_seg)))
-  x_i <- c(x_i, c("n_f_s" = length(f_seg)), f_seg)
+  x_i <- c(x_i, c("n_f_s" = length(f_seg), "n_breaks" = max(f_seg) - 1), f_seg)
 
   # find the equivalent time of each day (end):
   time_day_id <- vapply(days, get_time_id, numeric(1), time = time)
@@ -360,28 +363,31 @@ fit_seir <- function(daily_cases,
     start_decline <- stats::rlnorm(1, start_decline_prior[1], start_decline_prior[2] / 2)
     end_decline <- stats::rlnorm(1, end_decline_prior[1], end_decline_prior[2] / 2)
     f_s <- array(0, dim = stan_data$S)
-    for (s in 1:stan_data$S) {
+    for (s in seq_len(stan_data$S)) {
       f_s[s] <- stats::rbeta(
         1,
         get_beta_params(f_prior[s, 1], f_prior[s, 2] / 4)$alpha,
         get_beta_params(f_prior[s, 1], f_prior[s, 2] / 4)$beta
       )
     }
+    f_breaks <- rep(NA, stan_data$S - 1)
+    for (s in seq_len(stan_data$S - 1)) {
+      f_breaks[s] <- exp(f_break_prior[s, 1])
+    }
     init <- list(
       R0 = R0, f_s = f_s, i0 = i0,
-      start_decline = start_decline, end_decline = end_decline
+      start_decline = start_decline, end_decline = end_decline, f_breaks = f_breaks
     )
     init
   }
   pars_save <- c(
     "R0", "f_s", "i0", "phi", "mu", "y_rep",
-    "start_decline", "end_decline", "samp_frac"
+    "start_decline", "end_decline", "samp_frac", "f_breaks"
   )
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   set.seed(seed)
 
   fit_type <- match.arg(fit_type)
-
   opt <- NA
   if (fit_type != "VB") {
     opt <- tryCatch({
@@ -400,6 +406,7 @@ fit_seir <- function(daily_cases,
     }, error = function(e) NA)
   }
 
+
   if ((identical(opt, NA) || fit_type == "VB")) {
     .initf <- function() initf(stan_data)
   } else if (fit_type == "NUTS") {
@@ -413,6 +420,7 @@ fit_seir <- function(daily_cases,
         i0 = unname(p[np == "i0"]),
         start_decline = unname(p[np == "start_decline"]),
         end_decline = unname(p[np == "end_decline"])
+        # FIXME: add f_breaks!
       )
     }
   }
@@ -448,7 +456,9 @@ fit_seir <- function(daily_cases,
   if (fit_type != "optimizing") {
     post <- rstan::extract(fit)
   } else {
-    post <- convert_theta_tilde_to_list(opt$theta_tilde)
+    print(opt$par[1:10])
+    # browser()
+    # post <- convert_theta_tilde_to_list(opt$theta_tilde)
     fit <- opt
   }
 
@@ -490,6 +500,7 @@ get_ur <- function(e, ud) (ud - e * ud) / e
 getu <- function(f, r) (r - f * r) / f
 
 convert_theta_tilde_to_list <- function(s) {
+# print(s)
   if (!any(grepl("phi\\[", colnames(s))))
     stop("Optimizing isn't set up for the Poisson distribution.", call. = FALSE)
   phi_n <- grep("phi\\[", colnames(s))
