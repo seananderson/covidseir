@@ -20,6 +20,7 @@ fit_seir(
   samp_frac_prior = c(0.4, 0.2),
   start_decline_prior = c(log(15), 0.05),
   end_decline_prior = c(log(22), 0.05),
+  f_break_prior = NULL,
   f_ramp_rate = 0,
   rw_sigma = 0.1,
   seed = 42,
@@ -99,6 +100,9 @@ representing the day that social distancing starts ramping in
 \item{end_decline_prior}{Lognormal log mean and SD for the parameter
 representing the day that the social distancing ramp finishes being ramped
 in (\code{end_decline}).}
+
+\item{f_break_prior}{Lognormal log mean and SD for f break day breakpoints.
+Matrix with first column log mean and second column SD.}
 
 \item{f_ramp_rate}{An exponential rate for the initial social distancing
 ramp. A value near 0 result in a linear ramp. A value > 0 results in a ramp
