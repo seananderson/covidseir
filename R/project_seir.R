@@ -154,8 +154,6 @@ project_seir <- function(
     do.call(rbind, replicate(added_length, .s, simplify = FALSE))
   )
 
-  .f_id <- d$x_i[length(d$x_i)]
-
   max_f_seg_id <- max(d$x_i[-c(1:2)]) # 1:2 is the non-f_s x_i values
   beta_sd_ext <- d$f_prior[d$S, 2]
   beta_mean_ext <- d$f_prior[d$S, 1]
@@ -242,13 +240,14 @@ project_seir <- function(
     }
     start_decline <- post$start_decline[i]
     end_decline <- post$end_decline[i]
+    f_breaks <- array(post$f_breaks[i, ])
     list(
       R0 = R0, i0 = i0, f_s = f_s, phi = phi, samp_frac = samp_frac,
-      start_decline = start_decline, end_decline = end_decline
+      start_decline = start_decline, end_decline = end_decline, f_breaks = f_breaks
     )
   }
 
-  pars <- c("R0", "i0", "f_s", "phi", "mu", "y_rep")
+  pars <- c("R0", "i0", "f_s", "phi", "f_breaks", "mu", "y_rep")
   if (return_states) pars <- c("y_hat")
 
   out <- furrr::future_map_dfr(iter, function(i) {
