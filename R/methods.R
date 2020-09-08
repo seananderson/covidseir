@@ -5,7 +5,7 @@ print.covidseir <- function(x,
   if ("fit_type" %in% names(x)) {
     if (x$fit_type == "optimizing") {
       phi_n <- grep("phi\\[", colnames(x$fit$theta_tilde))
-      break_n <- grep("f_breaks\\[", colnames(x$fit$theta_tilde))
+      break_n <- max(grep("f_breaks\\[", colnames(x$fit$theta_tilde)))
       if (length(break_n) >  0) {
         last_n <- break_n
       } else {
