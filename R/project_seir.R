@@ -154,7 +154,7 @@ project_seir <- function(
     do.call(rbind, replicate(added_length, .s, simplify = FALSE))
   )
 
-  max_f_seg_id <- max(d$x_i[-c(1:2)]) # 1:2 is the non-f_s x_i values
+  max_f_seg_id <- max(d$x_i[-c(1:3)]) # 1:3 is the non-f_s x_i values
   beta_sd_ext <- d$f_prior[d$S, 2]
   beta_mean_ext <- d$f_prior[d$S, 1]
   if (!is.null(f_fixed)) {
@@ -188,7 +188,7 @@ project_seir <- function(
     d$x_i <- c(d$x_i, rep(d$x_i[length(d$x_i)], forecast_days))
   }
 
-  d$x_i[["n_f_s"]] <- length(d$x_i) - 2 # 2 is number of non-f_s x_i values
+  d$x_i[["n_f_s"]] <- length(d$x_i) - 3 # 3 is number of non-f_s x_i values
   d$n_x_i <- length(d$x_i)
 
   if (!"imported_cases" %in% names(d$x_r)) {
