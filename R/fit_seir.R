@@ -376,7 +376,7 @@ fit_seir <- function(daily_cases,
     }
     init <- list(
       R0 = R0, f_s = f_s, i0 = i0,
-      start_decline = start_decline, end_decline = end_decline, f_breaks = f_breaks
+      start_decline = start_decline, end_decline = end_decline, f_breaks = array(f_breaks)
     )
     init
   }
@@ -403,7 +403,7 @@ fit_seir <- function(daily_cases,
         as_vector = TRUE,
         ...
       )
-    }, error = function(e) NA)
+    }, error = function(e) {print(e);NA})
   }
 
 
@@ -456,9 +456,7 @@ fit_seir <- function(daily_cases,
   if (fit_type != "optimizing") {
     post <- rstan::extract(fit)
   } else {
-    print(opt$par[1:10])
-    # browser()
-    # post <- convert_theta_tilde_to_list(opt$theta_tilde)
+    post <- convert_theta_tilde_to_list(opt$theta_tilde)
     fit <- opt
   }
 
@@ -503,14 +501,17 @@ convert_theta_tilde_to_list <- function(s) {
 # print(s)
   if (!any(grepl("phi\\[", colnames(s))))
     stop("Optimizing isn't set up for the Poisson distribution.", call. = FALSE)
-  phi_n <- grep("phi\\[", colnames(s))
-  s <- s[, seq_len(phi_n)]
+  # phi_n <- grep("phi\\[", colnames(s))
+  last_theta_n <- max(grep("f_breaks\\[", colnames(s)))
+  s <- s[, seq_len(last_theta_n)]
   f_s_n <- grep("f_s\\[", colnames(s))
+  f_breaks_n <- grep("f_breaks\\[", colnames(s))
+  f_breaks_theta <- s[, f_breaks_n, drop = FALSE]
   s1 <- s[, f_s_n, drop = FALSE]
-  s2 <- s[, -f_s_n, drop = FALSE]
+  s2 <- s[, -c(f_s_n, f_breaks_n), drop = FALSE]
   l2 <- lapply(seq_len(ncol(s2)), function(i) s2[, i])
   names(l2) <- colnames(s2)
-  out <- c(l2, list(f_s = s1))
+  out <- c(l2, list(f_s = s1, f_breaks = f_breaks_theta))
   names(out) <- sub("phi\\[1\\]", "phi", names(out))
   out$phi <- matrix(out$phi, ncol = 1L)
   out

@@ -175,7 +175,7 @@ parameters {
  real<lower=0> phi[est_phi]; // NB2 (inverse) dispersion; `est_phi` turns on/off
  real<lower=0, upper=1> samp_frac[n_samp_frac];
  // ordered[S-1] f_breaks;
- real<lower=0> f_breaks[S-1];
+ real<lower=0, upper=last_day_obs> f_breaks[S-1];
 }
 transformed parameters {
   real dx = time[2] - time[1]; // time increment
@@ -195,6 +195,17 @@ transformed parameters {
   real ud = x_r[6]; // grab this rate input
   real ur = x_r[7]; // grab this rate input
   real N_pop = x_r[1]; // grab population size
+  real<lower=0> f_breaks_days[S-1];
+
+  if ((S - 1) > 0) { // we have f breaks after end_decline to f_1
+    for (s in 1:(S-1)) {
+      if (s == 1) {
+        f_breaks_days[s] = end_decline + f_breaks[s];
+      } else {
+        f_breaks_days[s] = f_breaks_days[s - 1] + f_breaks[s];
+      }
+    }
+  }
 
   fsi = ud / (ud + ur); // fraction social distancing
   nsi = 1 - fsi; // fraction not social distancing
@@ -223,7 +234,7 @@ transformed parameters {
    for (s in 1:(S-1)) {
     // `s + 3` because of number of thetas before f_s
     // `+ S` because of number of f_s thetas before day break points
-    theta[s + 3 + S] = f_breaks[s];
+    theta[s + 3 + S] = f_breaks_days[s];
   }
   // print(theta)
 
