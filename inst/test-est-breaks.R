@@ -33,14 +33,13 @@ fit <- covidseir::fit_seir(
   i0_prior = c(log(8), 1),
   start_decline_prior = c(log(15), 0.1),
   end_decline_prior = c(log(22), 0.1),
-  f_break_prior = rbind(c(log(60), 0.1)),
+  f_break_prior = rbind(c(log(80), 0.1)),
   f_prior = cbind(c(0.4, 0.6), c(0.2, 0.2)),
   R0_prior = c(log(2.6), 0.2),
   N_pop = 5.1e6,
   iter = 140,
   chains = 1,
-  fit_type = "optimizing",
-  algorithm = "BFGS"
+  fit_type = "optimizing"
 )
 fit
 
@@ -94,6 +93,8 @@ dat <- structure(list(date = structure(c(18322, 18323, 18324, 18325,
     150, 128, 157, 126, 185)), row.names = c(NA, -191L), class = c("tbl_df",
       "tbl", "data.frame"))
 
+dat <- dat[1:170,]
+plot(dat$value, type = "l")
 f_on <- make_f_seg(dat, .date = "2020-05-01")
 day_ch <- which(dat$date == lubridate::ymd("2020-06-01"))
 day_ch2 <- which(dat$date == lubridate::ymd("2020-07-06"))
@@ -102,9 +103,15 @@ day_ch4 <- which(dat$date == lubridate::ymd("2020-08-01"))
 f_on[seq(day_ch, day_ch2 - 1)] <- 3L
 f_on[seq(day_ch2, length(dat$value))] <- 4L
 f_on[seq(day_ch3, length(dat$value))] <- 5L
-f_on[seq(day_ch4, length(dat$value))] <- 6L
+# f_on[seq(day_ch4, length(dat$value))] <- 6L
 f_on[-c(1:10)] <- 2
+f_on[length(f_on)] <- 3
 f_on
+plot(dat$value, type = "l")
+abline(v = 8)
+abline(v = 23)
+abline(v = 23 + 47)
+abline(v = 47 + 50)
 
 fit_on <- covidseir::fit_seir(
   daily_cases = dat$value,
@@ -112,12 +119,30 @@ fit_on <- covidseir::fit_seir(
   i0_prior = c(log(1), 1),
   start_decline_prior = c(log(8), 0.1),
   end_decline_prior = c(log(23), 0.1),
-  f_break_prior = rbind(c(log(50), 0.3)),
+  f_break_prior = rbind(c(log(30), 0.1), c(log(35), 0.1)),
   N_pop = 14.5e6,
   f_seg = f_on,
-  f_prior = rbind(c(0.4, 0.2), c(0.5, 0.2)),
-  iter = 500,
-  ode_control = c(1e-6, 1e-5, 1e5),
+  f_prior = rbind(c(0.4, 0.2), c(0.4, 0.2), c(0.4, 0.2)),
+  iter = 400,
+  # ode_control = c(1e-8, 1e-7, 1e7),
+  time_increment = 1,
   fit_type = "optimizing"
 )
 fit_on
+
+# hist(fit_on$post$f_breaks[,1])
+# hist(fit_on$post$f_breaks[,2])
+# hist(fit_on$post$end_decline + fit_on$post$f_breaks[,1])
+# hist(fit_on$post$end_decline + fit_on$post$f_breaks[,1] + fit_on$post$f_breaks[,2])
+
+library(ggplot2)
+p <- project_seir(fit_on, iter = 1:100)
+tidy_seir(p) %>%
+  plot_projection(obs_dat = dat) +
+  geom_vline(data =
+      data.frame(day = fit_on$post$end_decline + fit_on$post$f_breaks[,1]),
+    aes(xintercept = day), alpha = 0.05, col = "red") +
+  geom_vline(data =
+      data.frame(day = fit_on$post$end_decline + fit_on$post$f_breaks[,1] + fit_on$post$f_breaks[,2]),
+    aes(xintercept = day), alpha = 0.05, col = "purple")
+
