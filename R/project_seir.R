@@ -249,7 +249,7 @@ project_seir <- function(
     )
   }
 
-  pars <- c("R0", "i0", "f_s", "phi", "mu", "y_rep")
+  pars <- c("R0", "i0", "f_s", "e", "ur", "phi", "mu", "y_rep")
   if (return_states) pars <- c("y_hat")
 
   out <- furrr::future_map_dfr(iter, function(i) {

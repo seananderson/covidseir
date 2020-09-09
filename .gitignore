@@ -5,3 +5,5 @@ inst/doc
 .Rhistory
 *.so
 *_cache*
+inst/*.pdf
+inst/fitting-case*.Rmd

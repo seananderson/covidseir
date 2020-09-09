@@ -498,7 +498,10 @@ convert_theta_tilde_to_list <- function(s) {
   if (!any(grepl("phi\\[", colnames(s))))
     stop("Optimizing isn't set up for the Poisson distribution.", call. = FALSE)
   phi_n <- grep("phi\\[", colnames(s))
-  s <- s[, seq_len(phi_n)]
+  e_n <- grep("^e$", colnames(s))
+  ur_n <- grep("^ur$", colnames(s))
+  pars_n <- c(seq_len(phi_n), ur_n, e_n)
+  s <- s[, pars_n]
   f_s_n <- grep("f_s\\[", colnames(s))
   s1 <- s[, f_s_n, drop = FALSE]
   s2 <- s[, -f_s_n, drop = FALSE]

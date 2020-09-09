@@ -109,10 +109,10 @@ If you would like, you can choose to use parallel processing for the projections
 future::plan(future::multisession)
 ```
 
-Now we will take the fitted model and calculate the corresponding model predictions. This can be slow, especially with future projections, and so we only use the first 80 posterior samples for this example:
+Now we will take the fitted model and calculate the corresponding model predictions. This can be slow, especially with future projections, and so we only use the first 50 posterior samples for this quick vignette example:
 
 ```{r proj}
-proj <- covidseir::project_seir(fit, iter = 1:80)
+proj <- covidseir::project_seir(fit, iter = 1:50)
 proj
 ```
 
