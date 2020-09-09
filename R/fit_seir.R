@@ -39,6 +39,8 @@
 #' @param f_prior Beta mean and SD for the `f` parameters. If S segments are
 #'   used, should be a Sx2 matrix. If multiple `f` segments are used but
 #'   only one mean and SD are specified, they will be repeated as needed.
+#' @param e_prior Beta mean and SD for the `e` (derived) parameter.
+#'   `e` represents the fraction of people who are social distancing.
 #' @param samp_frac_prior `samp_frac` prior if `samp_frac_type` is "estimated"
 #'   or "rw" or "segmented". In the case of the random walk, this specifies the
 #'   initial state prior. The two values correspond to the mean and SD of a Beta
@@ -166,6 +168,7 @@ fit_seir <- function(daily_cases,
                      R0_prior = c(log(2.6), 0.2),
                      phi_prior = 1,
                      f_prior = c(0.4, 0.2),
+                     e_prior = c(0.8, 0.05),
                      samp_frac_prior = c(0.4, 0.2),
                      start_decline_prior = c(log(15), 0.05),
                      end_decline_prior = c(log(22), 0.05),
@@ -294,6 +297,10 @@ fit_seir <- function(daily_cases,
     get_beta_params(samp_frac_prior[1], samp_frac_prior[2])$alpha,
     get_beta_params(samp_frac_prior[1], samp_frac_prior[2])$beta
   )
+  e_prior_trans <- c(
+    get_beta_params(e_prior[1], e_prior[2])$alpha,
+    get_beta_params(e_prior[1], e_prior[2])$beta
+  )
 
   daily_cases_stan <- daily_cases
   if (sum(is.na(daily_cases)) > 0) {
@@ -339,6 +346,7 @@ fit_seir <- function(daily_cases,
     i0_prior = i0_prior,
     f_prior = f_seg_prior,
     samp_frac_prior = samp_frac_prior_trans,
+    e_prior = e_prior_trans,
     start_decline_prior = start_decline_prior,
     end_decline_prior = end_decline_prior,
     n_samp_frac = n_samp_frac,
@@ -371,10 +379,15 @@ fit_seir <- function(daily_cases,
       R0 = R0, f_s = f_s, i0 = i0,
       start_decline = start_decline, end_decline = end_decline
     )
+    ur <- get_ur(e_prior[1], pars[["ud"]])
+    f_s <- array(f, dim = stan_data$S)
+    init <- list(R0 = R0, f_s = f_s, i0 = i0,
+      ur = ur,
+      start_decline = start_decline, end_decline = end_decline)
     init
   }
   pars_save <- c(
-    "R0", "f_s", "i0", "phi", "mu", "y_rep",
+    "R0", "f_s", "i0", "e", "ur", "phi", "mu", "y_rep",
     "start_decline", "end_decline", "samp_frac"
   )
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
@@ -455,6 +468,7 @@ fit_seir <- function(daily_cases,
   structure(list(
     fit = fit, post = post, phi_prior = phi_prior, R0_prior = R0_prior,
     f_prior = f_prior, obs_model = obs_model,
+    e_prior_trans = e_prior_trans,
     start_decline_prior = start_decline_prior,
     end_decline_prior = end_decline_prior,
     samp_frac_fixed = samp_frac_fixed, state_0 = state_0,

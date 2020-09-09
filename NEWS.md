@@ -1,5 +1,9 @@
 # covidseir
 
+# covidseir 0.0.0.9009
+
+* Add estimation of fraction distancing (`e`) back into the model.
+
 # covidseir 0.0.0.9007
 
 * Add a vignette
@@ -17,7 +21,7 @@
 
 # covidseir 0.0.0.9005
 
-* Fix a bug in the imported cases during the projection period.
+* Fix a bug in the imported cases.
 
 # covidseir 0.0.0.9004
 

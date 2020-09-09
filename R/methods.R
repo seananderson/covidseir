@@ -1,7 +1,7 @@
 #' @export
 #' @import methods
 print.covidseir <- function(x,
-  pars = c("R0", "i0", "f_s", "start_decline", "end_decline", "phi"), ...) {
+  pars = c("R0", "i0", "e", "f_s", "start_decline", "end_decline", "phi"), ...) {
   if ("fit_type" %in% names(x)) {
     if (x$fit_type == "optimizing") {
       phi_n <- grep("phi\\[", colnames(x$fit$theta_tilde))
