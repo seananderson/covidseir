@@ -358,10 +358,6 @@ fit_seir <- function(daily_cases,
     ode_control = ode_control,
     est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L
   )
-  # map_estimate <- rstan::optimizing(
-  #   stanmodels$seir,
-  #   data = stan_data
-  # )
   initf <- function(stan_data) {
     R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2] / 2)
     i0 <- stats::rlnorm(1, i0_prior[1], i0_prior[2] / 2)
@@ -375,12 +371,7 @@ fit_seir <- function(daily_cases,
         get_beta_params(f_prior[s, 1], f_prior[s, 2] / 4)$beta
       )
     }
-    init <- list(
-      R0 = R0, f_s = f_s, i0 = i0,
-      start_decline = start_decline, end_decline = end_decline
-    )
     ur <- get_ur(e_prior[1], pars[["ud"]])
-    f_s <- array(f, dim = stan_data$S)
     init <- list(R0 = R0, f_s = f_s, i0 = i0,
       ur = ur,
       start_decline = start_decline, end_decline = end_decline)
@@ -399,7 +390,7 @@ fit_seir <- function(daily_cases,
   if (fit_type != "VB") {
     opt <- tryCatch({
       cat("Finding the MAP estimate.\n")
-      rstan::optimizing(
+      opt <- rstan::optimizing(
         stanmodels$seir,
         data = stan_data,
         init = function() initf(stan_data),
@@ -410,7 +401,7 @@ fit_seir <- function(daily_cases,
         as_vector = TRUE,
         ...
       )
-    }, error = function(e) NA)
+    }, error = function(e) {print(e);NA})
   }
 
   if ((identical(opt, NA) || fit_type == "VB")) {

@@ -88,6 +88,7 @@ fit <- covidseir::fit_seir(
   samp_frac_fixed = samp_frac, 
   f_seg = f_seg,
   i0_prior = c(log(8), 1),
+  e_prior = c(0.8, 0.05),
   start_decline_prior = c(log(15), 0.1),
   end_decline_prior = c(log(22), 0.1),
   f_prior = cbind(c(0.4, 0.5, 0.6), c(0.2, 0.2, 0.2)),
