@@ -21,7 +21,7 @@
 
 # covidseir 0.0.0.9005
 
-* Fix a bug in the imported cases.
+* Fix a bug in the imported cases during the projection period.
 
 # covidseir 0.0.0.9004
 
