@@ -80,6 +80,8 @@
 #' @param fit_type Stan sampling/fitting algorithm to use. NUTS =
 #'   [rstan::sampling()] or [rstan::stan()]; VB = [rstan::vb()]; optimizing =
 #'   [rstan::optimizing()].
+#' @param init Initialization type. Draw randomly from the prior or try
+#'   to use the MAP estimate?
 #' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()] /
 #'   [rstan::vb()] / [rstan::optimizing()].
 #' @export

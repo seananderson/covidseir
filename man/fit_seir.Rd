@@ -148,6 +148,9 @@ can likely be left as is.}
 \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} or \code{\link[rstan:stan]{rstan::stan()}}; VB = \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}}; optimizing =
 \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}.}
 
+\item{init}{Initialization type. Draw randomly from the prior or try
+to use the MAP estimate?}
+
 \item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}} /
 \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}} / \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}.}
 }
