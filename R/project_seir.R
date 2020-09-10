@@ -19,6 +19,7 @@
 #' @param imported_window Number of days over which to distribute imported cases.
 #' @param iter MCMC iterations to include. Defaults to all.
 #' @param return_states Logical for whether to return the ODE states.
+#' @param parallel Use parallel processing via \pkg{future} and \pkg{furrr}?
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #'
 #' @importFrom dplyr bind_rows
@@ -103,6 +104,7 @@ project_seir <- function(
                          return_states = FALSE,
                          imported_cases = 0,
                          imported_window = 1,
+                         parallel = TRUE,
                          ...) {
   if (!identical(class(obj), "covidseir")) {
     stop("`obj` must be of class `covidseir`.")
@@ -252,8 +254,9 @@ project_seir <- function(
   pars <- c("R0", "i0", "f_s", "e", "ur", "phi", "mu", "y_rep")
   if (return_states) pars <- c("y_hat")
 
-  out <- furrr::future_map_dfr(iter, function(i) {
-  # out <- purrr::map_dfr(iter, function(i) {
+  apply_func <- if (parallel) furrr::future_map_dfr else purrr::map_dfr
+  # out <- furrr::future_map_dfr(iter, function(i) {
+  out <- apply_func(iter, function(i) {
     # out <- lapply(iter, function(i) {
     # out <- future.apply::future_lapply(iter, function(i) {
     fit <- rstan::sampling(

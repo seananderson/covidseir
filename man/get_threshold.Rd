@@ -10,7 +10,8 @@ get_threshold(
   forecast_days = 25,
   fs = seq(0.3, 0.8, length.out = 4),
   show_plot = TRUE,
-  window_check = 25
+  window_check = 25,
+  ...
 )
 }
 \arguments{
@@ -27,6 +28,8 @@ may be plenty.}
 \item{show_plot}{Make a diagnostic plot?}
 
 \item{window_check}{The window of days to use from the last day forecasted.}
+
+\item{...}{Other arguments for \code{\link[=project_seir]{project_seir()}}.}
 }
 \value{
 The threshold value.

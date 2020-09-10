@@ -15,6 +15,7 @@ project_seir(
   return_states = FALSE,
   imported_cases = 0,
   imported_window = 1,
+  parallel = TRUE,
   ...
 )
 }
@@ -40,6 +41,8 @@ Should be length \code{forecast_days - (f_fixed_start - nrow(daily_cases) - 1)}.
 \item{imported_cases}{Number of cases to import starting on first projection day.}
 
 \item{imported_window}{Number of days over which to distribute imported cases.}
+
+\item{parallel}{Use parallel processing via \pkg{future} and \pkg{furrr}?}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}}.}
 }

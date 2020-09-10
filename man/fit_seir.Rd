@@ -8,7 +8,7 @@ fit_seir(
   daily_cases,
   obs_model = c("NB2", "Poisson"),
   forecast_days = 0,
-  time_increment = 0.5,
+  time_increment = 0.25,
   samp_frac_fixed = NULL,
   samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
   samp_frac_seg = NULL,
@@ -34,8 +34,9 @@ fit_seir(
   save_state_predictions = FALSE,
   delay_scale = 9.85,
   delay_shape = 1.73,
-  ode_control = c(1e-06, 1e-05, 1e+05),
+  ode_control = c(1e-07, 1e-06, 1e+06),
   fit_type = c("NUTS", "VB", "optimizing"),
+  init = c("prior_random", "optimizing"),
   ...
 )
 }

@@ -159,7 +159,7 @@
 fit_seir <- function(daily_cases,
                      obs_model = c("NB2", "Poisson"),
                      forecast_days = 0,
-                     time_increment = 0.5,
+                     time_increment = 0.25,
                      samp_frac_fixed = NULL,
                      samp_frac_type = c("fixed", "estimated", "rw", "segmented"),
                      samp_frac_seg = NULL,
@@ -199,8 +199,9 @@ fit_seir <- function(daily_cases,
                      save_state_predictions = FALSE,
                      delay_scale = 9.85,
                      delay_shape = 1.73,
-                     ode_control = c(1e-6, 1e-5, 1e5),
+                     ode_control = c(1e-7, 1e-6, 1e6),
                      fit_type = c("NUTS", "VB", "optimizing"),
+                     init = c("prior_random", "optimizing"),
                      ...) {
   obs_model <- match.arg(obs_model)
   obs_model <-
@@ -386,8 +387,9 @@ fit_seir <- function(daily_cases,
 
   fit_type <- match.arg(fit_type)
 
+  init <- match.arg(init)
   opt <- NA
-  if (fit_type != "VB") {
+  if (fit_type != "VB" && init == "optimizing") {
     opt <- tryCatch({
       cat("Finding the MAP estimate.\n")
       opt <- rstan::optimizing(
@@ -404,7 +406,7 @@ fit_seir <- function(daily_cases,
     }, error = function(e) {print(e);NA})
   }
 
-  if ((identical(opt, NA) || fit_type == "VB")) {
+  if (identical(opt, NA) || fit_type == "VB" || init == "prior_random") {
     .initf <- function() initf(stan_data)
   } else if (fit_type == "NUTS") {
     cat("Using the MAP estimate for initialization.\n")
@@ -415,6 +417,7 @@ fit_seir <- function(daily_cases,
         R0 = unname(p[np == "R0"]),
         f_s = unname(p[grep("f_s\\[", np)]),
         i0 = unname(p[np == "i0"]),
+        ur = unname(p[np == "ur"]),
         start_decline = unname(p[np == "start_decline"]),
         end_decline = unname(p[np == "end_decline"])
       )
