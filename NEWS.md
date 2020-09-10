@@ -1,5 +1,14 @@
 # covidseir
 
+# covidseir 0.0.0.9010
+
+* Decrease default `time_increment` to 0.25 and make ODE control
+  more precise again after issues in leeway paper.
+  
+* Add initialization option (MAP or random).
+
+* Stop making projections parallel for now (possible issue in leeway paper).
+
 # covidseir 0.0.0.9009
 
 * Add estimation of fraction distancing (`e`) back into the model.
