@@ -391,7 +391,7 @@ fit_seir <- function(daily_cases,
 
   init <- match.arg(init)
   opt <- NA
-  if (fit_type != "VB" && init == "optimizing") {
+  if ((fit_type == "NUTS" && init == "optimizing") || fit_type == "optimizing") {
     opt <- tryCatch({
       cat("Finding the MAP estimate.\n")
       opt <- rstan::optimizing(
