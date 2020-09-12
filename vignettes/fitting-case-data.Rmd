@@ -173,7 +173,7 @@ We can also calculate the threshold for expected increases in prevalence. We est
 - Use this fitted regression line to determine what fractional normal contacts would result in an expected change in log prevalence of zero over time based on where the regression line crosses 0 on the y-axis.
 
 ```{r thresh, fig.asp=1}
-threshold <- covidseir::get_threshold(fit, iter = 1:50, 
+threshold <- covidseir::get_threshold(fit, iter = 1:30, 
   fs = seq(0.3, 0.8, length.out = 4))
 ```
 
@@ -212,3 +212,83 @@ ggplot(rt, aes(time, Rt, group = .iteration)) +
   geom_line(alpha = 0.2, na.rm = TRUE) +
   geom_hline(yintercept = 1, lty = 2)
 ```
+
+# Ensemble modelling
+
+We can easily ensemble multiple models. First, set up the f segments:
+
+```{r f-seg-2}
+f_seg <- c(0, rep(1, nrow(dat) - 1))
+day_new_f <- which(dat$date == ymd("2020-05-01"))
+f_seg[seq(day_new_f, length(f_seg))] <- 2
+day_ch <- which(dat$date == ymd("2020-06-01"))
+f_seg[seq(day_ch, length(f_seg))] <- 3
+day_ch <- which(dat$date == ymd("2020-08-01"))
+f_seg[seq(day_ch, length(f_seg))] <- 4
+f_seg
+```
+
+Fit the 2nd model:
+
+```{r fit2}
+fit2 <- covidseir::fit_seir(
+  daily_cases = dat$value,
+  samp_frac_fixed = samp_frac, 
+  f_seg = f_seg,
+  i0_prior = c(log(8), 1),
+  e_prior = c(0.8, 0.05),
+  start_decline_prior = c(log(15), 0.1),
+  end_decline_prior = c(log(22), 0.1),
+  f_prior = cbind(c(0.4, 0.5, 0.6, 0.6), c(0.2, 0.2, 0.2, 0.2)),
+  R0_prior = c(log(2.6), 0.2),
+  N_pop = 5.1e6, # BC population
+  iter = 500, # number of samples
+  fit_type = "optimizing" # for speed only
+)
+```
+
+Project both:
+
+```{r proj-ens}
+proj1 <- covidseir::project_seir(fit, iter = 1:50, forecast_days = 20)
+proj2 <- covidseir::project_seir(fit2, iter = 1:50, forecast_days = 20)
+```
+
+Bind the 2 sets of posterior samples before calculating quantiles and joining on dates:
+
+```{r tidy-ens}
+tidy_proj_ens <- dplyr::bind_rows(proj1, proj2) %>% 
+  covidseir::tidy_seir() %>% 
+  dplyr::left_join(lut, by = "day")
+```
+
+And plot them:
+
+```{r plot-ens}
+covidseir::plot_projection(tidy_proj_ens, obs_dat = dat,
+  value_column = "value", date_column = "date")
+```
+
+# Ensembles of Rt values
+
+We can do the same with the Rt values:
+
+```{r rt2}
+rt2 <- covidseir::get_rt(fit2, iter = 1:50)
+```
+
+```{r plot-rt-ens, message=FALSE, warning=FALSE}
+bind_rows(rt, rt2) %>% # bind the 2 models
+  filter(!is.na(Rt)) %>% 
+  group_by(time) %>%
+  summarise(
+    lwr = quantile(Rt, probs = 0.05), 
+    med = quantile(Rt, probs = 0.50),
+    upr = quantile(Rt, probs = 0.95)) %>% 
+  ggplot(aes(time, med, ymin = lwr, ymax = upr)) + 
+  geom_ribbon(alpha = 0.2) +
+  geom_line() +
+  geom_hline(yintercept = 1, lty = 2) +
+  ylab("Rt")
+```
+
