@@ -80,14 +80,16 @@
 #' @param fit_type Stan sampling/fitting algorithm to use. NUTS =
 #'   [rstan::sampling()] or [rstan::stan()]; VB = [rstan::vb()]; optimizing =
 #'   [rstan::optimizing()].
-#' @param init Initialization type. Draw randomly from the prior or try
-#'   to use the MAP estimate?
+#' @param init Initialization type. Draw randomly from the prior or try to use
+#'   the MAP estimate? Can be overridden by the `init_list` argument.
+#' @param init_list An optional named list foreign initialization. Note that the
+#'   `f_s` argument needs to be an array of appropriate length. See the example
+#'   below.
 #' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()] /
 #'   [rstan::vb()] / [rstan::optimizing()].
 #' @export
 #' @return A named list object
 #' @examples
-#' \donttest{
 #' # Example daily case data:
 #' cases <- c(
 #'   0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
@@ -105,7 +107,6 @@
 #' m <- fit_seir(
 #'   cases,
 #'   iter = 200,
-#'   chains = 1,
 #'   fit_type = "optimizing",
 #'   samp_frac_fixed = s1
 #' )
@@ -131,7 +132,6 @@
 #' m2 <- fit_seir(
 #'   daily_cases = cbind(cases, hosp),
 #'   iter = 200,
-#'   chains = 1,
 #'   samp_frac_type = "segmented", # `samp_frac_type` affects the first data type only
 #'   samp_frac_seg = samp_frac_seg,
 #'   samp_frac_fixed = cbind(s1, s2), # s1 is ignored and could be anything
@@ -149,15 +149,22 @@
 #' m3 <- fit_seir(
 #'   cases,
 #'   iter = 200,
-#'   chains = 1,
 #'   f_seg = f_seg,
 #'   f_prior = f_prior,
 #'   samp_frac_fixed = s1,
 #'   fit_type = "optimizing"
 #' )
 #' print(m3)
-#' }
 #'
+#' # Choose initial values as a named list:
+#' m <- fit_seir(cases,
+#'   fit_type = "optimizing",
+#'   samp_frac_fixed = s1,
+#'   init_list = list(
+#'     R0 = 3, f_s = array(0.2), # note that `f_s` is an array of appropriate length
+#'     i0 = 5, ur = 0.025, start_decline = 15, end_decline = 22)
+#' )
+
 fit_seir <- function(daily_cases,
                      obs_model = c("NB2", "Poisson"),
                      forecast_days = 0,
@@ -204,6 +211,7 @@ fit_seir <- function(daily_cases,
                      ode_control = c(1e-7, 1e-6, 1e6),
                      fit_type = c("NUTS", "VB", "optimizing"),
                      init = c("prior_random", "optimizing"),
+                     init_list = NULL,
                      ...) {
   obs_model <- match.arg(obs_model)
   obs_model <-
@@ -390,6 +398,8 @@ fit_seir <- function(daily_cases,
   fit_type <- match.arg(fit_type)
 
   init <- match.arg(init)
+  .initf <- if (is.null(init_list)) function() initf(stan_data) else init_list
+
   opt <- NA
   if ((fit_type == "NUTS" && init == "optimizing") || fit_type == "optimizing") {
     opt <- tryCatch({
@@ -397,7 +407,7 @@ fit_seir <- function(daily_cases,
       opt <- rstan::optimizing(
         stanmodels$seir,
         data = stan_data,
-        init = function() initf(stan_data),
+        init = .initf,
         seed = seed,
         hessian = TRUE,
         draws = iter,
@@ -425,6 +435,8 @@ fit_seir <- function(daily_cases,
       )
     }
   }
+
+  .initf <- if (is.null(init_list)) .initf else init_list
 
   if (fit_type == "NUTS") {
     cat("Sampling with the NUTS HMC sampler.\n")

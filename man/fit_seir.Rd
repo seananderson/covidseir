@@ -37,6 +37,7 @@ fit_seir(
   ode_control = c(1e-07, 1e-06, 1e+06),
   fit_type = c("NUTS", "VB", "optimizing"),
   init = c("prior_random", "optimizing"),
+  init_list = NULL,
   ...
 )
 }
@@ -148,8 +149,12 @@ can likely be left as is.}
 \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} or \code{\link[rstan:stan]{rstan::stan()}}; VB = \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}}; optimizing =
 \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}.}
 
-\item{init}{Initialization type. Draw randomly from the prior or try
-to use the MAP estimate?}
+\item{init}{Initialization type. Draw randomly from the prior or try to use
+the MAP estimate? Can be overridden by the \code{init_list} argument.}
+
+\item{init_list}{An optional named list foreign initialization. Note that the
+\code{f_s} argument needs to be an array of appropriate length. See the example
+below.}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}} /
 \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}} / \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}.}
@@ -162,7 +167,6 @@ This function fits a Stan SEIR model to one or more sets of COVID-19 case
 data. See \code{\link[=project_seir]{project_seir()}} for making predictions/projections.
 }
 \examples{
-\donttest{
 # Example daily case data:
 cases <- c(
   0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
@@ -180,7 +184,6 @@ s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
 m <- fit_seir(
   cases,
   iter = 200,
-  chains = 1,
   fit_type = "optimizing",
   samp_frac_fixed = s1
 )
@@ -206,7 +209,6 @@ hosp <- c(
 m2 <- fit_seir(
   daily_cases = cbind(cases, hosp),
   iter = 200,
-  chains = 1,
   samp_frac_type = "segmented", # `samp_frac_type` affects the first data type only
   samp_frac_seg = samp_frac_seg,
   samp_frac_fixed = cbind(s1, s2), # s1 is ignored and could be anything
@@ -224,13 +226,19 @@ f_prior <- matrix(c(0.4,0.6, rep(0.2,2)), ncol=2, nrow=2) # nrow corresponds to 
 m3 <- fit_seir(
   cases,
   iter = 200,
-  chains = 1,
   f_seg = f_seg,
   f_prior = f_prior,
   samp_frac_fixed = s1,
   fit_type = "optimizing"
 )
 print(m3)
-}
 
+# Choose initial values as a named list:
+m <- fit_seir(cases,
+  fit_type = "optimizing",
+  samp_frac_fixed = s1,
+  init_list = list(
+    R0 = 3, f_s = array(0.2), # note that `f_s` is an array of appropriate length
+    i0 = 5, ur = 0.025, start_decline = 15, end_decline = 22)
+)
 }
