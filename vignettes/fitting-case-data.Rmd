@@ -16,6 +16,8 @@ knitr::opts_chunk$set(
 )
 ```
 
+The covidseir R package can be installed from <https://github.com/seananderson/covidseir>.
+
 ```{r setup, message=FALSE, warning=FALSE}
 library(covidseir)
 library(dplyr)
@@ -57,13 +59,13 @@ We will set up a vector of assumed sampling fractions with one value per day and
 
 ```{r samp-frac}
 # Based on estimation with hospital data in other model:
-samp_frac <- c(rep(0.14, 13), rep(0.21, 40 - 13), rep(0.21, 11))
+samp_frac <- c(rep(0.14, 13), rep(0.21, 38))
 samp_frac <- c(samp_frac, rep(0.37, nrow(dat) - length(samp_frac)))
 samp_frac
 ggplot(dat, aes(date, samp_frac)) + geom_point()
 ```
 
-We then need to set up a vector of 'f' segment IDs. These start at 0 (before any social distancing) and increment by 1 every time we want to estimate a new contact rate, say because of known social distancing policy changes. Here we will estimate new 'f' segments starting May 1 and June 1. Note that the vector needs to switch from 0 to 1 before the first estimated date of the social distancing ramp. The start and end of the ramp are estimated parameters. It is simplest to start the value `1` on the 2nd day.
+We then need to set up a vector of 'f' (contract rate fraction) segment IDs. These start at 0 (before any social distancing) and increment by 1 every time we want to estimate a new contact rate, say because of known social distancing policy changes. Here we will estimate new 'f' segments starting May 1 and June 1. Note that the vector needs to switch from 0 to 1 before the first estimated date of the social distancing ramp. The start and end of the ramp are estimated parameters. It is simplest to start the value 1 on the 2nd day.
 
 ```{r f-seg}
 f_seg <- c(0, rep(1, nrow(dat) - 1))
@@ -78,9 +80,9 @@ f_seg
 ggplot(dat, aes(date, f_seg)) + geom_point()
 ```
 
-Now we can fit the SEIR model. This requires specifying a prior on 'i0' (people infected at initial point in time), the starting and ending of the ramp-in of social distancing (`start_decline_prior` and `end_decline_prior`), 'R0', and 'f'. The f prior by default is mean 0.4 and SD 0.2 from a beta distribution and applies to all f segments. You can extend it to be different for each f segment by using a matrix, which likely makes sense if you think that social distancing has relaxed over time. See `?fit_seir` for details and default values.
+Now we can fit the SEIR model. This requires specifying a prior on 'i0' (people infected at initial point in time), the starting and ending of the ramp-in of social distancing (`start_decline_prior` and `end_decline_prior`), 'R0', and 'f'. The f prior by default is mean 0.4 and SD 0.2 from a beta distribution and applies to all f segments. You can extend this prior to be different for each 'f' segment by using a matrix, which likely makes sense if you think that social distancing has relaxed over time. See `?fit_seir` for details and default values.
 
-In the following example, we will use `rstan::optimizing()` to find the MAP (maximum a posteriori probability) estimate combined with sampling from the covariance matrix to generate samples. Alternatives are variational Bayes (`"VB"`) and full Bayesian NUTS MCMC sampling (`"NUTS"`). We recommend NUTS sampling for final inference; however, the MAP estimate can be useful for model experimentation and is what we will use here for speed:
+In the following example, we will use `rstan::optimizing()` to find the MAP (maximum a posteriori probability) estimate combined with sampling from the covariance matrix to generate samples. Alternatives are variational Bayes (`"VB"`) and full Bayesian NUTS MCMC sampling (`"NUTS"`). We strongly recommend NUTS sampling for final inference; however, the MAP estimate can be useful for model experimentation and is what we will use here in this vignette for speed:
 
 ```{r fit1, warning=FALSE}
 fit <- covidseir::fit_seir(
@@ -94,7 +96,7 @@ fit <- covidseir::fit_seir(
   f_prior = cbind(c(0.4, 0.5, 0.6), c(0.2, 0.2, 0.2)),
   R0_prior = c(log(2.6), 0.2),
   N_pop = 5.1e6, # BC population
-  iter = 500, # number of samples
+  iter = 500, # number of posterior samples
   fit_type = "optimizing" # for speed only
 )
 ```
@@ -116,14 +118,14 @@ proj <- covidseir::project_seir(fit, iter = 1:50)
 proj
 ```
 
-Then we will take the posterior samples, re-sample 20 times from the negative binomial observation model to generate smother predictions, and transform the output into a tidy data frame for plotting:
+Then we will take the posterior samples, re-sample 20 times from the negative binomial observation model to generate smoother predictions, and transform the output into a tidy data frame for plotting:
 
 ```{r tidy-proj}
 tidy_proj <- covidseir::tidy_seir(proj, resample_y_rep = 20)
 tidy_proj
 ```
 
-For plotting, we need to join a date column back on, since our projections only have a column for a numeric day. Here we do that by making a look-up-table (`lut`).
+For plotting, we need to join a date column back on, since our projections only have a column for a numeric day. Here, we do that by making a look-up-table (`lut`).
 
 ```{r join-date1}
 first_day <- min(dat$date)
@@ -136,14 +138,14 @@ tidy_proj <- dplyr::left_join(tidy_proj, lut, by = "day")
 dplyr::glimpse(tidy_proj)
 ```
 
-You can plot the output however you would like; however, the package includes a built-in basic plotting function. The `value_column` and `date_column` must both be columns present in the projection and observed data.
+You can plot the output however you would like; however, the covidseir package includes a built-in basic plotting function. The `value_column` and `date_column` must both be columns present in the projection and observed data.
 
 ```{r plot-projection}
 covidseir::plot_projection(tidy_proj, obs_dat = dat,
   value_column = "value", date_column = "date")
 ```
 
-If we wanted to make our projection assuming that social distancing changes in the future, we can do that as follows. For this example we will project 45 days into the future and change the contact ratio 'f' to be two-thirds of its final estimated value (f segment `3`) starting after 5 days from the last observation. We will use only the first 50 posterior samples for speed of this example.
+If we wanted to make our projection assuming that social distancing were to change in the future, we could do that as follows. For this example we will project 45 days into the future and change the contact ratio 'f' to be two-thirds of its final estimated value ('f' segment 3) starting after 5 days from the last observation. We will use only the first 50 posterior samples for speed of this example.
 
 ```{r reduction-fit}
 days_project <- 45
@@ -165,7 +167,7 @@ covidseir::plot_projection(tidy_proj2, obs_dat = dat,
   value_column = "value", date_column = "date")
 ```
 
-We can also calculate the threshold for expected increases in prevalence. We estimate the threshold by determining which f value gives a 0 rate of growth using the following procedure:
+We can also calculate the threshold for expected increases in prevalence. We estimate the threshold by determining which 'f' value gives a zero rate of growth using the following procedure:
 
 - For a sequence of fractions of normal contacts (f), project the model posterior for N days into the future.
 - Fit a linear regression to determine the slope of log(prevalence) vs. time for the last X days of the projection period for each of the f values.
@@ -177,7 +179,7 @@ threshold <- covidseir::get_threshold(fit, iter = 1:30,
   fs = seq(0.3, 0.8, length.out = 4))
 ```
 
-We need to check that the above plot looks reasonable to fit a straight line through so we can extrapolate the point at which the slope values cross zero. It is possible the upper f values (`fs`) will cause the population to reach heard immunity, resulting in prevalence decreasing over time and negative slopes. In that case, it wouldn't make sense to fit a straight line through the points and the upper limit of explored f values or the number of forecasted days should be reduced. Here, it looks reasonable.
+We need to check that the above plot looks reasonable to fit a straight line through so we can extrapolate the point at which the slope values cross zero. It is possible the upper 'f' values (`fs`) will cause the population to reach heard immunity, resulting in prevalence decreasing over time and negative slopes. In that case, it wouldn't make sense to fit a straight line through the points and the upper limit of explored 'f' values or the number of forecasted days should be reduced. Here, it looks reasonable.
 
 The output is a posterior distribution of the threshold:
 
@@ -185,7 +187,7 @@ The output is a posterior distribution of the threshold:
 hist(threshold)
 ```
 
-We can calculate the ratio between the posterior f values for each segment and the threshold.
+We can calculate the ratio between the posterior 'f' values for each segment and the threshold:
 
 ```{r f-ratios}
 f_ratios <- fit$post$f_s[seq_along(threshold), ] / threshold
@@ -200,7 +202,7 @@ reshape2::melt(f_ratios) %>%
   xlab("f segment") + ylab("Contact threshold ratio")
 ```
 
-We can also calculate the implied Rt. The output includes the various SEIR states as well:
+We can also calculate the implied Rt. The output includes the various SEIR states:
 
 ```{r get-rt}
 rt <- covidseir::get_rt(fit, iter = 1:50)
@@ -215,7 +217,7 @@ ggplot(rt, aes(time, Rt, group = .iteration)) +
 
 # Ensemble modelling
 
-We can easily ensemble multiple models. First, set up the f segments:
+We can easily ensemble multiple models. First, set up the 'f' segments:
 
 ```{r f-seg-2}
 f_seg <- c(0, rep(1, nrow(dat) - 1))
@@ -291,4 +293,4 @@ bind_rows(rt, rt2) %>% # bind the 2 models
   geom_hline(yintercept = 1, lty = 2) +
   ylab("Rt")
 ```
-
+a
