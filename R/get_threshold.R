@@ -31,7 +31,7 @@ get_threshold <- function(obj, iter = seq_along(obj$post$R0),
       iter = iter,
       f_fixed_start = nrow(obj$daily_cases) + 1,
       f_fixed = rep(.f, forecast_days),
-      return_states = TRUE
+      return_states = TRUE, ...
     )
   })
   slopes <- purrr::map2_df(m_fs, fs, function(x, y) {
@@ -67,4 +67,58 @@ get_threshold <- function(obj, iter = seq_along(obj$post$R0),
     out2 <- dplyr::filter(nd, predicted_slope > 0)
     out2[1, "f", drop = TRUE]
   })
+}
+
+#' Get the doubling time
+#'
+#' @param obj Output from [fit_seir()].
+#' @param iter Vector of MCMC iterations to work with.
+#' @param forecast_days Days to use in forecast.
+#' @param window_check The window of days to use from the last day forecasted.
+#' @param show_plot Make a diagnostic plot? Each line is a posterior sample of
+#'   the log prevalence time series. Each line should be well approximated by a
+#'   linear model
+#' @param ... Other arguments for [project_seir()].
+#'
+#' @details Assumes that prevalence is increasing; negative values imply halving
+#'   times. Use `show_plot` if you want to check the time series.
+#' @return A vector of doubling times across iterations.
+#' @export
+#' @importFrom graphics lines plot
+#' @examples
+#' # See ?project_seir
+get_doubling_time <- function(obj, iter = seq_along(obj$post$R0),
+                              forecast_days = 25, window_check = 25,
+                              show_plot = TRUE, ...) {
+  m_proj <- project_seir(obj,
+    forecast_days = forecast_days,
+    iter = iter,
+    return_states = TRUE, ...
+  )
+  temp <- dplyr::filter(
+    m_proj, time > max(m_proj$time) - window_check,
+    variable %in% c("I", "Id")
+  )
+  temp <- dplyr::group_by(temp, .iteration, time)
+  temp <- dplyr::summarize(temp,
+    I = value[variable == "I"], Id = value[variable == "Id"],
+    prevalence = I + Id, .groups = "drop_last"
+  )
+  if (show_plot) {
+    plot(temp$time, log(temp$prevalence),
+      type = "n", xlab = "Time",
+      ylab = "log(prevalence)"
+    )
+    for (i in unique(temp$.iteration)) {
+      lines(temp[temp$.iteration == i, "time", drop = TRUE],
+        log(temp[temp$.iteration == i, "prevalence", drop = TRUE]),
+        col = "#00000060"
+      )
+    }
+  }
+  temp <- dplyr::group_by(temp, .iteration)
+  temp <- dplyr::group_split(temp)
+  temp <- purrr::map(temp, ~ lm(log(prevalence) ~ time, data = .x))
+  temp <- purrr::map_df(temp, ~ tibble(slope = coef(.x)[[2]]))
+  log(2) / temp$slope
 }

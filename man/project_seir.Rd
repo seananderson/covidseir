@@ -116,6 +116,9 @@ tidy_seir(p) \%>\% plot_projection(obs_dat = obs_dat)
 thresh <- get_threshold(m, iter = 1:40, show_plot = TRUE)
 mean(thresh)
 
+# Get doubling time (prevalence is declining in this example)
+get_doubling_time(m, iter = 1:40, show_plot = TRUE)
+
 states_with_Rt <- get_rt(m)
 states_with_Rt
 
