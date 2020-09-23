@@ -416,6 +416,9 @@ fit_seir <- function(daily_cases,
         ...
       )
     }, error = function(e) {print(e);NA})
+    if (identical(opt, NA)) {
+      warning("rstan::optimizing() failed to converge.", call. = FALSE)
+    }
   }
 
   if (identical(opt, NA) || fit_type == "VB" || init == "prior_random") {
