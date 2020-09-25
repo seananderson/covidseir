@@ -25,6 +25,8 @@ library(ggplot2)
 ymd <- lubridate::ymd
 ```
 
+# Data
+
 First, we will read in the British Columbia, Canada COVID-19 reported-case data. This comes from <http://www.bccdc.ca/Health-Info-Site/Documents/BCCDC_COVID19_Dashboard_Case_Details.csv>.
 
 ```{r dat}
@@ -53,6 +55,10 @@ dat
 ggplot(dat, aes(date, value)) + geom_line()
 ```
 
+# Model setup
+
+## Sampling fraction
+
 We need an estimate of the fraction of positive cases that are sampled/detected. This could be based on serology testing and known changes in testing policy. In this case, we are basing the sampled fractions on known dates of changes in testing policy combined with numbers of hospitalizations and an assumed hospitalization rate from a model fit elsewhere.
 
 We will set up a vector of assumed sampling fractions with one value per day and changes on the appropriate days:
@@ -61,11 +67,11 @@ We will set up a vector of assumed sampling fractions with one value per day and
 # Based on estimation with hospital data in other model:
 samp_frac <- c(rep(0.14, 13), rep(0.21, 38))
 samp_frac <- c(samp_frac, rep(0.37, nrow(dat) - length(samp_frac)))
-samp_frac
-ggplot(dat, aes(date, samp_frac)) + geom_point()
 ```
 
-We then need to set up a vector of 'f' (contract rate fraction) segment IDs. These start at 0 (before any social distancing) and increment by 1 every time we want to estimate a new contact rate, say because of known social distancing policy changes. Here we will estimate new 'f' segments starting May 1 and June 1. Note that the vector needs to switch from 0 to 1 before the first estimated date of the social distancing ramp. The start and end of the ramp are estimated parameters. It is simplest to start the value 1 on the 2nd day.
+## Contact rate breakpoints
+
+We then need to set up a vector of 'f' (contact rate fraction) segment IDs. These start at 0 (before any social distancing) and increment by 1 every time we want to estimate a new contact rate, say because of known social distancing policy changes. Here we will estimate new 'f' segments starting May 1 and June 1. Note that the vector needs to switch from 0 to 1 before the first estimated date of the social distancing ramp. The start and end of the ramp are estimated parameters. It is simplest to start the value 1 on the 2nd day.
 
 ```{r f-seg}
 f_seg <- c(0, rep(1, nrow(dat) - 1))
@@ -76,9 +82,7 @@ f_seg[seq(day_ch, length(f_seg))] <- 3
 f_seg
 ```
 
-```{r plot-f-seg}
-ggplot(dat, aes(date, f_seg)) + geom_point()
-```
+# Fitting the model
 
 Now we can fit the SEIR model. This requires specifying a prior on 'i0' (people infected at initial point in time), the starting and ending of the ramp-in of social distancing (`start_decline_prior` and `end_decline_prior`), 'R0', and 'f'. The f prior by default is mean 0.4 and SD 0.2 from a beta distribution and applies to all f segments. You can extend this prior to be different for each 'f' segment by using a matrix, which likely makes sense if you think that social distancing has relaxed over time. See `?fit_seir` for details and default values.
 
@@ -105,13 +109,13 @@ fit <- covidseir::fit_seir(
 print(fit)
 ```
 
+# Visualizing the model fit
+
 If you would like, you can choose to use parallel processing for the projections:
 
 ```{r future, eval=FALSE}
 future::plan(future::multisession)
 ```
-
-# Checking model fit
 
 Now we will take the fitted model and calculate the corresponding model predictions. This can be slow, especially with future projections, and so we only use the first 50 posterior samples for this quick vignette example:
 
@@ -147,6 +151,8 @@ covidseir::plot_projection(tidy_proj, obs_dat = dat,
   value_column = "value", date_column = "date")
 ```
 
+# Checking model residuals
+
 We can check the model fit residuals (here observed minus expected value):
 
 ```{r resids}
@@ -175,7 +181,7 @@ qqline(resid)
 
 If we wanted to make a projection assuming that social distancing were to change in the future, we could do that as follows. For this example we will project 45 days into the future and change the contact ratio 'f' to be two-thirds of its final estimated value ('f' segment 3) starting after 5 days from the last observation. We will use only the first 50 posterior samples for speed of this example.
 
-```{r reduction-fit}
+```{r reduction-proj}
 days_project <- 45
 day_start_reduction <- 5
 proj2 <- covidseir::project_seir(
@@ -257,6 +263,82 @@ hist(dbl_time)
 ```
 
 The first plot should look linear and increasing for this to make sense.
+
+# Adding covariates
+
+We can add covariates that affect the expected log case counts each day through the model matrix argument `X`. This can be useful, for example, to model a weekly pattern in reported case counts. One simple approach would be to model each day of the week as an independent factor:
+
+```{r dow-factor}
+# Set up so the first day is a Sunday:
+dow <- data.frame(day_of_week = rep(gl(7, 1), 999)[-c(1:6)])
+dow <- dow[seq_len(nrow(dat)), , drop = FALSE]
+X <- model.matrix(~ 0 + day_of_week, dow)
+fit_dow <- fit_seir(
+  daily_cases = dat$value,
+  samp_frac_fixed = samp_frac,
+  f_seg = f_seg,
+  i0_prior = c(log(8), 1),
+  e_prior = c(0.8, 0.05),
+  start_decline_prior = c(log(15), 0.1),
+  end_decline_prior = c(log(22), 0.1),
+  f_prior = cbind(c(0.4, 0.5, 0.6), c(0.2, 0.2, 0.2)),
+  N_pop = 5.1e6,
+  iter = 200,
+  fit_type = "optimizing",
+  X = X # <- the model matrix
+)
+covidseir::project_seir(fit_dow, iter = 1:40) %>%
+  covidseir::tidy_seir() %>%
+  covidseir::plot_projection(obs_dat = dat,
+    value_column = "value", date_column = "day"
+  )
+```
+
+The resulting `beta` coefficients represent an additive effect in log space or a multiplicative effect on expected case counts if exponentiated:
+
+```{r beta}
+purrr::map_dfr(1:7, ~
+    tibble(dow = .x, b = fit_dow$post[[paste0("beta[", .x, "]")]])) %>%
+  ggplot(aes(dow, exp(b), group = dow)) + geom_violin() +
+  scale_x_continuous(breaks = 1:7, labels = c("M", "T", "W", "T", "F", "S", "S")) + ylab("Multiplicative effect on expected case counts") +
+  xlab("Day of week")
+```
+
+Another approach would be to use a cyclical spline from the mgcv package. This is a spline where the value between Monday and Sunday are forced to join:
+
+```{r gam-cc}
+library(mgcv)
+dow$day_of_week <- as.numeric(dow$day_of_week)
+dow$cases <- dat$value
+mgam <- gam(cases ~ 0 + s(day_of_week, bs = "cc", k = 4), 
+  data = dow, family = nb)
+X <- model.matrix(mgam)
+fit_gam <- fit_seir(
+  daily_cases = dat$value,
+  samp_frac_fixed = samp_frac,
+  f_seg = f_seg,
+  i0_prior = c(log(8), 1),
+  e_prior = c(0.8, 0.05),
+  start_decline_prior = c(log(15), 0.1),
+  end_decline_prior = c(log(22), 0.1),
+  f_prior = cbind(c(0.4, 0.5, 0.6), c(0.2, 0.2, 0.2)),
+  N_pop = 5.1e6,
+  iter = 200,
+  fit_type = "optimizing",
+  X = X # <- the model matrix
+)
+covidseir::project_seir(fit_gam, iter = 1:40) %>%
+  covidseir::tidy_seir() %>%
+  covidseir::plot_projection(obs_dat = dat,
+    value_column = "value", date_column = "day"
+  )
+```
+
+Or the pattern could be modelled with a sine wave:
+
+```{r, eval=FALSE}
+X <- matrix(sin(2 * pi * dow$day_of_week/7), ncol = 1)
+```
 
 # Ensemble modelling
 
