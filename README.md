@@ -45,7 +45,7 @@ Then, install the covidseir package with:
 remotes::install_github("seananderson/covidseir")
 ```
 
-See the examples in `?fit_seir` and `?project_seir` and the [vignette](docs/articles/fitting-case-data.html).
+See the examples in `?fit_seir` and `?project_seir` and the [vignette](https://seananderson.github.io/covidseir/articles/fitting-case-data.html).
 
 To install the package with the vignette:
 
