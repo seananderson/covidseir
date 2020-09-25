@@ -122,3 +122,32 @@ get_doubling_time <- function(obj, iter = seq_along(obj$post$R0),
   temp <- purrr::map_df(temp, ~ tibble(slope = coef(.x)[[2]]))
   log(2) / temp$slope
 }
+
+# get_doubling_ts <- function(obj, iter = seq_along(obj$post$R0), ...) {
+#   m_proj <- project_seir(obj,
+#     forecast_days = 0,
+#     iter = iter,
+#     return_states = TRUE, ...
+#   )
+#   temp <- dplyr::filter(
+#     m_proj, time > 0,
+#     variable %in% c("I", "Id")
+#   )
+#   temp <- dplyr::group_by(temp, .iteration, time)
+#   temp <- dplyr::summarize(temp,
+#     I = value[variable == "I"], Id = value[variable == "Id"],
+#     prevalence = I + Id, .groups = "drop_last"
+#   )
+#
+#   browser()
+#
+#
+#
+#
+#
+#   temp <- dplyr::group_by(temp, .iteration)
+#   temp <- dplyr::group_split(temp)
+#   temp <- purrr::map(temp, ~ lm(log(prevalence) ~ time, data = .x))
+#   temp <- purrr::map_df(temp, ~ tibble(slope = coef(.x)[[2]]))
+#   log(2) / temp$slope
+# }
