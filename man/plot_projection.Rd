@@ -20,8 +20,10 @@ plot_residuals(
   obj,
   value_column = "value",
   date_column = "day",
-  ylab = "Residual\\n(cases - mean predicted cases)",
-  date_function = lubridate::ymd
+  type = c("raw", "quantile"),
+  ylab = if (type == "raw") "Residual" else "Quantile residual",
+  date_function = lubridate::ymd,
+  return_residuals = FALSE
 )
 }
 \arguments{
@@ -44,8 +46,11 @@ column.}
 
 \item{obj}{Outut from \code{\link[=fit_seir]{fit_seir()}}.}
 
-\item{date_function}{A function to translate the character representation of
-the date if \code{date_column} is a date.}
+\item{type}{Raw (observed - expected) or quantile residuals (\code{covidseir:::qres_nbinom2})?}
+
+\item{date_function}{A function to translate the character representation of}
+
+\item{return_residuals}{Return residuals instead of plot?}
 }
 \value{
 A ggplot object

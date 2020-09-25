@@ -115,16 +115,31 @@ plot_projection <- function(pred_dat, obs_dat, col = "#377EB8",
 #' @param obj Outut from [fit_seir()].
 #' @param date_function A function to translate the character representation of
 #'   the date if `date_column` is a date.
+#' @param type Raw (observed - expected) or quantile residuals (`covidseir:::qres_nbinom2`)?
+#' @param date_function A function to translate the character representation of
+#' @param return_residuals Return residuals instead of plot?
 #' @export
 
 plot_residuals <- function(pred_dat, obs_dat, obj,
                            value_column = "value", date_column = "day",
-                           ylab = "Residual\n(cases - mean predicted cases)",
-                           date_function = lubridate::ymd) {
+                           type = c("raw", "quantile"),
+                           ylab = if (type == "raw") "Residual" else "Quantile residual",
+                           date_function = lubridate::ymd,
+                           return_residuals = FALSE) {
+
+  type <- match.arg(type)
   temp <- obs_dat
   temp$mu_0.50 <- pred_dat$mu_0.50
-  temp$resid <- temp[[value_column]] - pred_dat$mu_0.50
-
+  if (type == "raw") {
+    temp$resid <- temp[[value_column]] - pred_dat$mu_0.50
+  } else {
+    if (obj$stan_data$est_phi) {
+      temp$resid <- qres_nbinom2(temp[[value_column]], pred_dat$mu_0.50,
+        stats::median(obj$post$phi))
+    } else {
+      temp$resid <- qres_pois(temp[[value_column]], pred_dat$mu_0.50)
+    }
+  }
   f_breaks <- as.numeric(obj$stan_data$x_i[grep("^f_seg*", names(obj$stan_data$x_i))])
   f_breaks <- obs_dat[[date_column]][diff(f_breaks) == 1][-1] + 1
   f_breaks <- f_breaks[-length(f_breaks)]
@@ -134,19 +149,37 @@ plot_residuals <- function(pred_dat, obs_dat, obj,
   if (identical(class(obs_dat[[date_column]]), "Date")) {
     f_breaks <- date_function(f_breaks)
   }
-  g <- ggplot(temp, aes_string(date_column, "resid")) +
-    geom_point() +
-    ggplot2::geom_smooth(
-      se = TRUE, col = "red", method = "loess",
-      formula = "y ~ x"
-    ) +
-    ylab(ylab) +
-    theme(axis.title.x = element_blank())
-  if (identical(class(obs_dat[[date_column]]), "Date")) {
-    g <- g + ggplot2::scale_x_date(date_breaks = "1 month", date_labels = "%b")
+  if (!return_residuals) {
+    g <- ggplot(temp, aes_string(date_column, "resid")) +
+      geom_point() +
+      ggplot2::geom_smooth(
+        se = TRUE, col = "red", method = "loess",
+        formula = "y ~ x"
+      ) +
+      ylab(ylab) +
+      theme(axis.title.x = element_blank())
+    if (identical(class(obs_dat[[date_column]]), "Date")) {
+      g <- g + ggplot2::scale_x_date(date_breaks = "1 month", date_labels = "%b")
+    }
+    for (i in seq_along(f_breaks)) {
+      g <- g + ggplot2::geom_vline(xintercept = f_breaks, lty = 2, col = "grey50")
+    }
+    g
+  } else {
+    temp$resid
   }
-  for (i in seq_along(f_breaks)) {
-    g <- g + ggplot2::geom_vline(xintercept = f_breaks, lty = 2, col = "grey50")
-  }
-  g
+}
+
+qres_nbinom2 <- function(y, mu, phi) {
+  a <- stats::pnbinom(y - 1, size = phi, mu = mu)
+  b <- stats::pnbinom(y, size = phi, mu = mu)
+  u <- stats::runif(n = length(y), min = a, max = b)
+  stats::qnorm(u)
+}
+
+qres_pois <- function(y, mu) {
+  a <- stats::ppois(y - 1, mu)
+  b <- stats::ppois(y, mu)
+  u <- stats::runif(n = length(y), min = a, max = b)
+  stats::qnorm(u)
 }

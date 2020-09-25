@@ -111,6 +111,8 @@ If you would like, you can choose to use parallel processing for the projections
 future::plan(future::multisession)
 ```
 
+# Checking model fit
+
 Now we will take the fitted model and calculate the corresponding model predictions. This can be slow, especially with future projections, and so we only use the first 50 posterior samples for this quick vignette example:
 
 ```{r proj}
@@ -145,7 +147,33 @@ covidseir::plot_projection(tidy_proj, obs_dat = dat,
   value_column = "value", date_column = "date")
 ```
 
-If we wanted to make our projection assuming that social distancing were to change in the future, we could do that as follows. For this example we will project 45 days into the future and change the contact ratio 'f' to be two-thirds of its final estimated value ('f' segment 3) starting after 5 days from the last observation. We will use only the first 50 posterior samples for speed of this example.
+We can check the model fit residuals (here observed minus expected value):
+
+```{r resids}
+plot_residuals(tidy_proj, obs_dat = dat, obj = fit)
+```
+
+Or randomized quantile residuals, which should be approximately normally distributed (but introduce some randomness within each integer observed value):
+
+```{r resids-qres}
+set.seed(1)
+plot_residuals(tidy_proj, obs_dat = dat, obj = fit, type = "quantile")
+```
+
+We can extract the (randomized quantile) residuals themselves to plot them however we would like or check their distribution:
+
+```{r resids-qres-hist}
+set.seed(1)
+resid <- plot_residuals(tidy_proj, obs_dat = dat, obj = fit, type = "quantile",
+  return_residuals = TRUE)
+hist(resid)
+qqnorm(resid)
+qqline(resid)
+```
+
+# Projections
+
+If we wanted to make a projection assuming that social distancing were to change in the future, we could do that as follows. For this example we will project 45 days into the future and change the contact ratio 'f' to be two-thirds of its final estimated value ('f' segment 3) starting after 5 days from the last observation. We will use only the first 50 posterior samples for speed of this example.
 
 ```{r reduction-fit}
 days_project <- 45
@@ -166,6 +194,8 @@ tidy_proj2 <- dplyr::left_join(tidy_proj2, lut, by = "day")
 covidseir::plot_projection(tidy_proj2, obs_dat = dat,
   value_column = "value", date_column = "date")
 ```
+
+# Calculating the threshold for increase
 
 We can also calculate the threshold for expected increases in prevalence. We estimate the threshold by determining which 'f' value gives a zero rate of growth using the following procedure:
 
@@ -202,6 +232,8 @@ reshape2::melt(f_ratios) %>%
   xlab("f segment") + ylab("Contact threshold ratio")
 ```
 
+# Calculating Rt
+
 We can also calculate the implied Rt. The output includes the various SEIR states:
 
 ```{r get-rt}
@@ -215,9 +247,20 @@ ggplot(rt, aes(time, Rt, group = .iteration)) +
   geom_hline(yintercept = 1, lty = 2)
 ```
 
+# Calculating doubling time
+
+We can calculate the prevalence doubling time:
+
+```{r dbl}
+dbl_time <- covidseir::get_doubling_time(fit, iter = 1:50)
+hist(dbl_time)
+```
+
+The first plot should look linear and increasing for this to make sense.
+
 # Ensemble modelling
 
-We can easily ensemble multiple models. First, set up the 'f' segments:
+We can ensemble multiple models. First, set up the 'f' segments:
 
 ```{r f-seg-2}
 f_seg <- c(0, rep(1, nrow(dat) - 1))
