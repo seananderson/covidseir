@@ -29,25 +29,25 @@ Anderson, S. C., Mulberry, N., Edwards, A. M., Stockdale, J. E., Iyaniwura, S. A
 
 ## Installation
 
-Before installation, you will need a [C++ compiler installed to compile the Stan model](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started). **Note that if you are on Windows, you will need to follow the 'Configuration' section [here](https://github.com/stan-dev/rstan/wiki/Installing-RStan-from-source-on-Windows) not the one from the previous sentence**. However, you likely do not need to follow the rest of the instructions from that page to install rstan itself from source.
+Before installation, you will need a C++ compiler installed to compile the Stan model. If you are on a Mac or Linux, follow [these instructions](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started). If you are on Windows, follow the 'Configuration' section [here](https://github.com/stan-dev/rstan/wiki/Installing-RStan-from-source-on-Windows) (you do not need to follow the rest of the instructions from that page to install rstan itself from source).
 
-In particular, the following must return `TRUE` before continuing:
+The following must return `TRUE` before continuing:
 
 ```r
 # install.packages("pkgbuild")
 pkgbuild::has_build_tools(debug = TRUE)
 ```
 
-Then, install the package with:
+Then, install the covidseir package with:
 
 ```r
 # install.packages("remotes")
 remotes::install_github("seananderson/covidseir")
 ```
 
-See the examples in `?fit_seir` and `?project_seir`.
+See the examples in `?fit_seir` and `?project_seir` and the [vignette](docs/articles/fitting-case-data.html).
 
-If you would like to view the rendered [vignette](vignettes/fitting-case-data.Rmd), install the package with:
+To install the package with the vignette:
 
 ```r
 remotes::install_github("seananderson/covidseir", build_vignettes = TRUE)

@@ -6,6 +6,12 @@ cache:
   - packages
   - ccache
 
+before_cache: Rscript -e 'remotes::install_cran("pkgdown")'
+deploy:
+  provider: script
+  script: Rscript -e 'pkgdown::deploy_site_github()'
+  skip_cleanup: true
+
 r_build_args: '--no-build-vignettes'
 r_check_args: '--ignore-vignettes'
 

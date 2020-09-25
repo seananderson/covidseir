@@ -7,3 +7,5 @@ inst/doc
 *_cache*
 inst/*.pdf
 inst/fitting-case*.Rmd
+docs
+docs/
