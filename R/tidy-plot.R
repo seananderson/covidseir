@@ -115,6 +115,7 @@ plot_projection <- function(pred_dat, obs_dat, col = "#377EB8",
 #' @param obj Outut from [fit_seir()].
 #' @param date_function A function to translate the character representation of
 #'   the date if `date_column` is a date.
+#' @export
 
 plot_residuals <- function(pred_dat, obs_dat, obj,
                            value_column = "value", date_column = "day",
