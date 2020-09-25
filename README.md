@@ -25,7 +25,7 @@ Anderson, S. C., Mulberry, N., Edwards, A. M., Stockdale, J. E., Iyaniwura, S. A
 
 [Illustration for logo by Alissa Eckert, MSMI; Dan Higgins, MAMS](https://phil.cdc.gov/Details.aspx?pid=23311).
 
-### This package is a work in progress. Arguments and output format may still change and not all functionality has been tested yet. ###
+*This package is a work in progress: arguments and output format may still change and not all functionality has been tested.*
 
 ## Installation
 
