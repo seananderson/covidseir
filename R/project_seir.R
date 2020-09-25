@@ -20,6 +20,7 @@
 #' @param iter MCMC iterations to include. Defaults to all.
 #' @param return_states Logical for whether to return the ODE states.
 #' @param parallel Use parallel processing via \pkg{future} and \pkg{furrr}?
+#' @param X An optional model matrix that acts additively on log expected cases.
 #' @param ... Other arguments to pass to [rstan::sampling()].
 #'
 #' @importFrom dplyr bind_rows
@@ -69,6 +70,9 @@
 #' library(magrittr) # for %>%
 #' tidy_seir(p) %>% plot_projection(obs_dat = obs_dat)
 #'
+#' tidy_seir(p) %>%
+#'   plot_residuals(obs_dat = obs_dat, obj = m)
+#'
 #' # for parallel processing (optional)
 #' # future::plan(future::multisession)
 #' p <- project_seir(m,
@@ -108,6 +112,7 @@ project_seir <- function(
                          imported_cases = 0,
                          imported_window = 1,
                          parallel = TRUE,
+                         X = obj$stan_data$X,
                          ...) {
   if (!identical(class(obj), "covidseir")) {
     stop("`obj` must be of class `covidseir`.")
@@ -148,6 +153,14 @@ project_seir <- function(
   d$days <- days
   d$T <- length(time)
   d$N <- length(days)
+
+  if (ncol(X) == 0L) {
+    X <- matrix(0, ncol = 0L, nrow = d$N)
+    d$X <- X
+  }
+  if (nrow(X) < d$N) {
+    stop("`nrow(X)` < `length(days)`", call. = FALSE)
+  }
 
   .s <- d$samp_frac_seg[length(d$samp_frac_seg)]
   added_length <- nrow(d$daily_cases) + forecast_days - length(d$samp_frac_seg)
@@ -218,6 +231,16 @@ project_seir <- function(
     R0 <- post$R0[i]
     i0 <- post$i0[i]
     ur <- post$ur[i]
+    if ("beta[1]" %in% names(post)) {
+      beta_n <- length(grep("beta\\[", names(post)))
+      .beta <- rep(0, beta_n)
+      for (k in seq_len(beta_n)) {
+        .beta[k] <- post[[paste0("beta[", k, "]")]][i]
+      }
+      beta <- array(.beta)
+    } else {
+      beta <- array(numeric(0))
+    }
     if (!is.null(f_fixed)) {
       f_s <- array(c(post$f_s[i, ], f_fixed))
     }
@@ -250,7 +273,7 @@ project_seir <- function(
     end_decline <- post$end_decline[i]
     list(
       R0 = R0, i0 = i0, f_s = f_s, ur = ur, phi = phi, samp_frac = samp_frac,
-      start_decline = start_decline, end_decline = end_decline
+      start_decline = start_decline, end_decline = end_decline, beta = beta
     )
   }
 

@@ -134,7 +134,7 @@ data {
   real i0_prior[2];   // lognormal log mean and SD for i0 prior
   real e_prior[2];   // beta prior on fraction social distancing (e)
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
-  real f_prior[S,2];   // beta priors for f2 
+  real f_prior[S,2];   // beta priors for f2
   real samp_frac_prior[2];   // beta prior for samp_frac
   real start_decline_prior[2];   // prior for start_decline day
   real end_decline_prior[2];   // prior for end_decline day
@@ -145,6 +145,8 @@ data {
   real<lower=0> rw_sigma; // specified random walk standard deviation
   int<lower=0, upper=1> contains_NAs; // Logical: contains NA values?
   real ode_control[3]; // vector of ODE control numbers
+  int<lower=0> K;      // number of linear predictors
+  matrix[N,K] X;       // linear predictor matrix
 }
 parameters {
  real<lower=0, upper=x_r[1]> i0; // incidence at initial time point (default -30 days); upper = N
@@ -155,6 +157,7 @@ parameters {
  real<lower=0> phi[est_phi]; // NB2 (inverse) dispersion; `est_phi` turns on/off
  real<lower=0, upper=1> samp_frac[n_samp_frac];
  real<lower=0, upper=1> ur; // reasonable for ud ~= 0.1; about 10% FIXME
+ real beta[K]; // linear predictor coefs
 }
 transformed parameters {
   real dx = time[2] - time[1]; // time increment
@@ -206,6 +209,7 @@ transformed parameters {
                              ode_control[1], ode_control[2], ode_control[3]);
 
   // Calculating the expected case counts given the delays in reporting:
+
   for (j in 1:J) { // data_type increment
     for (n in 1:N) { // day increment
       this_samp = samp_frac_fixed[n,j];
@@ -244,6 +248,11 @@ transformed parameters {
       mu[n,j] = 0.5 * dx *
       (ft[time_day_id0[n]] + 2 * sum_ft_inner + ft[time_day_id[n]]);
       eta[n,j] = log(mu[n,j]);
+
+      if (K > 0) { // has a linear predictor
+        for (k in 1:K) eta[n,j] = eta[n,j] + X[n,k] * beta[k];
+        mu[n,j] = exp(eta[n,j]);
+      }
     }
   }
 }
@@ -258,6 +267,7 @@ model {
     target += log(0.5) - 1.5 * log(phi[j]); // Jacobian adjustment
   }
   }
+  beta ~ normal(0, 1);
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
   i0 ~ lognormal(i0_prior[1], i0_prior[2]);
   fsi ~ beta(e_prior[1], e_prior[2]); // two names

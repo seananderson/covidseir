@@ -1,12 +1,13 @@
 #' @export
 #' @import methods
 print.covidseir <- function(x,
-  pars = c("R0", "i0", "e", "f_s", "start_decline", "end_decline", "phi"), ...) {
+  pars = c("R0", "i0", "e", "f_s", "start_decline", "end_decline", "phi", "beta"), ...) {
   if ("fit_type" %in% names(x)) {
     if (x$fit_type == "optimizing") {
+      beta_n <- grep("beta\\[", colnames(x$fit$theta_tilde))
       phi_n <- grep("phi\\[", colnames(x$fit$theta_tilde))
       e_n <- grep("^e$", colnames(x$fit$theta_tilde))
-      pars_n <- c(seq_len(phi_n), e_n)
+      pars_n <- c(seq_len(phi_n), e_n, beta_n)
       cat("MAP estimate:\n")
       print(round(x$fit$par[pars_n], 2), ...)
       cat("Mean in constrained space of MVN samples:\n")

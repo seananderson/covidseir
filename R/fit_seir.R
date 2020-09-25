@@ -85,6 +85,7 @@
 #' @param init_list An optional named list foreign initialization. Note that the
 #'   `f_s` argument needs to be an array of appropriate length. See the example
 #'   below.
+#' @param X An optional model matrix applied additively to log expected cases.
 #' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()] /
 #'   [rstan::vb()] / [rstan::optimizing()].
 #' @export
@@ -212,6 +213,7 @@ fit_seir <- function(daily_cases,
                      fit_type = c("NUTS", "VB", "optimizing"),
                      init = c("prior_random", "optimizing"),
                      init_list = NULL,
+                     X = NULL,
                      ...) {
   obs_model <- match.arg(obs_model)
   obs_model <-
@@ -261,6 +263,8 @@ fit_seir <- function(daily_cases,
   if (!is.matrix(f_prior)) f_prior <- matrix(f_prior, ncol = 2)
   stopifnot(length(delay_scale) == ncol(daily_cases))
   stopifnot(length(delay_shape) == ncol(daily_cases))
+
+  if (is.null(X)) X <- matrix(0, nrow = nrow(daily_cases), ncol = 0L)
 
   S <- length(unique(f_seg)) - 1 # - 1 because of 0 for fixed f0 before soc. dist.
   if (nrow(f_prior) == 1 && S > 1) {
@@ -367,7 +371,9 @@ fit_seir <- function(daily_cases,
     obs_model = obs_model,
     contains_NAs = contains_NAs,
     ode_control = ode_control,
-    est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L
+    est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L,
+    X = X,
+    K = ncol(X)
   )
   initf <- function(stan_data) {
     R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2] / 2)
@@ -382,15 +388,16 @@ fit_seir <- function(daily_cases,
         get_beta_params(f_prior[s, 1], f_prior[s, 2] / 4)$beta
       )
     }
+    beta <- array(rep(0, stan_data$K))
     ur <- get_ur(e_prior[1], pars[["ud"]])
     init <- list(R0 = R0, f_s = f_s, i0 = i0,
-      ur = ur,
+      ur = ur, beta = beta,
       start_decline = start_decline, end_decline = end_decline)
     init
   }
   pars_save <- c(
     "R0", "f_s", "i0", "e", "ur", "phi", "mu", "y_rep",
-    "start_decline", "end_decline", "samp_frac"
+    "start_decline", "end_decline", "samp_frac", "beta"
   )
   if (save_state_predictions) pars_save <- c(pars_save, "y_hat")
   set.seed(seed)
@@ -433,6 +440,7 @@ fit_seir <- function(daily_cases,
         f_s = unname(p[grep("f_s\\[", np)]),
         i0 = unname(p[np == "i0"]),
         ur = unname(p[np == "ur"]),
+        beta = unname(p[np == "beta"]),
         start_decline = unname(p[np == "start_decline"]),
         end_decline = unname(p[np == "end_decline"])
       )
@@ -517,10 +525,13 @@ getu <- function(f, r) (r - f * r) / f
 convert_theta_tilde_to_list <- function(s) {
   if (!any(grepl("phi\\[", colnames(s))))
     stop("Optimizing isn't set up for the Poisson distribution.", call. = FALSE)
+
+  beta_n <- grep("beta\\[", colnames(s))
   phi_n <- grep("phi\\[", colnames(s))
   e_n <- grep("^e$", colnames(s))
   ur_n <- grep("^ur$", colnames(s))
-  pars_n <- c(seq_len(phi_n), ur_n, e_n)
+  pars_n <- c(seq_len(phi_n), ur_n, e_n, beta_n)
+
   s <- s[, pars_n]
   f_s_n <- grep("f_s\\[", colnames(s))
   s1 <- s[, f_s_n, drop = FALSE]
