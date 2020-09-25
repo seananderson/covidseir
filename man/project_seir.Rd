@@ -16,6 +16,7 @@ project_seir(
   imported_cases = 0,
   imported_window = 1,
   parallel = TRUE,
+  X = obj$stan_data$X,
   ...
 )
 }
@@ -43,6 +44,8 @@ Should be length \code{forecast_days - (f_fixed_start - nrow(daily_cases) - 1)}.
 \item{imported_window}{Number of days over which to distribute imported cases.}
 
 \item{parallel}{Use parallel processing via \pkg{future} and \pkg{furrr}?}
+
+\item{X}{An optional model matrix that acts additively on log expected cases.}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}}.}
 }
@@ -97,6 +100,9 @@ obs_dat <- data.frame(day = seq_along(cases), value = cases)
 
 library(magrittr) # for \%>\%
 tidy_seir(p) \%>\% plot_projection(obs_dat = obs_dat)
+
+tidy_seir(p) \%>\%
+  plot_residuals(obs_dat = obs_dat, obj = m)
 
 # for parallel processing (optional)
 # future::plan(future::multisession)

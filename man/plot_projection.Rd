@@ -2,6 +2,7 @@
 % Please edit documentation in R/tidy-plot.R
 \name{plot_projection}
 \alias{plot_projection}
+\alias{plot_residuals}
 \title{Plot a SEIR model projection}
 \usage{
 plot_projection(
@@ -11,6 +12,16 @@ plot_projection(
   value_column = "value",
   date_column = "day",
   ylab = "Reported cases"
+)
+
+plot_residuals(
+  pred_dat,
+  obs_dat,
+  obj,
+  value_column = "value",
+  date_column = "day",
+  ylab = "Residual\\n(cases - mean predicted cases)",
+  date_function = lubridate::ymd
 )
 }
 \arguments{
@@ -30,6 +41,11 @@ with \code{day} in it. If you want dates then you will need to add such a
 column.}
 
 \item{ylab}{Y axis label.}
+
+\item{obj}{Outut from \code{\link[=fit_seir]{fit_seir()}}.}
+
+\item{date_function}{A function to translate the character representation of
+the date if \code{date_column} is a date.}
 }
 \value{
 A ggplot object

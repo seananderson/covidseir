@@ -38,6 +38,7 @@ fit_seir(
   fit_type = c("NUTS", "VB", "optimizing"),
   init = c("prior_random", "optimizing"),
   init_list = NULL,
+  X = NULL,
   ...
 )
 }
@@ -155,6 +156,8 @@ the MAP estimate? Can be overridden by the \code{init_list} argument.}
 \item{init_list}{An optional named list foreign initialization. Note that the
 \code{f_s} argument needs to be an array of appropriate length. See the example
 below.}
+
+\item{X}{An optional model matrix applied additively to log expected cases.}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}} /
 \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}} / \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}.}
