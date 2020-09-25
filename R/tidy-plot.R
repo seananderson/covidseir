@@ -110,3 +110,42 @@ plot_projection <- function(pred_dat, obs_dat, col = "#377EB8",
   if (max(pred_dat[["data_type"]]) > 1) g <- g + facet_wrap(~data_type)
   g
 }
+
+#' @rdname plot_projection
+#' @param obj Outut from [fit_seir()].
+#' @param date_function A function to translate the character representation of
+#'   the date if `date_column` is a date.
+
+plot_residuals <- function(pred_dat, obs_dat, obj,
+                           value_column = "value", date_column = "day",
+                           ylab = "Residual\n(cases - mean predicted cases)",
+                           date_function = lubridate::ymd) {
+  temp <- obs_dat
+  temp$mu_0.50 <- pred_dat$mu_0.50
+  temp$resid <- temp[[value_column]] - pred_dat$mu_0.50
+
+  f_breaks <- as.numeric(obj$stan_data$x_i[grep("^f_seg*", names(obj$stan_data$x_i))])
+  f_breaks <- obs_dat[[date_column]][diff(f_breaks) == 1][-1] + 1
+  f_breaks <- f_breaks[-length(f_breaks)]
+  .s <- min(obs_dat[[date_column]]) + stats::median(obj$post$start_decline)
+  .e <- min(obs_dat[[date_column]]) + stats::median(obj$post$end_decline)
+  f_breaks <- c(f_breaks, .s, .e)
+  if (identical(class(obs_dat[[date_column]]), "Date")) {
+    f_breaks <- date_function(f_breaks)
+  }
+  g <- ggplot(temp, aes_string(date_column, "resid")) +
+    geom_point() +
+    ggplot2::geom_smooth(
+      se = TRUE, col = "red", method = "loess",
+      formula = "y ~ x"
+    ) +
+    ylab(ylab) +
+    theme(axis.title.x = element_blank())
+  if (identical(class(obs_dat[[date_column]]), "Date")) {
+    g <- g + ggplot2::scale_x_date(date_breaks = "1 month", date_labels = "%b")
+  }
+  for (i in seq_along(f_breaks)) {
+    g <- g + ggplot2::geom_vline(xintercept = f_breaks, lty = 2, col = "grey50")
+  }
+  g
+}
