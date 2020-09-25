@@ -293,4 +293,3 @@ bind_rows(rt, rt2) %>% # bind the 2 models
   geom_hline(yintercept = 1, lty = 2) +
   ylab("Rt")
 ```
-a
