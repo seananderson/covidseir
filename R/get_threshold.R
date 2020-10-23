@@ -23,7 +23,7 @@ get_threshold <- function(obj, iter = seq_along(obj$post$R0),
                           show_plot = TRUE,
                           window_check = 25,
                           ...) {
-  # m_fs <- furrr::future_map(fs, function(.f) {
+
   m_fs <- purrr::map(fs, function(.f) {
     cat("Projecting", round(.f, 2), "\n")
     project_seir(obj,

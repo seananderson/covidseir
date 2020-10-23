@@ -280,9 +280,7 @@ project_seir <- function(
   pars <- c("R0", "i0", "f_s", "e", "ur", "phi", "mu", "y_rep")
   if (return_states) pars <- c("y_hat")
 
-  apply_func <- if (parallel) furrr::future_map_dfr else purrr::map_dfr
-  # out <- furrr::future_map_dfr(iter, function(i) {
-  out <- apply_func(iter, function(i) {
+  proj_func <- function(i) {
     # out <- lapply(iter, function(i) {
     # out <- future.apply::future_lapply(iter, function(i) {
     fit <- rstan::sampling(
@@ -309,8 +307,12 @@ project_seir <- function(
     }
     df$.iteration <- i
     df
-  })
-  # out <- bind_rows(out)
+  }
+  if (parallel) {
+    out <- furrr::future_map_dfr(iter, proj_func, .options = furrr::future_options(seed = TRUE))
+  } else {
+    out <- purrr::map_dfr(iter, proj_func)
+  }
 
   if (return_states) {
     states <- c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
