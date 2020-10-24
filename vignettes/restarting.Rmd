@@ -21,6 +21,7 @@ library(covidseir)
 library(dplyr)
 library(ggplot2)
 ymd <- lubridate::ymd
+options(future.rng.onMisuse='ignore')
 ```
 
 # Data
@@ -72,6 +73,22 @@ f_seg2 <- f_seg[seq(nrow(dat1) + 1, length(f_seg))]
 ```
 
 ```{r fit1, warning=FALSE}
+fit0 <- covidseir::fit_seir(
+  daily_cases = dat$value,
+  samp_frac_fixed = samp_frac, 
+  f_seg = f_seg,
+  i0_prior = c(log(8), 1),
+  e_prior = c(0.8, 0.05),
+  start_decline_prior = c(log(15), 0.1),
+  end_decline_prior = c(log(22), 0.1),
+  f_prior = cbind(c(0.4, 0.5, 0.6), c(0.2, 0.2, 0.2)),
+  R0_prior = c(log(2.6), 0.2),
+  days_back = 30,
+  N_pop = 5.1e6, # BC population
+  iter = 500, # number of posterior samples
+  fit_type = "optimizing" # for speed only
+)
+
 fit1 <- covidseir::fit_seir(
   daily_cases = dat1$value,
   samp_frac_fixed = samp_frac1, 
@@ -82,12 +99,13 @@ fit1 <- covidseir::fit_seir(
   end_decline_prior = c(log(22), 0.1),
   f_prior = cbind(c(0.4, 0.5), c(0.2, 0.2)),
   R0_prior = c(log(2.6), 0.2),
+  days_back = 30,
   N_pop = 5.1e6, # BC population
   iter = 500, # number of posterior samples
   fit_type = "optimizing" # for speed only
 )
-proj <- covidseir::project_seir(fit1, iter = 1:25)
-tidy_proj <- covidseir::tidy_seir(proj, resample_y_rep = 20)
+proj <- covidseir::project_seir(fit1, iter = 1:100)
+tidy_proj <- covidseir::tidy_seir(proj, resample_y_rep = 50)
 
 first_day <- min(dat$date)
 last_day <- 300 # how many days to create dates for
@@ -119,8 +137,8 @@ i30_hat <- unname(MASS::fitdistr(i30, "lognormal")$estimate)
 hist(p$e)
 e_hat <- c(mean(p$e), sd(p$e))
 
-start_decline_fake <- c(log(0.5), 0.2)
-end_decline_fake <- c(log(2), 0.1)
+start_decline_fake <- c(log(1), 0.1)
+end_decline_fake <- c(log(1), 0.1)
 x <- seq(0, 8, length.out = 500)
 plot(x, dlnorm(x, start_decline_fake[1], start_decline_fake[2]), type = "l")
 lines(x, dlnorm(x, end_decline_fake[1], end_decline_fake[2]), type = "l")
@@ -128,8 +146,8 @@ lines(x, dlnorm(x, end_decline_fake[1], end_decline_fake[2]), type = "l")
 # state_0 <- c(E1_frac = 0.4, E2_frac = 0.1, I_frac = 0.5, Q_num = 0, R_num = 0,
 #     E1d_frac = 0.4, E2d_frac = 0.1, Id_frac = 0.5, Qd_num = 0, Rd_num = 0)
 
-# FIXME: is state0 at time -30 or 0?
-S0 <- proj1 %>% filter(time == max(time)) %>% 
+# state0 at time -30
+S0 <- proj1 %>% filter(time == max(time) - 30) %>%
   group_by(variable) %>% 
   summarise(value = mean(value), .groups = "drop")
 state_order <- c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
@@ -138,20 +156,101 @@ names(S0_hat) <- S0$variable
 S0_hat <- S0_hat[state_order]
 S0_hat
 
-# FIXME: add state_0 override
+# i0 <- S0_hat[['I']] + S0_hat[['Id']]
+i0 <- exp(i30_hat[[1]])
+state_0 <- c(
+  E1_frac = S0_hat[['E1']] / (e_hat[1] * i0), 
+  E2_frac = S0_hat[['E2']] / (e_hat[1] * i0), 
+  I_frac = S0_hat[['I']] / (e_hat[1] * i0), 
+  Q_num = S0_hat[['Q']], 
+  R_num = S0_hat[['R']],
+  E1d_frac = S0_hat[['E1d']] / (e_hat[1] * i0), 
+  E2d_frac = S0_hat[['E2d']] / (e_hat[1] * i0), 
+  Id_frac = S0_hat[['Id']] / (e_hat[1] * i0), 
+  Qd_num = S0_hat[['Qd']], 
+  Rd_num = S0_hat[['Rd']])
+
+# y0[1] = nsi * (N_pop - i0); // S = nsi * (pars[["N"]] - i0)
+# y0[2] = y0_vars[1] * nsi * i0; // E1 = E1_frac * nsi * i0
+# y0[3] = y0_vars[2] * nsi * i0; // E2 = E2_frac * nsi * i0
+# y0[4] = y0_vars[3] * nsi * i0; // I = I_frac * nsi * i0
+# y0[5] = y0_vars[4]; // Q = Q_num
+# y0[6] = y0_vars[5]; // R = R_num
+# y0[7] = fsi * (N_pop - i0); // Sd = fsi * (pars[["N"]] - i0)
+# y0[8] = y0_vars[6] * fsi * i0; // E1d = E1d_frac * fsi * i0
+# y0[9] = y0_vars[7] * fsi * i0; // E2d = E2d_frac * fsi * i0
+# y0[10] = y0_vars[8] * fsi * i0; // Id = Id_frac * fsi * i0
+# y0[11] = y0_vars[9]; // Qd = Qd_num
+# y0[12] = y0_vars[10]; // Rd = Rd_num
+
+plot(dat2$value, type = "o")
+
+f_seg2 <- rep(1, length(f_seg2))
+f_seg2[1] <- 0
+
+f <- p$f_s[,ncol(p$f_s)]
+hist(f)
+f_hat <- c(mean(f), sd(f))
+
+hist(p$phi[,1])
+phi_hat <- unname(MASS::fitdistr(p$phi, "lognormal")$estimate)
 
 fit2 <- covidseir::fit_seir(
   daily_cases = dat2$value,
   samp_frac_fixed = samp_frac2, 
   f_seg = f_seg2,
-  i0_prior = c(log(8), 1),
-  e_prior = c(0.8, 0.05),
-  start_decline_prior = c(log(15), 0.1),
-  end_decline_prior = c(log(22), 0.1),
-  f_prior = cbind(c(0.4, 0.5), c(0.2, 0.2)),
-  R0_prior = c(log(2.6), 0.2),
+  i0_prior = c(i30_hat[1], i30_hat[2]),
+  e_prior = c(e_hat[1], e_hat[2]),
+  days_back = 30,
+  start_decline_prior = start_decline_fake,
+  end_decline_prior = end_decline_fake,
+  state_0 = state_0,
+  pars = c(D = 5, k1 = 1/5, k2 = 1, q = 0.05, ud = 0.1, ur = 0.02, f0 = f_hat[1]),
+  f_prior = cbind(c(0.6), c(0.2)),
+  R0_prior = c(R0_hat[1], R0_hat[2]),
+  use_ramp = FALSE,
   N_pop = 5.1e6, # BC population
   iter = 500, # number of posterior samples
-  fit_type = "optimizing" # for speed only
+  fit_type = "optimizing", # for speed only
+  algorithm = "BFGS",
+  phi_prior = phi_hat
 )
+
+proj2 <- covidseir::project_seir(fit2, iter = 1:100)
+tidy_proj2 <- covidseir::tidy_seir(proj2, resample_y_rep = 50)
+first_day2 <- min(dat2$date)
+lut2 <- dplyr::tibble(
+  day = seq_len(last_day),
+  date = seq(first_day2, first_day2 + length(day) - 1, by = "1 day")
+)
+tidy_proj2 <- dplyr::left_join(tidy_proj2, lut2, by = "day")
+
+# covidseir::plot_projection(tidy_proj2, obs_dat = dat2,
+#   value_column = "value", date_column = "date")
+
+g1 <- tidy_proj %>% bind_rows(tidy_proj2) %>% 
+  covidseir::plot_projection(obs_dat = dat,
+  value_column = "value", date_column = "date") +
+  geom_vline(xintercept = ymd("2020-06-01"), lty = 2) +
+  theme_light() +
+  theme(axis.title.x = element_blank()) +
+  coord_cartesian(ylim = c(0, 150), expand = FALSE)
+  # scale_y_log10()
+
+proj0 <- covidseir::project_seir(fit0, iter = 1:100)
+tidy_proj0 <- covidseir::tidy_seir(proj0, resample_y_rep = 50)
+tidy_proj0 <- dplyr::left_join(tidy_proj0, lut, by = "day")
+
+fit0
+fit1
+fit2
+
+g2 <- tidy_proj0 %>%
+  covidseir::plot_projection(obs_dat = dat,
+  value_column = "value", date_column = "date") +
+  theme_light() +
+  theme(axis.title.x = element_blank()) +
+  coord_cartesian(ylim = c(0, 150), expand = FALSE)
+
+cowplot::plot_grid(g1, g2, ncol = 1)
 ```

@@ -25,7 +25,7 @@ functions{
     real ud     = x_r[6];
     // real ur    = x_r[7];
     real f0    = x_r[8];
-    real f_ramp_rate = x_r[9];
+    real use_ramp = x_r[9]; // yes it's a real; using an old x_r to avoid refactoring
     real imported_cases = x_r[10];
     real imported_window = x_r[11];
 
@@ -71,17 +71,13 @@ functions{
       f = f0;
     }
      // allow a ramp-in of physical distancing:
-    if (f_ramp_rate == 0.0) {
+    if (use_ramp == 1.0) {
       if (t >= start_decline && t < end_decline) {
       f = f1 + (end_decline - t) *
       (f0 - f1) / (end_decline - start_decline);
       }
-    } else {
-      if (t >= start_decline && t < end_decline) {
-      X = (f0 - f1) / (exp(f_ramp_rate * (end_decline - start_decline)) - 1);
-      f = f0 - X * (exp(f_ramp_rate * (t - start_decline)) - 1);
-      }
     }
+
     if (t >= end_decline) {
       f = theta[f_seg_id[day]]; // the respective f segment
     }
@@ -134,6 +130,8 @@ data {
   real i0_prior[2];   // lognormal log mean and SD for i0 prior
   real e_prior[2];   // beta prior on fraction social distancing (e)
   real phi_prior;     // SD of normal prior on 1/sqrt(phi) [NB2(mu, phi)]
+  int use_phi_prior2;  // Logical
+  real phi_prior2[2];   // alternate lognormal prior on phi [NB2(mu, phi)]
   real f_prior[S,2];   // beta priors for f2
   real samp_frac_prior[2];   // beta prior for samp_frac
   real start_decline_prior[2];   // prior for start_decline day
@@ -259,13 +257,18 @@ transformed parameters {
 model {
   // priors:
   if (est_phi > 0 && obs_model == 1) { // NB2
-  // https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations
-  // log(abs(D(expression(1/sqrt(x)), "x"))); log(0.5 * x^-0.5/sqrt(x)^2
-  // log absolute derivative of the transform
-  for (j in 1:J) {
-    1/sqrt(phi[j]) ~ normal(0, phi_prior);
-    target += log(0.5) - 1.5 * log(phi[j]); // Jacobian adjustment
-  }
+    // https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations
+    // log(abs(D(expression(1/sqrt(x)), "x"))); log(0.5 * x^-0.5/sqrt(x)^2
+    // log absolute derivative of the transform
+
+    if (use_phi_prior2) {
+      phi ~ lognormal(phi_prior2[1], phi_prior2[2]);
+    } else {
+      for (j in 1:J) {
+        1/sqrt(phi[j]) ~ normal(0, phi_prior);
+        target += log(0.5) - 1.5 * log(phi[j]); // Jacobian adjustment
+      }
+    }
   }
   beta ~ normal(0, 1);
   R0 ~ lognormal(R0_prior[1], R0_prior[2]);
