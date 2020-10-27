@@ -160,6 +160,8 @@ S0_hat
 
 # i0 <- S0_hat[['I']] + S0_hat[['Id']]
 i0 <- exp(i30_hat[[1]])
+i0 <- mean(i30)
+
 state_0 <- c(
   E1_frac = S0_hat[['E1']] / ((1 - e_hat[1]) * i0), 
   E2_frac = S0_hat[['E2']] / ((1 - e_hat[1]) * i0), 
