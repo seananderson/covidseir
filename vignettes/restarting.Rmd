@@ -21,6 +21,7 @@ library(covidseir)
 library(dplyr)
 library(ggplot2)
 ymd <- lubridate::ymd
+options(mc.cores = parallel::detectCores())
 options(future.rng.onMisuse='ignore')
 ```
 
@@ -85,8 +86,9 @@ fit0 <- covidseir::fit_seir(
   R0_prior = c(log(2.6), 0.2),
   days_back = 30,
   N_pop = 5.1e6, # BC population
-  iter = 500, # number of posterior samples
+  iter = 200, # number of posterior samples
   fit_type = "optimizing" # for speed only
+  # fit_type = "NUTS" # for speed only
 )
 
 fit1 <- covidseir::fit_seir(
@@ -210,9 +212,12 @@ fit2 <- covidseir::fit_seir(
   R0_prior = c(R0_hat[1], R0_hat[2]),
   use_ramp = FALSE,
   N_pop = 5.1e6, # BC population
-  iter = 500, # number of posterior samples
+  iter = 200, # number of posterior samples
   fit_type = "optimizing", # for speed only
-  algorithm = "BFGS",
+  # fit_type = "NUTS", # for speed only
+  # chains = 3, # for speed only
+  # algorithm = "BFGS",
+  # init = "optimizing",
   phi_prior = phi_hat
 )
 
