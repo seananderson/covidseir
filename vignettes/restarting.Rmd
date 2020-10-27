@@ -127,7 +127,7 @@ x <- seq(2, 5, length.out = 200)
 lines(x, dlnorm(x, R0_hat[1], R0_hat[2]), type = "l")
 
 proj1 <- covidseir::project_seir(fit1, iter = 1:100, return_states = TRUE)
-i30 <- filter(proj1, variable %in% c("I", "Id") & time == max(proj1$time) - 30) %>% 
+i30 <- filter(proj1, variable %in% c("I", "Id", "E1", "E2", "E1d", "E2d") & time == max(proj1$time) - 30) %>% 
   group_by(.iteration) %>% 
   summarise(value = sum(value), .groups = "drop") %>% 
   pull(value)
@@ -159,9 +159,9 @@ S0_hat
 # i0 <- S0_hat[['I']] + S0_hat[['Id']]
 i0 <- exp(i30_hat[[1]])
 state_0 <- c(
-  E1_frac = S0_hat[['E1']] / (e_hat[1] * i0), 
-  E2_frac = S0_hat[['E2']] / (e_hat[1] * i0), 
-  I_frac = S0_hat[['I']] / (e_hat[1] * i0), 
+  E1_frac = S0_hat[['E1']] / ((1 - e_hat[1]) * i0), 
+  E2_frac = S0_hat[['E2']] / ((1 - e_hat[1]) * i0), 
+  I_frac = S0_hat[['I']] / ((1 - e_hat[1]) * i0), 
   Q_num = S0_hat[['Q']], 
   R_num = S0_hat[['R']],
   E1d_frac = S0_hat[['E1d']] / (e_hat[1] * i0), 
