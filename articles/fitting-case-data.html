@@ -214,10 +214,6 @@
 <p>Now we will take the fitted model and calculate the corresponding model predictions. This can be slow, especially with future projections, and so we only use the first 50 posterior samples for this quick vignette example:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit">
 <span class="va">proj</span> <span class="op">&lt;-</span> <span class="fu">covidseir</span><span class="fu">::</span><span class="fu"><a href="../reference/project_seir.html">project_seir</a></span><span class="op">(</span><span class="va">fit</span>, iter <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">50</span><span class="op">)</span>
-<span class="co">#&gt; Warning: `future_options()` is deprecated as of furrr 0.2.0.</span>
-<span class="co">#&gt; Please use `furrr_options()` instead.</span>
-<span class="co">#&gt; This warning is displayed once every 8 hours.</span>
-<span class="co">#&gt; Call `lifecycle::last_warnings()` to see where this warning was generated.</span>
 <span class="va">proj</span>
 <span class="co">#&gt; # A tibble: 8,800 x 7</span>
 <span class="co">#&gt;      day data_type    mu y_rep   phi .iteration forecast</span>
