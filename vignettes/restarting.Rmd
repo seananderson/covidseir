@@ -17,14 +17,25 @@ knitr::opts_chunk$set(
 options(future.rng.onMisuse = "ignore")
 ```
 
+With longer time series, you may wish to split the model fitting into "blocks" for speed. 
+This approach will let you fit a model once for the time series until a recent date (say a couple months ago), and then focus on fitting the more recent data separately, perhaps with full MCMC sampling given that the fitting will be considerably faster.
+
+The following is an example of splitting the dataset in late May. You can split the data wherever and as frequently as you want providing the following is true:
+
+* The blocks happen after the initial social distancing ramp
+* There is ~30 days before the split in which it is reasonable to assume that the contact rate fraction (f) is constant
+* You don't end up with overly short f segments on either side of the split that can't be reasonably estimated (say less than a week)
+
+You must also be OK with various otherwise fixed parameters (phi, R0, e, i0) being allowed to vary across blocks. The posterior from the fit will be used as the prior for the next. This means the information from the first block will be preserved, but the next block posterior may be different from the previous when additional data are added. Visually, the most obvious effect might be the NB2 dispersion parameter phi: the credible intervals may appear smaller or wider in different splits. One approach to deal with this is to allow for some overlap (say a week) between two fits and then average across them, as is done in the following example.
+
+# Data
+
 ```{r setup, message=FALSE, warning=FALSE}
 library(covidseir)
 library(dplyr)
 library(ggplot2)
 ymd <- lubridate::ymd
 ```
-
-# Data
 
 First, we will read in the British Columbia, Canada COVID-19 reported-case data. This comes from <http://www.bccdc.ca/Health-Info-Site/Documents/BCCDC_COVID19_Dashboard_Case_Details.csv>.
 
@@ -76,20 +87,9 @@ lut <- dplyr::tibble(
 )
 ```
 
-# Fitting a timeseries in multiple blocks
+# Splitting the data and model fit
 
-With longer time series, you may wish to split up the model fitting into blocks for speed. 
-This approach will let you fit a model once for the time series until a recent date (say a couple months ago), and then focus on fitting the more recent data separately, perhaps with full MCMC sampling given that the fitting will be considerably faster.
-
-The following is an example of splitting the dataset in late May. You can split the data wherever and as frequently as you want providing the following is true:
-
-* The blocks happen after the initial social distancing ramp
-* There is ~30 days before the split in which it is reasonable to assume that the contact rate fraction (f) is constant
-* You don't end up with overly short f segments on either side of the split that can't be reasonably estimated (say less than a week)
-
-You must also be OK with various otherwise fixed parameters (phi, R0, e, i0) being allowed to vary across blocks. The posterior from the fit will be used as the prior for the next. This means the information from the first block will be preserved, but the next block posterior may be different from the previous when additional data are added. Visually, the most obvious effect might be the NB2 dispersion parameter phi: the credible intervals may appear smaller or wider in different splits. One approach to deal with this is to allow for some overlap (say a week) between two fits and then average across them, as is done in the following example.
-
-First, let's split the data into two blocks with a week overlap in the middle. Note that f is assumed constant in the 30 days prior:
+First, let's split the data into two blocks with a week overlap in the middle. Note that f is assumed constant in the 30 days prior. You could also avoid the overlap if you would prefer.
 
 ```{r restart-dat}
 dat1 <- filter(dat, date < ymd("2020-05-29"))
