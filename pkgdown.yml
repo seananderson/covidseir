@@ -3,5 +3,6 @@ pkgdown: 1.6.1
 pkgdown_sha: ~
 articles:
   fitting-case-data: fitting-case-data.html
-last_built: 2020-10-23T07:12Z
+  restarting: restarting.html
+last_built: 2020-10-28T20:21Z
 

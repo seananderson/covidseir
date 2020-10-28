@@ -71,7 +71,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">covidseir</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.1.9000</span>
       </span>
     </div>
 
@@ -95,6 +95,9 @@
   <ul class="dropdown-menu" role="menu">
     <li>
       <a href="../articles/fitting-case-data.html">Fitting COVID-19 case data with covidseir</a>
+    </li>
+    <li>
+      <a href="../articles/restarting.html">Fitting case data in multiple blocks</a>
     </li>
   </ul>
 </li>
@@ -121,6 +124,15 @@
       
     </div>
 
+    <div id="covidseir-0019000" class="section level1">
+<h1 class="page-header" data-toc-text="0.0.1.9000">
+<a href="#covidseir-0019000" class="anchor"></a>covidseir 0.0.1.9000</h1>
+<ul>
+<li><p>Added <code><a href="../reference/post2prior.html">post2prior()</a></code>, which allows passing the posterior from one model fit into priors of a second model fit. This allows the model to be fit in blocks. There is a new vignette showing a full example.</p></li>
+<li><p>Removed the <code>f_ramp_rate</code> argument and option from <code><a href="../reference/fit_seir.html">fit_seir()</a></code>.</p></li>
+<li><p>Allow not fitting the initial social distancing ramp and allow specifying the NB2 phi prior as a log normal distribution to allow passing the posterior as a prior.</p></li>
+</ul>
+</div>
     <div id="covidseir-0009010" class="section level1">
 <h1 class="page-header" data-toc-text="0.0.0.9010">
 <a href="#covidseir-0009010" class="anchor"></a>covidseir 0.0.0.9010</h1>

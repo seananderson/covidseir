@@ -73,7 +73,7 @@ data. See project_seir() for making predictions/projections." />
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">covidseir</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.0.9010</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.1.9000</span>
       </span>
     </div>
 
@@ -97,6 +97,9 @@ data. See project_seir() for making predictions/projections." />
   <ul class="dropdown-menu" role="menu">
     <li>
       <a href="../articles/fitting-case-data.html">Fitting COVID-19 case data with covidseir</a>
+    </li>
+    <li>
+      <a href="../articles/restarting.html">Fitting case data in multiple blocks</a>
     </li>
   </ul>
 </li>
@@ -146,7 +149,7 @@ data. See <code><a href='project_seir.html'>project_seir()</a></code> for making
   samp_frac_prior <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fl'>0.4</span>, <span class='fl'>0.2</span><span class='op'>)</span>,
   start_decline_prior <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/Log.html'>log</a></span><span class='op'>(</span><span class='fl'>15</span><span class='op'>)</span>, <span class='fl'>0.05</span><span class='op'>)</span>,
   end_decline_prior <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/c.html'>c</a></span><span class='op'>(</span><span class='fu'><a href='https://rdrr.io/r/base/Log.html'>log</a></span><span class='op'>(</span><span class='fl'>22</span><span class='op'>)</span>, <span class='fl'>0.05</span><span class='op'>)</span>,
-  f_ramp_rate <span class='op'>=</span> <span class='fl'>0</span>,
+  use_ramp <span class='op'>=</span> <span class='cn'>TRUE</span>,
   rw_sigma <span class='op'>=</span> <span class='fl'>0.1</span>,
   seed <span class='op'>=</span> <span class='fl'>42</span>,
   chains <span class='op'>=</span> <span class='fl'>4</span>,
@@ -234,7 +237,7 @@ integration. Should be sufficiently large that the results do not change.</p></t
       <td><p>SD of <code>1/sqrt(phi) ~ Normal(0, SD)</code> prior, where NB2(mu,
 phi) and <code>Var(Y) = mu + mu^2 / phi</code>. See the Stan
 <a href='https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations'>Prior
-Choice Recommendations</a>.</p></td>
+Choice Recommendations</a>. If of length 2 will be treated as lognormal prior on phi.</p></td>
     </tr>
     <tr>
       <th>f_prior</th>
@@ -267,12 +270,8 @@ representing the day that the social distancing ramp finishes being ramped
 in (<code>end_decline</code>).</p></td>
     </tr>
     <tr>
-      <th>f_ramp_rate</th>
-      <td><p>An exponential rate for the initial social distancing
-ramp. A value near 0 result in a linear ramp. A value &gt; 0 results in a ramp
-that starts slowly and ends quickly. A value &lt; 0 results in a ramp that
-starts quickly and ends slowly. See the Stan model in
-<code>inst/stan/seir.stan</code>.</p></td>
+      <th>use_ramp</th>
+      <td><p>Logical. Use the ramp?</p></td>
     </tr>
     <tr>
       <th>rw_sigma</th>
