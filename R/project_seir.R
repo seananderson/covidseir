@@ -220,7 +220,7 @@ project_seir <- function(
     d$x_r <- c(d$x_r, "imported_window" = 1)
   }
   stopifnot(identical(names(d$x_r), c(
-    "N", "D", "k1", "k2", "q", "ud", "ur", "f0", "f_ramp_rate",
+    "N", "D", "k1", "k2", "q", "ud", "ur", "f0", "use_ramp",
     "imported_cases", "imported_window"
   )))
   d$x_r[names(d$x_r) == "imported_cases"] <- imported_cases

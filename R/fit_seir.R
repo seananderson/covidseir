@@ -35,7 +35,7 @@
 #' @param phi_prior SD of `1/sqrt(phi) ~ Normal(0, SD)` prior, where NB2(mu,
 #'   phi) and `Var(Y) = mu + mu^2 / phi`. See the Stan
 #'   \href{https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations}{Prior
-#'   Choice Recommendations}.
+#'   Choice Recommendations}. If of length 2 will be treated as lognormal prior on phi.
 #' @param f_prior Beta mean and SD for the `f` parameters. If S segments are
 #'   used, should be a Sx2 matrix. If multiple `f` segments are used but
 #'   only one mean and SD are specified, they will be repeated as needed.
@@ -51,11 +51,7 @@
 #' @param end_decline_prior Lognormal log mean and SD for the parameter
 #'   representing the day that the social distancing ramp finishes being ramped
 #'   in (`end_decline`).
-#' @param f_ramp_rate An exponential rate for the initial social distancing
-#'   ramp. A value near 0 result in a linear ramp. A value > 0 results in a ramp
-#'   that starts slowly and ends quickly. A value < 0 results in a ramp that
-#'   starts quickly and ends slowly. See the Stan model in
-#'   `inst/stan/seir.stan`.
+#' @param use_ramp Logical. Use the ramp?
 #' @param rw_sigma The fixed standard deviation on the optional `samp_frac`
 #'   random walk.
 #' @param seed MCMC seed for [rstan::stan()].
@@ -182,7 +178,7 @@ fit_seir <- function(daily_cases,
                      samp_frac_prior = c(0.4, 0.2),
                      start_decline_prior = c(log(15), 0.05),
                      end_decline_prior = c(log(22), 0.05),
-                     f_ramp_rate = 0,
+                     use_ramp = TRUE,
                      rw_sigma = 0.1,
                      seed = 42,
                      chains = 4,
@@ -295,7 +291,7 @@ fit_seir <- function(daily_cases,
 
   # f_prior
   f_seg_prior <- f_prior
-  for (s in 1:S) {
+  for (s in seq_len(S)) {
     beta_sd <- f_seg_prior[s, 2]
     beta_mean <- f_seg_prior[s, 1]
     beta_shape1 <- get_beta_params(beta_mean, beta_sd)$alpha
@@ -332,9 +328,18 @@ fit_seir <- function(daily_cases,
     samp_frac_seg <- rep(1, length(days))
   }
 
-  x_r <- c(x_r, "f_ramp_rate" = f_ramp_rate)
+  x_r <- c(x_r, "use_ramp" = as.double(use_ramp))
   x_r <- c(x_r, "imported_cases" = 0) # not used until projections
   x_r <- c(x_r, "imported_window" = 1) # not used until projections
+
+  if (length(phi_prior) == 2L) {
+    phi_prior2 <- phi_prior
+    phi_prior <- 1 # fake
+    use_phi_prior2 <- 1L
+  } else {
+    phi_prior2 <- c(1, 1) # fake
+    use_phi_prior2 <- 0L
+  }
   stan_data <- list(
     T = length(time),
     days = days,
@@ -358,6 +363,8 @@ fit_seir <- function(daily_cases,
     time_day_id0 = time_day_id0,
     R0_prior = R0_prior,
     phi_prior = phi_prior,
+    phi_prior2 = phi_prior2,
+    use_phi_prior2 = use_phi_prior2,
     i0_prior = i0_prior,
     f_prior = f_seg_prior,
     samp_frac_prior = samp_frac_prior_trans,

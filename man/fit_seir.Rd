@@ -21,7 +21,7 @@ fit_seir(
   samp_frac_prior = c(0.4, 0.2),
   start_decline_prior = c(log(15), 0.05),
   end_decline_prior = c(log(22), 0.05),
-  f_ramp_rate = 0,
+  use_ramp = TRUE,
   rw_sigma = 0.1,
   seed = 42,
   chains = 4,
@@ -85,7 +85,7 @@ integration. Should be sufficiently large that the results do not change.}
 \item{phi_prior}{SD of \code{1/sqrt(phi) ~ Normal(0, SD)} prior, where NB2(mu,
 phi) and \code{Var(Y) = mu + mu^2 / phi}. See the Stan
 \href{https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations}{Prior
-Choice Recommendations}.}
+Choice Recommendations}. If of length 2 will be treated as lognormal prior on phi.}
 
 \item{f_prior}{Beta mean and SD for the \code{f} parameters. If S segments are
 used, should be a Sx2 matrix. If multiple \code{f} segments are used but
@@ -107,11 +107,7 @@ representing the day that social distancing starts ramping in
 representing the day that the social distancing ramp finishes being ramped
 in (\code{end_decline}).}
 
-\item{f_ramp_rate}{An exponential rate for the initial social distancing
-ramp. A value near 0 result in a linear ramp. A value > 0 results in a ramp
-that starts slowly and ends quickly. A value < 0 results in a ramp that
-starts quickly and ends slowly. See the Stan model in
-\code{inst/stan/seir.stan}.}
+\item{use_ramp}{Logical. Use the ramp?}
 
 \item{rw_sigma}{The fixed standard deviation on the optional \code{samp_frac}
 random walk.}
