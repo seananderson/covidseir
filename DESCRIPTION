@@ -57,7 +57,7 @@ Depends:
     R (>= 3.5.0)
 Imports: 
     dplyr,
-    furrr,
+    furrr (>= 0.2.0),
     ggplot2,
     glue,
     MASS,

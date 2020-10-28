@@ -309,7 +309,7 @@ project_seir <- function(
     df
   }
   if (parallel) {
-    out <- furrr::future_map_dfr(iter, proj_func, .options = furrr::future_options(seed = TRUE))
+    out <- furrr::future_map_dfr(iter, proj_func, .options = furrr::furrr_options(seed = TRUE))
   } else {
     out <- purrr::map_dfr(iter, proj_func)
   }
