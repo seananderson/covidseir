@@ -1,8 +1,8 @@
 ---
-title: "Restarting covidseir fits"
-output: rmarkdown::pdf_document
+title: "Fitting case data in multiple blocks"
+output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Dividing a time series into multiple fits}
+  %\VignetteIndexEntry{Fitting case data in multiple blocks}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -14,6 +14,7 @@ knitr::opts_chunk$set(
   fig.asp = 0.62,
   fig.width = 5
 )
+options(future.rng.onMisuse = "ignore")
 ```
 
 ```{r setup, message=FALSE, warning=FALSE}
@@ -21,8 +22,6 @@ library(covidseir)
 library(dplyr)
 library(ggplot2)
 ymd <- lubridate::ymd
-options(mc.cores = parallel::detectCores())
-options(future.rng.onMisuse='ignore')
 ```
 
 # Data
@@ -51,47 +50,70 @@ dat$date <- ymd("2020-03-01") + dat$day - 1
 ggplot(dat, aes(date, value)) + geom_line()
 ```
 
-```{r f-seg}
+# Initial model setup
+
+See the 'fitting-case-data' vignette for details on the model setup. Here, we will use the same initial code blocks.
+
+```{r samp-frac}
+# Based on estimation with hospital data in other model:
 samp_frac <- c(rep(0.14, 13), rep(0.21, 38))
 samp_frac <- c(samp_frac, rep(0.37, nrow(dat) - length(samp_frac)))
+```
+
+```{r f-seg}
 f_seg <- c(0, rep(1, nrow(dat) - 1))
 day_new_f <- which(dat$date == ymd("2020-05-01"))
 f_seg[seq(day_new_f, length(f_seg))] <- 2
 day_ch <- which(dat$date == ymd("2020-06-01"))
 f_seg[seq(day_ch, length(f_seg))] <- 3
-f_seg
 ```
 
-```{r}
-dat1 <- filter(dat, date < ymd("2020-06-01"))
-dat2 <- filter(dat, date >= ymd("2020-06-01"))
+```{r lut}
+first_day <- min(dat$date)
+lut <- dplyr::tibble(
+  day = seq_len(300),
+  date = seq(first_day, first_day + length(day) - 1, by = "1 day")
+)
+```
+
+# Fitting a timeseries in multiple blocks
+
+With longer time series, you may wish to split up the model fitting into blocks for speed. 
+This approach will let you fit a model once for the time series until a recent date (say a couple months ago), and then focus on fitting the more recent data separately, perhaps with full MCMC sampling given that the fitting will be considerably faster.
+
+The following is an example of splitting the dataset in late May. You can split the data wherever and as frequently as you want providing the following is true:
+
+* The blocks happen after the initial social distancing ramp
+* There is ~30 days before the split in which it is reasonable to assume that the contact rate fraction (f) is constant
+* You don't end up with overly short f segments on either side of the split that can't be reasonably estimated (say less than a week)
+
+You must also be OK with various otherwise fixed parameters (phi, R0, e, i0) being allowed to vary across blocks. The posterior from the fit will be used as the prior for the next. This means the information from the first block will be preserved, but the next block posterior may be different from the previous when additional data are added. Visually, the most obvious effect might be the NB2 dispersion parameter phi: the credible intervals may appear smaller or wider in different splits. One approach to deal with this is to allow for some overlap (say a week) between two fits and then average across them, as is done in the following example.
+
+First, let's split the data into two blocks with a week overlap in the middle. Note that f is assumed constant in the 30 days prior:
+
+```{r restart-dat}
+dat1 <- filter(dat, date < ymd("2020-05-29"))
+dat2 <- filter(dat, date >= ymd("2020-05-22"))
 
 samp_frac1 <- samp_frac[seq_len(nrow(dat1))]
-samp_frac2 <- samp_frac[seq(nrow(dat1) + 1, length(samp_frac))]
+samp_frac2 <- samp_frac[dat2$day]
 
 f_seg1 <- f_seg[seq_len(nrow(dat1))]
-f_seg2 <- f_seg[seq(nrow(dat1) + 1, length(f_seg))]
+f_seg2 <- f_seg[dat2$day]
 ```
 
-```{r fit1, warning=FALSE}
-fit0 <- covidseir::fit_seir(
-  daily_cases = dat$value,
-  samp_frac_fixed = samp_frac, 
-  f_seg = f_seg,
-  i0_prior = c(log(8), 1),
-  e_prior = c(0.8, 0.05),
-  start_decline_prior = c(log(15), 0.1),
-  end_decline_prior = c(log(22), 0.1),
-  f_prior = cbind(c(0.4, 0.5, 0.6), c(0.2, 0.2, 0.2)),
-  R0_prior = c(log(2.6), 0.2),
-  days_back = 30,
-  N_pop = 5.1e6, # BC population
-  iter = 200, # number of posterior samples
-  fit_type = "optimizing" # for speed only
-  # fit_type = "NUTS" # for speed only
-)
+Now we need to adjust the `f_seg` indexes to start at 1 in the second block and set the first element to 0:
 
-fit1 <- covidseir::fit_seir(
+```{r restart-f-seg}
+f_seg2 <- f_seg2 - min(f_seg2) + 1
+f_seg2[1] <- 0
+f_seg2
+```
+
+Fit the first model:
+
+```{r restart-fit1, warning=FALSE}
+fit1 <- fit_seir(
   daily_cases = dat1$value,
   samp_frac_fixed = samp_frac1, 
   f_seg = f_seg1,
@@ -101,163 +123,77 @@ fit1 <- covidseir::fit_seir(
   end_decline_prior = c(log(22), 0.1),
   f_prior = cbind(c(0.4, 0.5), c(0.2, 0.2)),
   R0_prior = c(log(2.6), 0.2),
-  days_back = 30,
   N_pop = 5.1e6, # BC population
-  iter = 500, # number of posterior samples
+  iter = 200,
   fit_type = "optimizing" # for speed only
 )
-proj <- covidseir::project_seir(fit1, iter = 1:100)
-tidy_proj <- covidseir::tidy_seir(proj, resample_y_rep = 50)
+```
 
-first_day <- min(dat$date)
-last_day <- 300 # how many days to create dates for
-lut <- dplyr::tibble(
-  day = seq_len(last_day),
-  date = seq(first_day, first_day + length(day) - 1, by = "1 day")
-)
-tidy_proj <- dplyr::left_join(tidy_proj, lut, by = "day")
+Use the function `covidseir::post2prior()` to convert the posteriors to the priors. The output is a named list:
 
-covidseir::plot_projection(tidy_proj, obs_dat = dat,
-  value_column = "value", date_column = "date")
+```{r restart-priors}
+priors <- post2prior(fit1, iter = seq_len(50))
+priors
+```
 
-p <- fit1$post
-R0 <- p$R0
-hist(R0)
-R0_hat <- unname(MASS::fitdistr(R0, "lognormal")$estimate)
-hist(R0, probability = TRUE, main = "")
-x <- seq(2, 5, length.out = 200)
-lines(x, dlnorm(x, R0_hat[1], R0_hat[2]), type = "l")
+Now we will fit the second model. **Critically, note that we need to set `use_ramp = FALSE` to avoid using the initial social distancing ramp.** The `start_decline_prior` and `end_decline_prior` are given fake priors that are close to 1 and easy to sample from. They can be ignored in the output.
 
-proj1 <- covidseir::project_seir(fit1, iter = 1:100, return_states = TRUE)
-i30 <- filter(proj1, variable %in% c("I", "Id", "E1", "E2", "E1d", "E2d") & time == max(proj1$time) - 30) %>% 
-  group_by(.iteration) %>% 
-  summarise(value = sum(value), .groups = "drop") %>% 
-  pull(value)
-hist(i30, breaks = 40)
-i30_hat <- unname(MASS::fitdistr(i30, "lognormal")$estimate)
-
-hist(p$e)
-e_hat <- c(mean(p$e), sd(p$e))
-
-start_decline_fake <- c(log(1), 0.1)
-end_decline_fake <- c(log(1), 0.1)
-x <- seq(0, 8, length.out = 500)
-plot(x, dlnorm(x, start_decline_fake[1], start_decline_fake[2]), type = "l")
-lines(x, dlnorm(x, end_decline_fake[1], end_decline_fake[2]), type = "l")
-
-# state_0 <- c(E1_frac = 0.4, E2_frac = 0.1, I_frac = 0.5, Q_num = 0, R_num = 0,
-#     E1d_frac = 0.4, E2d_frac = 0.1, Id_frac = 0.5, Qd_num = 0, Rd_num = 0)
-
-# state0 at time -30
-S0 <- proj1 %>% filter(time == max(time) - 30) %>%
-  group_by(variable) %>% 
-  summarise(value = mean(value), .groups = "drop")
-state_order <- c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
-S0_hat <- S0$value
-names(S0_hat) <- S0$variable
-S0_hat <- S0_hat[state_order]
-S0_hat
-
-# i0 <- S0_hat[['I']] + S0_hat[['Id']]
-i0 <- exp(i30_hat[[1]])
-i0 <- mean(i30)
-
-state_0 <- c(
-  E1_frac = S0_hat[['E1']] / ((1 - e_hat[1]) * i0), 
-  E2_frac = S0_hat[['E2']] / ((1 - e_hat[1]) * i0), 
-  I_frac = S0_hat[['I']] / ((1 - e_hat[1]) * i0), 
-  Q_num = S0_hat[['Q']], 
-  R_num = S0_hat[['R']],
-  E1d_frac = S0_hat[['E1d']] / (e_hat[1] * i0), 
-  E2d_frac = S0_hat[['E2d']] / (e_hat[1] * i0), 
-  Id_frac = S0_hat[['Id']] / (e_hat[1] * i0), 
-  Qd_num = S0_hat[['Qd']], 
-  Rd_num = S0_hat[['Rd']])
-
-# y0[1] = nsi * (N_pop - i0); // S = nsi * (pars[["N"]] - i0)
-# y0[2] = y0_vars[1] * nsi * i0; // E1 = E1_frac * nsi * i0
-# y0[3] = y0_vars[2] * nsi * i0; // E2 = E2_frac * nsi * i0
-# y0[4] = y0_vars[3] * nsi * i0; // I = I_frac * nsi * i0
-# y0[5] = y0_vars[4]; // Q = Q_num
-# y0[6] = y0_vars[5]; // R = R_num
-# y0[7] = fsi * (N_pop - i0); // Sd = fsi * (pars[["N"]] - i0)
-# y0[8] = y0_vars[6] * fsi * i0; // E1d = E1d_frac * fsi * i0
-# y0[9] = y0_vars[7] * fsi * i0; // E2d = E2d_frac * fsi * i0
-# y0[10] = y0_vars[8] * fsi * i0; // Id = Id_frac * fsi * i0
-# y0[11] = y0_vars[9]; // Qd = Qd_num
-# y0[12] = y0_vars[10]; // Rd = Rd_num
-
-plot(dat2$value, type = "o")
-
-f_seg2 <- rep(1, length(f_seg2))
-f_seg2[1] <- 0
-
-f <- p$f_s[,ncol(p$f_s)]
-hist(f)
-f_hat <- c(mean(f), sd(f))
-
-hist(p$phi[,1])
-phi_hat <- unname(MASS::fitdistr(p$phi, "lognormal")$estimate)
-
-fit2 <- covidseir::fit_seir(
+```{r restart-fit2}
+fit2 <- fit_seir(
   daily_cases = dat2$value,
   samp_frac_fixed = samp_frac2, 
   f_seg = f_seg2,
-  i0_prior = c(i30_hat[1], i30_hat[2]),
-  e_prior = c(e_hat[1], e_hat[2]),
-  days_back = 30,
-  start_decline_prior = start_decline_fake,
-  end_decline_prior = end_decline_fake,
-  state_0 = state_0,
-  pars = c(D = 5, k1 = 1/5, k2 = 1, q = 0.05, ud = 0.1, ur = 0.02, f0 = f_hat[1]),
-  f_prior = cbind(c(0.6), c(0.2)),
-  R0_prior = c(R0_hat[1], R0_hat[2]),
-  use_ramp = FALSE,
+  i0_prior = priors$i0,
+  e_prior = priors$e,
+  start_decline_prior = priors$start_decline,
+  end_decline_prior = priors$end_decline,
+  state_0 = priors$state_0,
+  pars = c(D = 5, k1 = 1/5, k2 = 1, q = 0.05, ud = 0.1, ur = 0.02, f0 = priors$f[1]),
+  f_prior = cbind(c(0.6, 0.6), c(0.2, 0.2)), # or use priors$f to use the last f segment posterior
+  R0_prior = priors$R0,
+  use_ramp = FALSE, # CRITICAL for restarting!
   N_pop = 5.1e6, # BC population
-  iter = 200, # number of posterior samples
+  iter = 200,
   fit_type = "optimizing", # for speed only
-  # fit_type = "NUTS", # for speed only
-  # chains = 3, # for speed only
-  # algorithm = "BFGS",
-  # init = "optimizing",
-  phi_prior = phi_hat
+  phi_prior = priors$phi
 )
+```
 
-proj2 <- covidseir::project_seir(fit2, iter = 1:100)
-tidy_proj2 <- covidseir::tidy_seir(proj2, resample_y_rep = 50)
-first_day2 <- min(dat2$date)
-lut2 <- dplyr::tibble(
-  day = seq_len(last_day),
-  date = seq(first_day2, first_day2 + length(day) - 1, by = "1 day")
-)
-tidy_proj2 <- dplyr::left_join(tidy_proj2, lut2, by = "day")
+Since we need to average over the overlap, we will combine the posteriors before turning them into a data frame with quantiles:
 
-# covidseir::plot_projection(tidy_proj2, obs_dat = dat2,
-#   value_column = "value", date_column = "date")
+```{r restart-plot}
+proj1 <- project_seir(fit1, iter = seq_len(50))
+proj2 <- project_seir(fit2, iter = seq_len(50))
+proj2$day <- proj2$day + min(dat2$day) - 1
+```
 
-g1 <- tidy_proj %>% bind_rows(tidy_proj2) %>% 
-  covidseir::plot_projection(obs_dat = dat,
+These are the fits from the two models:
+
+```{r}
+proj1 %>% tidy_seir() %>% plot_projection(dat1)
+proj2 %>% tidy_seir() %>% plot_projection(dat2)
+```
+
+Now we can bind the two projections together, convert them into quantiles, join on our day-date lookup table (`lut`), and plot the result. The vertical dashed lines indicate the region of overlapping/split model fits.
+
+```{r restart-plot2}
+tidy_proj_combined <- bind_rows(proj1, proj2) %>%
+  tidy_seir(resample_y_rep = 50) %>% 
+  left_join(lut, by = "day")
+
+tidy_proj_combined %>%
+  plot_projection(obs_dat = dat,
   value_column = "value", date_column = "date") +
-  geom_vline(xintercept = ymd("2020-06-01"), lty = 2) +
+  geom_vline(xintercept = ymd("2020-05-22"), lty = 2) +
+  geom_vline(xintercept = ymd("2020-05-29"), lty = 2) +
   theme_light() +
   theme(axis.title.x = element_blank()) +
   coord_cartesian(ylim = c(0, 150), expand = FALSE)
-  # scale_y_log10()
+```
 
-proj0 <- covidseir::project_seir(fit0, iter = 1:100)
-tidy_proj0 <- covidseir::tidy_seir(proj0, resample_y_rep = 50)
-tidy_proj0 <- dplyr::left_join(tidy_proj0, lut, by = "day")
+In this example you will notice that phi is estimated as larger (less dispersion) in the second block compared to the first, resulting in slightly smaller credible intervals then we would have had with a single fit:
 
-fit0
-fit1
-fit2
-
-g2 <- tidy_proj0 %>%
-  covidseir::plot_projection(obs_dat = dat,
-  value_column = "value", date_column = "date") +
-  theme_light() +
-  theme(axis.title.x = element_blank()) +
-  coord_cartesian(ylim = c(0, 150), expand = FALSE)
-
-cowplot::plot_grid(g1, g2, ncol = 1)
+```{r restart-phi}
+mean(fit1$post$phi)
+mean(fit2$post$phi)
 ```
