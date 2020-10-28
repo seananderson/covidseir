@@ -191,7 +191,7 @@ tidy_proj_combined %>%
   coord_cartesian(ylim = c(0, 150), expand = FALSE)
 ```
 
-In this example you will notice that phi is estimated as larger (less dispersion) in the second block compared to the first, resulting in slightly smaller credible intervals then we would have had with a single fit:
+In this example you will notice that phi is estimated as larger (less dispersion) in the second block compared to the first, resulting in slightly smaller credible intervals than we would have had with a single fit:
 
 ```{r restart-phi}
 mean(fit1$post$phi)
