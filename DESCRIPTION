@@ -73,6 +73,7 @@ Suggests:
     knitr,
     future,
     lubridate,
+    mgcv,
     rmarkdown,
     rstantools (>= 2.0.0)
 LinkingTo: 

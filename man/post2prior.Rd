@@ -13,7 +13,7 @@ post2prior(obj, iter = seq_len(100))
 posterior.}
 }
 \description{
-This function takes a model fit with \code{\link[=fit_sier]{fit_sier()}} and converts the posterior
+This function takes a model fit with \code{\link[=fit_seir]{fit_seir()}} and converts the posterior
 distribution into priors that can be fed into a second model. This allows
 splitting a time series into multiple blocks.
 }

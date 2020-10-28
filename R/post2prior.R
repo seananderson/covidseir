@@ -1,6 +1,6 @@
 #' Extract new priors from a previous fit
 #'
-#' This function takes a model fit with [fit_sier()] and converts the posterior
+#' This function takes a model fit with [fit_seir()] and converts the posterior
 #' distribution into priors that can be fed into a second model. This allows
 #' splitting a time series into multiple blocks.
 #'
@@ -10,6 +10,7 @@
 #'
 #' @export
 #' @importFrom magrittr "%>%"
+#' @importFrom stats sd
 #' @examples
 #' # See the vignette 'Fitting case data in multiple blocks'
 #' # for a complete example
