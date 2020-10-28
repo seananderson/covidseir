@@ -1,10 +1,22 @@
 # covidseir
 
+# covidseir 0.0.1.9000
+
+* Added `post2prior()`, which allows passing the posterior from one model fit
+  into priors of a second model fit. This allows the model to be fit in blocks.
+  There is a new vignette showing a full example.
+
+* Removed the `f_ramp_rate` argument and option from `fit_seir()`.
+
+* Allow not fitting the initial social distancing ramp and allow specifying the
+  NB2 phi prior as a log normal distribution to allow passing the posterior as a
+  prior.
+
 # covidseir 0.0.0.9010
 
 * Decrease default `time_increment` to 0.25 and make ODE control
   more precise again after issues in leeway paper.
-  
+
 * Add initialization option (MAP or random).
 
 * Stop making projections parallel for now (possible issue in leeway paper).
@@ -24,8 +36,8 @@
 * Change default `time_increment` to 0.5 now that the pandemic
   has been going on for many months. You could even increase this
   to 1 for more speed.
-  
-* Remove estimation of fraction distancing (e and e_prior). There isn't 
+
+* Remove estimation of fraction distancing (e and e_prior). There isn't
   generally information to inform this parameter and it slows everything down.
 
 # covidseir 0.0.0.9005

@@ -5,9 +5,6 @@ latex: false
 cache:
   - packages
   - ccache
-branches:
-  except:
-  - split-fit
 
 r_build_args: '--no-build-vignettes'
 r_check_args: '--ignore-vignettes'
