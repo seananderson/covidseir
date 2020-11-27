@@ -100,14 +100,14 @@
 <div id="data" class="section level1">
 <h1 class="hasAnchor">
 <a href="#data" class="anchor"></a>Data</h1>
-<div class="sourceCode" id="cb1"><pre class="downlit">
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">covidseir</span><span class="op">)</span>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">covidseir</span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org">dplyr</a></span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="http://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span>
-<span class="va">ymd</span> <span class="op">&lt;-</span> <span class="fu">lubridate</span><span class="fu">::</span><span class="va"><a href="http://lubridate.tidyverse.org/reference/ymd.html">ymd</a></span></pre></div>
+<span class="va">ymd</span> <span class="op">&lt;-</span> <span class="fu">lubridate</span><span class="fu">::</span><span class="va"><a href="http://lubridate.tidyverse.org/reference/ymd.html">ymd</a></span></code></pre></div>
 <p>First, we will read in the British Columbia, Canada COVID-19 reported-case data. This comes from <a href="http://www.bccdc.ca/Health-Info-Site/Documents/BCCDC_COVID19_Dashboard_Case_Details.csv" class="uri">http://www.bccdc.ca/Health-Info-Site/Documents/BCCDC_COVID19_Dashboard_Case_Details.csv</a>.</p>
-<div class="sourceCode" id="cb2"><pre class="downlit">
-<span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/structure.html">structure</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">4</span>, <span class="fl">6</span>, <span class="fl">4</span>, <span class="fl">6</span>, <span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">5</span>, <span class="fl">11</span>, <span class="fl">20</span>, <span class="fl">12</span>, 
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/structure.html">structure</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html">list</a></span><span class="op">(</span>value <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span>, <span class="fl">4</span>, <span class="fl">6</span>, <span class="fl">4</span>, <span class="fl">6</span>, <span class="fl">1</span>, <span class="fl">3</span>, <span class="fl">5</span>, <span class="fl">11</span>, <span class="fl">20</span>, <span class="fl">12</span>, 
 <span class="fl">25</span>, <span class="fl">12</span>, <span class="fl">27</span>, <span class="fl">46</span>, <span class="fl">41</span>, <span class="fl">60</span>, <span class="fl">47</span>, <span class="fl">62</span>, <span class="fl">46</span>, <span class="fl">43</span>, <span class="fl">88</span>, <span class="fl">59</span>, <span class="fl">91</span>, <span class="fl">62</span>, <span class="fl">62</span>, <span class="fl">37</span>, 
 <span class="fl">30</span>, <span class="fl">82</span>, <span class="fl">56</span>, <span class="fl">47</span>, <span class="fl">55</span>, <span class="fl">31</span>, <span class="fl">21</span>, <span class="fl">13</span>, <span class="fl">51</span>, <span class="fl">40</span>, <span class="fl">33</span>, <span class="fl">34</span>, <span class="fl">41</span>, <span class="fl">28</span>, <span class="fl">15</span>, <span class="fl">30</span>, 
 <span class="fl">44</span>, <span class="fl">14</span>, <span class="fl">51</span>, <span class="fl">25</span>, <span class="fl">30</span>, <span class="fl">15</span>, <span class="fl">34</span>, <span class="fl">63</span>, <span class="fl">33</span>, <span class="fl">37</span>, <span class="fl">72</span>, <span class="fl">61</span>, <span class="fl">15</span>, <span class="fl">58</span>, <span class="fl">41</span>, <span class="fl">26</span>, 
@@ -121,56 +121,56 @@
     day <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">176</span><span class="op">)</span>, row.names <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="op">-</span><span class="fl">176L</span><span class="op">)</span>, 
   class <span class="op">=</span> <span class="st">"data.frame"</span><span class="op">)</span>
 <span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/as_tibble.html">as_tibble</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span>
-<span class="va">dat</span><span class="op">$</span><span class="va">date</span> <span class="op">&lt;-</span> <span class="fu">ymd</span><span class="op">(</span><span class="st">"2020-03-01"</span><span class="op">)</span> <span class="op">+</span> <span class="va">dat</span><span class="op">$</span><span class="va">day</span> <span class="op">-</span> <span class="fl">1</span></pre></div>
-<div class="sourceCode" id="cb3"><pre class="downlit">
-<span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">dat</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="va">date</span>, <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span><span class="op">(</span><span class="op">)</span></pre></div>
+<span class="va">dat</span><span class="op">$</span><span class="va">date</span> <span class="op">&lt;-</span> <span class="fu">ymd</span><span class="op">(</span><span class="st">"2020-03-01"</span><span class="op">)</span> <span class="op">+</span> <span class="va">dat</span><span class="op">$</span><span class="va">day</span> <span class="op">-</span> <span class="fl">1</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">dat</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="va">date</span>, <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span><span class="op">(</span><span class="op">)</span></code></pre></div>
 <p><img src="restarting_files/figure-html/plot-raw-dat-1.png" width="480"></p>
 </div>
 <div id="initial-model-setup" class="section level1">
 <h1 class="hasAnchor">
 <a href="#initial-model-setup" class="anchor"></a>Initial model setup</h1>
 <p>See the ‘fitting-case-data’ vignette for details on the model setup. Here, we will use the same initial code blocks.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit">
-<span class="co"># Based on estimation with hospital data in other model:</span>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># Based on estimation with hospital data in other model:</span>
 <span class="va">samp_frac</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">0.14</span>, <span class="fl">13</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">0.21</span>, <span class="fl">38</span><span class="op">)</span><span class="op">)</span>
-<span class="va">samp_frac</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">samp_frac</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">0.37</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">samp_frac</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></pre></div>
-<div class="sourceCode" id="cb5"><pre class="downlit">
-<span class="va">f_seg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span>
+<span class="va">samp_frac</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="va">samp_frac</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">0.37</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">samp_frac</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">f_seg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fu"><a href="https://rdrr.io/r/base/rep.html">rep</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">dat</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span><span class="op">)</span>
 <span class="va">day_new_f</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.html">which</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">date</span> <span class="op">==</span> <span class="fu">ymd</span><span class="op">(</span><span class="st">"2020-05-01"</span><span class="op">)</span><span class="op">)</span>
 <span class="va">f_seg</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="va">day_new_f</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">f_seg</span><span class="op">)</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">2</span>
 <span class="va">day_ch</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/which.html">which</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">date</span> <span class="op">==</span> <span class="fu">ymd</span><span class="op">(</span><span class="st">"2020-06-01"</span><span class="op">)</span><span class="op">)</span>
-<span class="va">f_seg</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="va">day_ch</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">f_seg</span><span class="op">)</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">3</span></pre></div>
-<div class="sourceCode" id="cb6"><pre class="downlit">
-<span class="va">first_day</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">date</span><span class="op">)</span>
+<span class="va">f_seg</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="va">day_ch</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">f_seg</span><span class="op">)</span><span class="op">)</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">3</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">first_day</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">dat</span><span class="op">$</span><span class="va">date</span><span class="op">)</span>
 <span class="va">lut</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/tibble.html">tibble</a></span><span class="op">(</span>
   day <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fl">300</span><span class="op">)</span>,
   date <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="va">first_day</span>, <span class="va">first_day</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">day</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span>, by <span class="op">=</span> <span class="st">"1 day"</span><span class="op">)</span>
-<span class="op">)</span></pre></div>
+<span class="op">)</span></code></pre></div>
 </div>
 <div id="splitting-the-data-and-model-fit" class="section level1">
 <h1 class="hasAnchor">
 <a href="#splitting-the-data-and-model-fit" class="anchor"></a>Splitting the data and model fit</h1>
 <p>First, let’s split the data into two blocks with a week overlap in the middle. Note that f is assumed constant in the 30 days prior. You could also avoid the overlap if you would prefer.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit">
-<span class="va">dat1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html">filter</a></span><span class="op">(</span><span class="va">dat</span>, <span class="va">date</span> <span class="op">&lt;</span> <span class="fu">ymd</span><span class="op">(</span><span class="st">"2020-05-29"</span><span class="op">)</span><span class="op">)</span>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">dat1</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html">filter</a></span><span class="op">(</span><span class="va">dat</span>, <span class="va">date</span> <span class="op">&lt;</span> <span class="fu">ymd</span><span class="op">(</span><span class="st">"2020-05-29"</span><span class="op">)</span><span class="op">)</span>
 <span class="va">dat2</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html">filter</a></span><span class="op">(</span><span class="va">dat</span>, <span class="va">date</span> <span class="op">&gt;=</span> <span class="fu">ymd</span><span class="op">(</span><span class="st">"2020-05-22"</span><span class="op">)</span><span class="op">)</span>
 
 <span class="va">samp_frac1</span> <span class="op">&lt;-</span> <span class="va">samp_frac</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">dat1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>
 <span class="va">samp_frac2</span> <span class="op">&lt;-</span> <span class="va">samp_frac</span><span class="op">[</span><span class="va">dat2</span><span class="op">$</span><span class="va">day</span><span class="op">]</span>
 
 <span class="va">f_seg1</span> <span class="op">&lt;-</span> <span class="va">f_seg</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html">nrow</a></span><span class="op">(</span><span class="va">dat1</span><span class="op">)</span><span class="op">)</span><span class="op">]</span>
-<span class="va">f_seg2</span> <span class="op">&lt;-</span> <span class="va">f_seg</span><span class="op">[</span><span class="va">dat2</span><span class="op">$</span><span class="va">day</span><span class="op">]</span></pre></div>
+<span class="va">f_seg2</span> <span class="op">&lt;-</span> <span class="va">f_seg</span><span class="op">[</span><span class="va">dat2</span><span class="op">$</span><span class="va">day</span><span class="op">]</span></code></pre></div>
 <p>Now we need to adjust the <code>f_seg</code> indexes to start at 1 in the second block and set the first element to 0:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit">
-<span class="va">f_seg2</span> <span class="op">&lt;-</span> <span class="va">f_seg2</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">f_seg2</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1</span>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">f_seg2</span> <span class="op">&lt;-</span> <span class="va">f_seg2</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">f_seg2</span><span class="op">)</span> <span class="op">+</span> <span class="fl">1</span>
 <span class="va">f_seg2</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span> <span class="op">&lt;-</span> <span class="fl">0</span>
 <span class="va">f_seg2</span>
 <span class="co">#&gt;  [1] 0 1 1 1 1 1 1 1 1 1 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2</span>
 <span class="co">#&gt; [39] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2</span>
-<span class="co">#&gt; [77] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2</span></pre></div>
+<span class="co">#&gt; [77] 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2</span></code></pre></div>
 <p>Fit the first model:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit">
-<span class="va">fit1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_seir.html">fit_seir</a></span><span class="op">(</span>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">fit1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_seir.html">fit_seir</a></span><span class="op">(</span>
   daily_cases <span class="op">=</span> <span class="va">dat1</span><span class="op">$</span><span class="va">value</span>,
   samp_frac_fixed <span class="op">=</span> <span class="va">samp_frac1</span>, 
   f_seg <span class="op">=</span> <span class="va">f_seg1</span>,
@@ -184,10 +184,10 @@
   iter <span class="op">=</span> <span class="fl">200</span>,
   fit_type <span class="op">=</span> <span class="st">"optimizing"</span> <span class="co"># for speed only</span>
 <span class="op">)</span>
-<span class="co">#&gt; Finding the MAP estimate.</span></pre></div>
+<span class="co">#&gt; Finding the MAP estimate.</span></code></pre></div>
 <p>Use the function <code><a href="../reference/post2prior.html">covidseir::post2prior()</a></code> to convert the posteriors to the priors. The output is a named list:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit">
-<span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/post2prior.html">post2prior</a></span><span class="op">(</span><span class="va">fit1</span>, iter <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fl">50</span><span class="op">)</span><span class="op">)</span>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">priors</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/post2prior.html">post2prior</a></span><span class="op">(</span><span class="va">fit1</span>, iter <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fl">50</span><span class="op">)</span><span class="op">)</span>
 <span class="va">priors</span>
 <span class="co">#&gt; $R0</span>
 <span class="co">#&gt; [1] 1.15693778 0.07827417</span>
@@ -214,10 +214,10 @@
 <span class="co">#&gt;      E1_frac      E2_frac       I_frac        Q_num        R_num     E1d_frac </span>
 <span class="co">#&gt;    0.7736256    0.1539390    0.6359192   21.6524384 2020.5355935    0.3779521 </span>
 <span class="co">#&gt;     E2d_frac      Id_frac       Qd_num       Rd_num </span>
-<span class="co">#&gt;    0.0805407    0.4089279   69.7881628 7994.2094979</span></pre></div>
+<span class="co">#&gt;    0.0805407    0.4089279   69.7881628 7994.2094979</span></code></pre></div>
 <p>Now we will fit the second model. <strong>Critically, note that we need to set <code>use_ramp = FALSE</code> to avoid using the initial social distancing ramp.</strong> The <code>start_decline_prior</code> and <code>end_decline_prior</code> are given fake priors that are close to 1 and easy to sample from. They can be ignored in the output.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit">
-<span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_seir.html">fit_seir</a></span><span class="op">(</span>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">fit2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/fit_seir.html">fit_seir</a></span><span class="op">(</span>
   daily_cases <span class="op">=</span> <span class="va">dat2</span><span class="op">$</span><span class="va">value</span>,
   samp_frac_fixed <span class="op">=</span> <span class="va">samp_frac2</span>, 
   f_seg <span class="op">=</span> <span class="va">f_seg2</span>,
@@ -235,22 +235,22 @@
   fit_type <span class="op">=</span> <span class="st">"optimizing"</span>, <span class="co"># for speed only</span>
   phi_prior <span class="op">=</span> <span class="va">priors</span><span class="op">$</span><span class="va">phi</span>
 <span class="op">)</span>
-<span class="co">#&gt; Finding the MAP estimate.</span></pre></div>
+<span class="co">#&gt; Finding the MAP estimate.</span></code></pre></div>
 <p>Since we need to average over the overlap, we will combine the posteriors before turning them into a data frame with quantiles:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit">
-<span class="va">proj1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/project_seir.html">project_seir</a></span><span class="op">(</span><span class="va">fit1</span>, iter <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fl">50</span><span class="op">)</span><span class="op">)</span>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">proj1</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/project_seir.html">project_seir</a></span><span class="op">(</span><span class="va">fit1</span>, iter <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fl">50</span><span class="op">)</span><span class="op">)</span>
 <span class="va">proj2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/project_seir.html">project_seir</a></span><span class="op">(</span><span class="va">fit2</span>, iter <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq_len</a></span><span class="op">(</span><span class="fl">50</span><span class="op">)</span><span class="op">)</span>
-<span class="va">proj2</span><span class="op">$</span><span class="va">day</span> <span class="op">&lt;-</span> <span class="va">proj2</span><span class="op">$</span><span class="va">day</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">dat2</span><span class="op">$</span><span class="va">day</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span></pre></div>
+<span class="va">proj2</span><span class="op">$</span><span class="va">day</span> <span class="op">&lt;-</span> <span class="va">proj2</span><span class="op">$</span><span class="va">day</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html">min</a></span><span class="op">(</span><span class="va">dat2</span><span class="op">$</span><span class="va">day</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span></code></pre></div>
 <p>These are the fits from the two models:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit">
-<span class="va">proj1</span> <span class="op">%&gt;%</span> <span class="fu"><a href="../reference/tidy_seir.html">tidy_seir</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span> <span class="fu"><a href="../reference/plot_projection.html">plot_projection</a></span><span class="op">(</span><span class="va">dat1</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">proj1</span> <span class="op">%&gt;%</span> <span class="fu"><a href="../reference/tidy_seir.html">tidy_seir</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span> <span class="fu"><a href="../reference/plot_projection.html">plot_projection</a></span><span class="op">(</span><span class="va">dat1</span><span class="op">)</span></code></pre></div>
 <p><img src="restarting_files/figure-html/unnamed-chunk-2-1.png" width="480"></p>
-<div class="sourceCode" id="cb14"><pre class="downlit">
-<span class="va">proj2</span> <span class="op">%&gt;%</span> <span class="fu"><a href="../reference/tidy_seir.html">tidy_seir</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span> <span class="fu"><a href="../reference/plot_projection.html">plot_projection</a></span><span class="op">(</span><span class="va">dat2</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">proj2</span> <span class="op">%&gt;%</span> <span class="fu"><a href="../reference/tidy_seir.html">tidy_seir</a></span><span class="op">(</span><span class="op">)</span> <span class="op">%&gt;%</span> <span class="fu"><a href="../reference/plot_projection.html">plot_projection</a></span><span class="op">(</span><span class="va">dat2</span><span class="op">)</span></code></pre></div>
 <p><img src="restarting_files/figure-html/unnamed-chunk-2-2.png" width="480"></p>
 <p>Now we can bind the two projections together, convert them into quantiles, join on our day-date lookup table (<code>lut</code>), and plot the result. The vertical dashed lines indicate the region of overlapping/split model fits.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit">
-<span class="va">tidy_proj_combined</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind.html">bind_rows</a></span><span class="op">(</span><span class="va">proj1</span>, <span class="va">proj2</span><span class="op">)</span> <span class="op">%&gt;%</span>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="va">tidy_proj_combined</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind.html">bind_rows</a></span><span class="op">(</span><span class="va">proj1</span>, <span class="va">proj2</span><span class="op">)</span> <span class="op">%&gt;%</span>
   <span class="fu"><a href="../reference/tidy_seir.html">tidy_seir</a></span><span class="op">(</span>resample_y_rep <span class="op">=</span> <span class="fl">50</span><span class="op">)</span> <span class="op">%&gt;%</span> 
   <span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">lut</span>, by <span class="op">=</span> <span class="st">"day"</span><span class="op">)</span>
 
@@ -262,14 +262,14 @@
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html">theme_light</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html">theme</a></span><span class="op">(</span>axis.title.x <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/element.html">element_blank</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span>
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_cartesian.html">coord_cartesian</a></span><span class="op">(</span>ylim <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">150</span><span class="op">)</span>, expand <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>
-<span class="co">#&gt; Coordinate system already present. Adding new coordinate system, which will replace the existing one.</span></pre></div>
+<span class="co">#&gt; Coordinate system already present. Adding new coordinate system, which will replace the existing one.</span></code></pre></div>
 <p><img src="restarting_files/figure-html/restart-plot2-1.png" width="480"></p>
 <p>In this example you will notice that phi is estimated as larger (less dispersion) in the second block compared to the first, resulting in slightly smaller credible intervals than we would have had with a single fit:</p>
-<div class="sourceCode" id="cb16"><pre class="downlit">
-<span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">fit1</span><span class="op">$</span><span class="va">post</span><span class="op">$</span><span class="va">phi</span><span class="op">)</span>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">fit1</span><span class="op">$</span><span class="va">post</span><span class="op">$</span><span class="va">phi</span><span class="op">)</span>
 <span class="co">#&gt; [1] 7.72943</span>
 <span class="fu"><a href="https://rdrr.io/r/base/mean.html">mean</a></span><span class="op">(</span><span class="va">fit2</span><span class="op">$</span><span class="va">post</span><span class="op">$</span><span class="va">phi</span><span class="op">)</span>
-<span class="co">#&gt; [1] 9.605443</span></pre></div>
+<span class="co">#&gt; [1] 9.605443</span></code></pre></div>
 </div>
   </div>
 

@@ -134,7 +134,7 @@ distribution into priors that can be fed into a second model. This allows
 splitting a time series into multiple blocks.</p>
     </div>
 
-    <pre class="usage"><span class='fu'>post2prior</span><span class='op'>(</span><span class='va'>obj</span>, iter <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/seq.html'>seq_len</a></span><span class='op'>(</span><span class='fl'>100</span><span class='op'>)</span><span class='op'>)</span></pre>
+    <pre class="usage"><span class='fu'>post2prior</span><span class='op'>(</span><span class='va'>obj</span>, iter <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/seq.html'>seq_len</a></span><span class='op'>(</span><span class='fl'>100</span><span class='op'>)</span>, time_slice <span class='op'>=</span> <span class='fu'><a href='https://rdrr.io/r/base/Extremes.html'>max</a></span><span class='op'>(</span><span class='va'>proj</span><span class='op'>$</span><span class='va'>time</span><span class='op'>)</span><span class='op'>)</span></pre>
 
     <h2 class="hasAnchor" id="arguments"><a class="anchor" href="#arguments"></a>Arguments</h2>
     <table class="ref-arguments">
@@ -147,6 +147,11 @@ splitting a time series into multiple blocks.</p>
       <th>iter</th>
       <td><p>Iterations to use went creating projections to extract the state
 posterior.</p></td>
+    </tr>
+    <tr>
+      <th>time_slice</th>
+      <td><p>When to take the state priors at. Defaults to the
+end of the fit.</p></td>
     </tr>
     </table>
 

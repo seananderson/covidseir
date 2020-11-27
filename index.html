@@ -112,20 +112,20 @@
 <a href="#installation" class="anchor"></a>Installation</h2>
 <p>Before installation, you will need a C++ compiler installed to compile the Stan model. If you are on a Mac or Linux, follow <a href="https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started">these instructions</a>. If you are on Windows, follow the ‘Configuration’ section <a href="https://github.com/stan-dev/rstan/wiki/Installing-RStan-from-source-on-Windows">here</a> (you do not need to follow the rest of the instructions from that page to install rstan itself from source).</p>
 <p>The following must return <code>TRUE</code> before continuing:</p>
-<div class="sourceCode" id="cb1"><pre class="downlit">
-<span class="co"># install.packages("pkgbuild")</span>
-<span class="fu">pkgbuild</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/pkgbuild/man/has_build_tools.html">has_build_tools</a></span><span class="op">(</span>debug <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># install.packages("pkgbuild")</span>
+<span class="fu">pkgbuild</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/pkgbuild/man/has_build_tools.html">has_build_tools</a></span><span class="op">(</span>debug <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></code></pre></div>
 <p>Then, install the covidseir package with:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit">
-<span class="co"># install.packages("remotes")</span>
-<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"seananderson/covidseir"</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="co"># install.packages("remotes")</span>
+<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"seananderson/covidseir"</span><span class="op">)</span></code></pre></div>
 <p>See the examples in <code><a href="reference/fit_seir.html">?fit_seir</a></code> and <code><a href="reference/project_seir.html">?project_seir</a></code> and the <a href="https://seananderson.github.io/covidseir/articles/fitting-case-data.html">vignette</a>.</p>
 <p>To install the package with the vignette:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit">
-<span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"seananderson/covidseir"</span>, build_vignettes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html">install_github</a></span><span class="op">(</span><span class="st">"seananderson/covidseir"</span>, build_vignettes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></code></pre></div>
 <p>and run:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit">
-<span class="fu"><a href="https://rdrr.io/r/utils/browseVignettes.html">browseVignettes</a></span><span class="op">(</span><span class="st">"covidseir"</span><span class="op">)</span></pre></div>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span class="fu"><a href="https://rdrr.io/r/utils/browseVignettes.html">browseVignettes</a></span><span class="op">(</span><span class="st">"covidseir"</span><span class="op">)</span></code></pre></div>
 </div>
 </div>
   </div>
