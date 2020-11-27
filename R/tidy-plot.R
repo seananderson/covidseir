@@ -37,7 +37,8 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
     mu_0.50 = stats::quantile(mu, probs = 0.50),
     mu_0.75 = stats::quantile(mu, probs = 0.75),
     mu_0.95 = stats::quantile(mu, probs = 0.95),
-    mu_0.5 = stats::quantile(mu, probs = 0.50)
+    mu_0.5 = stats::quantile(mu, probs = 0.50),
+    .groups = "drop_last"
   )
   if (!is.null(data_type_names)) {
     out$data_type <- names(data_type_names[as.numeric(out$data_type)])
