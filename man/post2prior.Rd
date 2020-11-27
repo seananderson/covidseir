@@ -4,13 +4,16 @@
 \alias{post2prior}
 \title{Extract new priors from a previous fit}
 \usage{
-post2prior(obj, iter = seq_len(100))
+post2prior(obj, iter = seq_len(100), time_slice = max(proj$time))
 }
 \arguments{
 \item{obj}{A model fit with \code{\link[=fit_seir]{fit_seir()}}.}
 
 \item{iter}{Iterations to use went creating projections to extract the state
 posterior.}
+
+\item{time_slice}{When to take the state priors at. Defaults to the
+end of the fit.}
 }
 \description{
 This function takes a model fit with \code{\link[=fit_seir]{fit_seir()}} and converts the posterior

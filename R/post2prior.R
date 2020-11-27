@@ -7,6 +7,8 @@
 #' @param obj A model fit with [fit_seir()].
 #' @param iter Iterations to use went creating projections to extract the state
 #'   posterior.
+#' @param time_slice When to take the state priors at. Defaults to the
+#'   end of the fit.
 #'
 #' @export
 #' @importFrom magrittr "%>%"
@@ -29,15 +31,15 @@
 #' )
 #' post2prior(m, iter = seq_len(10)) # just 10 for example speed
 
-post2prior <- function(obj, iter = seq_len(100)) {
+post2prior <- function(obj, iter = seq_len(100), time_slice = max(proj$time)) {
   p <- obj$post
   R0 <- p$R0
   R0_hat <- unname(MASS::fitdistr(R0, "lognormal")$estimate)
 
-  proj1 <- covidseir::project_seir(obj, iter = iter, return_states = TRUE)
+  proj <- covidseir::project_seir(obj, iter = iter, return_states = TRUE)
   i30 <- dplyr::filter(
-    proj1,
-    variable %in% c("I", "Id", "E1", "E2", "E1d", "E2d") & time == max(proj1$time) - 30
+    proj,
+    variable %in% c("I", "Id", "E1", "E2", "E1d", "E2d") & time == time_slice - 30
   ) %>%
     dplyr::group_by(.iteration) %>%
     dplyr::summarise(value = sum(value), .groups = "drop") %>%
@@ -51,8 +53,8 @@ post2prior <- function(obj, iter = seq_len(100)) {
   f_hat <- c(mean(f), sd(f))
 
   # state0 at time -30
-  S0 <- proj1 %>%
-    dplyr::filter(time == max(time) - 30) %>%
+  S0 <- proj %>%
+    dplyr::filter(time == time_slice - 30) %>%
     dplyr::group_by(variable) %>%
     dplyr::summarise(value = mean(value), .groups = "drop")
   state_order <- c("S", "E1", "E2", "I", "Q", "R", "Sd", "E1d", "E2d", "Id", "Qd", "Rd")
