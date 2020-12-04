@@ -11,7 +11,8 @@ plot_projection(
   col = "#377EB8",
   value_column = "value",
   date_column = "day",
-  ylab = "Reported cases"
+  ylab = "Reported cases",
+  Rt = NULL
 )
 
 plot_residuals(
@@ -43,6 +44,8 @@ with \code{day} in it. If you want dates then you will need to add such a
 column.}
 
 \item{ylab}{Y axis label.}
+
+\item{Rt}{An optional vector of Rt values to colour the plot by.}
 
 \item{obj}{Outut from \code{\link[=fit_seir]{fit_seir()}}.}
 

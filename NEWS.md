@@ -1,5 +1,9 @@
 # covidseir
 
+# covidseir 0.0.1.9001
+
+* Add optional projection plot coloured by Rt.
+
 # covidseir 0.0.1.9000
 
 * Added `post2prior()`, which allows passing the posterior from one model fit

@@ -11,6 +11,7 @@
 #'
 #' @return A data frame
 #' @export
+#' @importFrom stats quantile
 tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
   # FIXME: check if NB2 or Poisson and stop or adjust
   if (resample_y_rep > 0) {
@@ -25,19 +26,19 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
   }
   out <- dplyr::group_by(x, data_type, day)
   out <- dplyr::summarise(out,
-    y_rep_0.05 = stats::quantile(y_rep, probs = 0.05),
-    y_rep_0.25 = stats::quantile(y_rep, probs = 0.25),
+    y_rep_0.05 = quantile(y_rep, probs = 0.05),
+    y_rep_0.25 = quantile(y_rep, probs = 0.25),
     y_rep_mean = mean(y_rep),
-    y_rep_0.50 = stats::quantile(y_rep, probs = 0.50),
-    y_rep_0.75 = stats::quantile(y_rep, probs = 0.75),
-    y_rep_0.95 = stats::quantile(y_rep, probs = 0.95),
-    mu_0.05 = stats::quantile(mu, probs = 0.05),
-    mu_0.25 = stats::quantile(mu, probs = 0.25),
+    y_rep_0.50 = quantile(y_rep, probs = 0.50),
+    y_rep_0.75 = quantile(y_rep, probs = 0.75),
+    y_rep_0.95 = quantile(y_rep, probs = 0.95),
+    mu_0.05 = quantile(mu, probs = 0.05),
+    mu_0.25 = quantile(mu, probs = 0.25),
     mu_mean = mean(mu),
-    mu_0.50 = stats::quantile(mu, probs = 0.50),
-    mu_0.75 = stats::quantile(mu, probs = 0.75),
-    mu_0.95 = stats::quantile(mu, probs = 0.95),
-    mu_0.5 = stats::quantile(mu, probs = 0.50),
+    mu_0.50 = quantile(mu, probs = 0.50),
+    mu_0.75 = quantile(mu, probs = 0.75),
+    mu_0.95 = quantile(mu, probs = 0.95),
+    mu_0.5 = quantile(mu, probs = 0.50),
     .groups = "drop_last"
   )
   if (!is.null(data_type_names)) {
@@ -59,6 +60,7 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
 #'   with `day` in it. If you want dates then you will need to add such a
 #'   column.
 #' @param ylab Y axis label.
+#' @param Rt An optional vector of Rt values to colour the plot by.
 #'
 #' @details
 #' See [project_seir()] for an example.
@@ -73,7 +75,8 @@ tidy_seir <- function(x, resample_y_rep = 10, data_type_names = NULL) {
 #' @examples
 #' # See ?project_seir
 plot_projection <- function(pred_dat, obs_dat, col = "#377EB8",
-                            value_column = "value", date_column = "day", ylab = "Reported cases") {
+                            value_column = "value", date_column = "day",
+                            ylab = "Reported cases", Rt = NULL) {
   if (!value_column %in% names(obs_dat)) {
     stop(glue("`obs_dat` must contain a column `{value_column}` that contains the reported case counts."), call. = FALSE)
   }
@@ -83,14 +86,50 @@ plot_projection <- function(pred_dat, obs_dat, col = "#377EB8",
   if (!date_column %in% names(pred_dat)) {
     stop(glue("`pred_dat` must contain a column named `{date_column}` that contains the numeric day (or date)."), call. = FALSE)
   }
-  g <- ggplot(pred_dat, aes_string(x = date_column)) +
-    geom_ribbon(aes_string(ymin = "y_rep_0.05", ymax = "y_rep_0.95"),
-      alpha = 0.2, fill = col
+
+  if (!is.null(Rt)) {
+    pred_dat$Rt <- Rt
+    make_poly <- function(df, lwr = "y_rep_0.05", upr = "y_rep_0.95") {
+      .l <- list()
+      for (i in seq(1, nrow(pred_dat) - 1)) {
+        .l[[i]] <- dplyr::bind_rows(
+          tibble(x = pred_dat[[date_column]][i], y = pred_dat[[lwr]][i]),
+          tibble(x = pred_dat[[date_column]][i], y = pred_dat[[upr]][i]),
+          tibble(x = pred_dat[[date_column]][i + 1], y = pred_dat[[upr]][i + 1]),
+          tibble(x = pred_dat[[date_column]][i + 1], y = pred_dat[[lwr]][i + 1]),
+        )
+        .l[[i]][["Rt"]] <- pred_dat[["Rt"]][i]
+        .l[[i]][["group"]] <- i
+      }
+      dplyr::bind_rows(.l)
+    }
+    ci1 <- make_poly(pred_dat, lwr = "y_rep_0.05", upr = "y_rep_0.95")
+    ci2 <- make_poly(pred_dat, lwr = "y_rep_0.25", upr = "y_rep_0.75")
+    pal <- rev(c("#EF8A62", "#F7F7F7", "#67A9CF")) # RColorBrewer::brewer.pal(3, "RdBu")
+  }
+
+  g <- ggplot(pred_dat, aes_string(x = date_column))
+
+  if (!is.null(Rt)) {
+    g <- g + ggplot2::geom_polygon(aes_string(x = "x", y = "y", fill = "Rt", group = "group"),
+      data = ci1, alpha = 0.55
     ) +
-    geom_ribbon(aes_string(ymin = "y_rep_0.25", ymax = "y_rep_0.75"),
-      alpha = 0.2, fill = col
+      ggplot2::geom_polygon(aes_string(x = "x", y = "y", fill = "Rt", group = "group"),
+        data = ci2, alpha = 0.9
+      ) +
+      ggplot2::scale_fill_gradient2(
+        midpoint = 0, high = pal[3], mid = pal[2],
+        low = pal[1], trans = "log10"
+      )
+  } else {
+    g <- g + geom_ribbon(aes_string(ymin = "y_rep_0.05", ymax = "y_rep_0.95"),
+      alpha = 0.2, , fill = col
     ) +
-    geom_line(aes_string(y = "mu_0.50"), lwd = 0.9, col = col) +
+      geom_ribbon(aes_string(ymin = "y_rep_0.25", ymax = "y_rep_0.75"),
+        alpha = 0.2, fill = col
+      )
+  }
+  g <- g + geom_line(aes_string(y = "mu_0.50"), lwd = 0.9, col = col) +
     coord_cartesian(expand = FALSE, xlim = range(pred_dat[[date_column]])) +
     ylab(ylab) +
     theme(axis.title.x = element_blank())
@@ -127,7 +166,6 @@ plot_residuals <- function(pred_dat, obs_dat, obj,
                            ylab = if (type == "raw") "Residual" else "Quantile residual",
                            date_function = lubridate::ymd,
                            return_residuals = FALSE) {
-
   type <- match.arg(type)
   temp <- obs_dat
   temp$mu_0.50 <- pred_dat$mu_0.50
@@ -135,8 +173,10 @@ plot_residuals <- function(pred_dat, obs_dat, obj,
     temp$resid <- temp[[value_column]] - pred_dat$mu_0.50
   } else {
     if (obj$stan_data$est_phi) {
-      temp$resid <- qres_nbinom2(temp[[value_column]], pred_dat$mu_0.50,
-        stats::median(obj$post$phi))
+      temp$resid <- qres_nbinom2(
+        temp[[value_column]], pred_dat$mu_0.50,
+        stats::median(obj$post$phi)
+      )
     } else {
       temp$resid <- qres_pois(temp[[value_column]], pred_dat$mu_0.50)
     }
