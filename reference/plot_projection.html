@@ -72,7 +72,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">covidseir</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.1.9000</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="Released version">0.0.1.9001</span>
       </span>
     </div>
 
@@ -136,7 +136,8 @@
   col <span class='op'>=</span> <span class='st'>"#377EB8"</span>,
   value_column <span class='op'>=</span> <span class='st'>"value"</span>,
   date_column <span class='op'>=</span> <span class='st'>"day"</span>,
-  ylab <span class='op'>=</span> <span class='st'>"Reported cases"</span>
+  ylab <span class='op'>=</span> <span class='st'>"Reported cases"</span>,
+  Rt <span class='op'>=</span> <span class='cn'>NULL</span>
 <span class='op'>)</span>
 
 <span class='fu'>plot_residuals</span><span class='op'>(</span>
@@ -182,6 +183,10 @@ column.</p></td>
     <tr>
       <th>ylab</th>
       <td><p>Y axis label.</p></td>
+    </tr>
+    <tr>
+      <th>Rt</th>
+      <td><p>An optional vector of Rt values to colour the plot by.</p></td>
     </tr>
     <tr>
       <th>obj</th>
