@@ -117,7 +117,7 @@ tidy_seir(p) \%>\% plot_projection(obs_dat = obs_dat)
 
 # fake example to show optional Rt colouring:
 proj <- tidy_seir(p)
-plot_projection(proj, obs_dat = obs_dat, Rt = rlnorm(nrow(pp)), col = "#00000050")
+plot_projection(proj, obs_dat = obs_dat, Rt = rlnorm(nrow(proj)), col = "#00000050")
 
 
 # Get threshold for increase:
