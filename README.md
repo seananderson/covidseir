@@ -3,7 +3,7 @@
 > Bayesian SEIR Modelling for Multivariate COVID-19 Case Data
 
 <!-- badges: start -->
-[![Travis build status](https://travis-ci.org/seananderson/covidseir.svg?branch=master)](https://travis-ci.org/seananderson/covidseir)
+[![R-CMD-check](https://github.com/seananderson/covidseir/workflows/R-CMD-check/badge.svg)](https://github.com/seananderson/covidseir/actions)
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
 
