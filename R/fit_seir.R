@@ -82,6 +82,19 @@
 #'   `f_s` argument needs to be an array of appropriate length. See the example
 #'   below.
 #' @param X An optional model matrix applied additively to log expected cases.
+#' @param voc_pars A named numeric providing fixed estimates of impact of VoC on
+#'   transmission. Includes the following elements:
+#'   \itemize{
+#'     \item{`present`}{Boolean. Used to specify whether VoC have been imported
+#'                      yet.}
+#'     \item{`establishment`}{Numeric denoting the time in days at which
+#'                            variants become established. Note: this is when
+#'                            variants begin sustained community spread, not the
+#'                            point of their first introduction.}
+#'     \item{`time_to_dominance`}{Numeric time in days to dominance of variant.
+#'                                Typically 42 - 56 days.}
+#'     \item{`rr`}{Numeric denoting relative reproduction ratio of new VoC.}
+#'   }
 #' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()] /
 #'   [rstan::vb()] / [rstan::optimizing()].
 #' @export
@@ -210,6 +223,8 @@ fit_seir <- function(daily_cases,
                      init = c("prior_random", "optimizing"),
                      init_list = NULL,
                      X = NULL,
+                     voc_pars = c(present = FALSE, establishment = 0,
+                                  time_to_dominance = 49, rr = 1.5),
                      ...) {
   obs_model <- match.arg(obs_model)
   obs_model <-
@@ -331,6 +346,12 @@ fit_seir <- function(daily_cases,
   x_r <- c(x_r, "use_ramp" = as.double(use_ramp))
   x_r <- c(x_r, "imported_cases" = 0) # not used until projections
   x_r <- c(x_r, "imported_window" = 1) # not used until projections
+
+  # add VOC variables to ODE data
+  x_r <- c(x_r, "voc_present" = as.double(voc_pars[["present"]]))
+  x_r <- c(x_r, "voc_establishment" = voc_pars[['establishment']])
+  x_r <- c(x_r, "voc_time_to_dominance" = voc_pars[['time_to_dominance']])
+  x_r <- c(x_r, "voc_rr" = voc_pars[['rr']])
 
   if (length(phi_prior) == 2L) {
     phi_prior2 <- phi_prior
