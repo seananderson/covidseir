@@ -1,5 +1,10 @@
 # covidseir
 
+# covidseir 0.0.1.9002
+
+* In `fit_seir()`, optional parameter `voc_pars` can be used to set
+  their introduction, time to dominance, and relative risk ratio (#7).
+
 # covidseir 0.0.1.9001
 
 * Add optional projection plot coloured by Rt.

@@ -1,7 +1,7 @@
 Package: covidseir
 Title: Bayesian SEIR Modelling for Multivariate COVID-19 Case
     Data
-Version: 0.0.1.9001
+Version: 0.0.1.9002
 Authors@R: 
     c(person(given = c("Sean", "C."),
              family = "Anderson",
@@ -31,7 +31,8 @@ Authors@R:
              role = "aut"),
       person(given = c("Michael", "A."),
              family = "Irvine",
-             role = "aut"),
+             role = "aut"
+             comment = c(ORCID = "0000-0003-4785-8998")),
       person(given = c("Naveed", "Z."),
              family = "Janjua",
              role = "aut"),
