@@ -1,0 +1,63 @@
+---
+title: "Incorporating VoC scenarios in covidseir model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Fitting COVID-19 case data with covidseir}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.asp = 0.62,
+  fig.width = 5
+)
+options(future.rng.onMisuse = "ignore")
+```
+
+The covidseir R package can be installed from <https://github.com/seananderson/covidseir>.
+
+```{r setup, message=FALSE, warning=FALSE}
+library(covidseir)
+library(dplyr)
+library(ggplot2)
+ymd <- lubridate::ymd
+```
+
+## VoC Introduction
+
+The approach to modeling VoC in [covidseir](https://github.com/seananderson/covidseir) is
+to establish a period where the effective transmission rate is increasing linearly
+until VoC become a the dominant strain. The effective transmissibility can is then
+expressed as a piece-wise linear function with the following definition:
+
+$$
+\beta(t) = \begin{cases}
+ R_0 & t < t_0,\\
+ R_0 + R_0(rr - 1)\frac{t - t_0}{t_1 - t_0} & t_0 \leq t < t_1, \\
+ rrR_0 & t \geq t_1.
+\end{cases}
+$$
+
+Where $R_0$ is the basic reproduction ratio of the wild-type, $rrR_0$ is the basic
+reproduction ratio of the variant. $t_0$ is the time of community establishment of
+the variant and $t_1 - t_0$ is the time to dominance. 
+
+To illustrate how to incorporate this into fitting consider the following faked data,
+
+```{r cases}
+value <- c(330, 745, 382, 866, 481, 668, 494, 275, 584, 514, 321, 745, 375, 301, 
+           531, 590, 319, 572, 511, 699, 569, 613, 672, 397, 582, 845, 565, 497, 
+           613, 984, 725, 603, 627, 732, 518, 889, 929, 821, 1086, 1152, 1211, 
+           1319, 1371, 1483, 1519, 1999, 1610, 2666, 2869, 2898)
+ts <- seq(1,length(cases))
+
+dat <- dplyr::tibble(value=value,t=ts)
+
+dat %>% ggplot(aes(x=t,y=value)) +
+  geom_line()
+```
+
+
