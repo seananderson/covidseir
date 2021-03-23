@@ -67,13 +67,13 @@ Imports:
     purrr,
     Rcpp (>= 0.12.0),
     reshape2,
-    rstan (>= 2.18.1),
+    rstan (>= 2.21.0),
     tibble,
-    tidyr
+    tidyr,
+    lubridate
 Suggests:
     knitr,
     future,
-    lubridate,
     mgcv,
     rmarkdown,
     rstantools (>= 2.0.0),
@@ -82,7 +82,7 @@ LinkingTo:
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
     RcppEigen (>= 0.3.3.3.0),
-    rstan (>= 2.18.1),
+    rstan (>= 2.21.0),
     StanHeaders (>= 2.18.0)
 VignetteBuilder: 
     knitr

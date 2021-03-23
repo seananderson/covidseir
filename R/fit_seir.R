@@ -87,6 +87,10 @@
 #'   \itemize{
 #'     \item{`present`}{Boolean. Used to specify whether VoC have been imported
 #'                      yet.}
+#'     \item{`transmission_vec`}{Vector. If provided then over-rides subsequent
+#'                            parameters so an arbitrary transmission vector
+#'                            can be used to provide the change in transmission
+#'                            due to VoC (or other factors).}
 #'     \item{`establishment`}{Numeric denoting the time in days at which
 #'                            variants become established. Note: this is when
 #'                            variants begin sustained community spread, not the
@@ -223,8 +227,9 @@ fit_seir <- function(daily_cases,
                      init = c("prior_random", "optimizing"),
                      init_list = NULL,
                      X = NULL,
-                     voc_pars = c(present = FALSE, establishment = 0,
-                                  time_to_dominance = 49, rr = 1.5),
+                     voc_pars = c(present = FALSE, transmission_vec = NULL,
+                                  establishment = 0, time_to_dominance = 49,
+                                  rr = 1.5),
                      ...) {
   obs_model <- match.arg(obs_model)
   obs_model <-
@@ -349,9 +354,34 @@ fit_seir <- function(daily_cases,
 
   # add VOC variables to ODE data
   x_r <- c(x_r, "voc_present" = as.double(voc_pars[["present"]]))
-  x_r <- c(x_r, "voc_establishment" = voc_pars[['establishment']])
-  x_r <- c(x_r, "voc_time_to_dominance" = voc_pars[['time_to_dominance']])
-  x_r <- c(x_r, "voc_rr" = voc_pars[['rr']])
+  x_r <- c(x_r, "voc_establishment" = voc_pars[["establishment"]])
+  x_r <- c(x_r, "voc_time_to_dominance" = voc_pars[["time_to_dominance"]])
+  x_r <- c(x_r, "voc_rr" = voc_pars[["rr"]])
+
+
+  # if transmission vector not given then create from voc pars
+  if(("transmission_vec" %in% names(voc_pars))){
+
+    if(is.null(voc_pars[["transmission_vec"]])){
+      total_days <- length(days)
+      start_date <- "2020-01-01" # fake date
+      start_ramp <- lubridate::ymd(start_date) +
+        lubridate::days(voc_pars[["establishment"]])
+      transmission_vec <- create_ramp_vector(start_date,total_days,start_ramp,
+                                             voc_pars[["time_to_dominance"]],
+                                             voc_pars[["rr"]])
+    }else{
+      # feature not yet implemented so throw error
+      stop("Transmission_vec not yet incorporated. Use other voc_params instead.")
+      if(!is.null(voc_pars[["time_to_dominance"]]) | !is.null(voc_pars[["rr"]]) |
+         !is.null(voc_pars[["establishment"]])){
+        warning("Over-riding VoC pars with transmission_vec")
+      }
+      transmision_vec <- voc_pars[["transmission_vec"]]
+    }
+
+  }
+
 
   if (length(phi_prior) == 2L) {
     phi_prior2 <- phi_prior
