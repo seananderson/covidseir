@@ -92,7 +92,7 @@
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va">covidseir</span><span class="op">)</span>
 <span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org">dplyr</a></span><span class="op">)</span>
-<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="http://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span>
+<span class="kw"><a href="https://rdrr.io/r/base/library.html">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org">ggplot2</a></span><span class="op">)</span>
 <span class="va">ymd</span> <span class="op">&lt;-</span> <span class="fu">lubridate</span><span class="fu">::</span><span class="va"><a href="http://lubridate.tidyverse.org/reference/ymd.html">ymd</a></span></code></pre></div>
 <div id="data" class="section level1">
 <h1 class="hasAnchor">
@@ -258,26 +258,26 @@
   date <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html">seq</a></span><span class="op">(</span><span class="va">first_day</span>, <span class="va">first_day</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html">length</a></span><span class="op">(</span><span class="va">day</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span>, by <span class="op">=</span> <span class="st">"1 day"</span><span class="op">)</span>
 <span class="op">)</span>
 <span class="va">tidy_proj</span> <span class="op">&lt;-</span> <span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://dplyr.tidyverse.org/reference/mutate-joins.html">left_join</a></span><span class="op">(</span><span class="va">tidy_proj</span>, <span class="va">lut</span>, by <span class="op">=</span> <span class="st">"day"</span><span class="op">)</span>
-<span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/glimpse.html">glimpse</a></span><span class="op">(</span><span class="va">tidy_proj</span><span class="op">)</span>
+<span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html">glimpse</a></span><span class="op">(</span><span class="va">tidy_proj</span><span class="op">)</span>
 <span class="co">#&gt; Rows: 176</span>
 <span class="co">#&gt; Columns: 16</span>
 <span class="co">#&gt; Groups: data_type [1]</span>
-<span class="co">#&gt; $ data_type  &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…</span>
-<span class="co">#&gt; $ day        &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,…</span>
-<span class="co">#&gt; $ y_rep_0.05 &lt;dbl&gt; 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 4, 4, 6, 10, 12, 14, 16, 19,…</span>
-<span class="co">#&gt; $ y_rep_0.25 &lt;dbl&gt; 1.00, 2.00, 2.00, 2.00, 3.00, 3.00, 4.00, 4.00, 5.00, 6.00…</span>
-<span class="co">#&gt; $ y_rep_mean &lt;dbl&gt; 2.790, 3.014, 3.459, 4.017, 4.744, 5.228, 6.052, 6.897, 7.…</span>
-<span class="co">#&gt; $ y_rep_0.50 &lt;dbl&gt; 3, 3, 3, 4, 4, 5, 6, 6, 8, 9, 10, 11, 13, 23, 25, 29, 34, …</span>
-<span class="co">#&gt; $ y_rep_0.75 &lt;dbl&gt; 4, 4, 5, 5, 6, 7, 8, 9, 10, 12, 14, 15, 17, 29, 33, 38, 43…</span>
-<span class="co">#&gt; $ y_rep_0.95 &lt;dbl&gt; 6.00, 7.00, 7.00, 8.00, 10.00, 11.00, 12.00, 13.05, 15.00,…</span>
-<span class="co">#&gt; $ mu_0.05    &lt;dbl&gt; 1.940017, 2.262073, 2.637575, 3.075394, 3.585872, 4.181068…</span>
-<span class="co">#&gt; $ mu_0.25    &lt;dbl&gt; 2.388844, 2.724943, 3.114197, 3.653249, 4.256028, 4.885265…</span>
-<span class="co">#&gt; $ mu_mean    &lt;dbl&gt; 2.703721, 3.093685, 3.540351, 4.052047, 4.638325, 5.310156…</span>
-<span class="co">#&gt; $ mu_0.50    &lt;dbl&gt; 2.735628, 3.130977, 3.579482, 4.071457, 4.657446, 5.332551…</span>
-<span class="co">#&gt; $ mu_0.75    &lt;dbl&gt; 3.052195, 3.455569, 3.927147, 4.408022, 4.969178, 5.631357…</span>
-<span class="co">#&gt; $ mu_0.95    &lt;dbl&gt; 3.305713, 3.765812, 4.279633, 4.885128, 5.566922, 6.341548…</span>
-<span class="co">#&gt; $ mu_0.5     &lt;dbl&gt; 2.735628, 3.130977, 3.579482, 4.071457, 4.657446, 5.332551…</span>
-<span class="co">#&gt; $ date       &lt;date&gt; 2020-03-01, 2020-03-02, 2020-03-03, 2020-03-04, 2020-03-0…</span></code></pre></div>
+<span class="co">#&gt; $ data_type  &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…</span>
+<span class="co">#&gt; $ day        &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, …</span>
+<span class="co">#&gt; $ y_rep_0.05 &lt;dbl&gt; 0, 0, 1, 1, 1, 1, 2, 2, 2, 3, 4, 4, 6, 10, 12, 14, 16, 19, …</span>
+<span class="co">#&gt; $ y_rep_0.25 &lt;dbl&gt; 1.00, 2.00, 2.00, 2.00, 3.00, 3.00, 4.00, 4.00, 5.00, 6.00,…</span>
+<span class="co">#&gt; $ y_rep_mean &lt;dbl&gt; 2.790, 3.014, 3.459, 4.017, 4.744, 5.228, 6.052, 6.897, 7.9…</span>
+<span class="co">#&gt; $ y_rep_0.50 &lt;dbl&gt; 3, 3, 3, 4, 4, 5, 6, 6, 8, 9, 10, 11, 13, 23, 25, 29, 34, 3…</span>
+<span class="co">#&gt; $ y_rep_0.75 &lt;dbl&gt; 4, 4, 5, 5, 6, 7, 8, 9, 10, 12, 14, 15, 17, 29, 33, 38, 43,…</span>
+<span class="co">#&gt; $ y_rep_0.95 &lt;dbl&gt; 6.00, 7.00, 7.00, 8.00, 10.00, 11.00, 12.00, 13.05, 15.00, …</span>
+<span class="co">#&gt; $ mu_0.05    &lt;dbl&gt; 1.940017, 2.262073, 2.637575, 3.075394, 3.585872, 4.181068,…</span>
+<span class="co">#&gt; $ mu_0.25    &lt;dbl&gt; 2.388844, 2.724943, 3.114197, 3.653249, 4.256028, 4.885265,…</span>
+<span class="co">#&gt; $ mu_mean    &lt;dbl&gt; 2.703721, 3.093685, 3.540351, 4.052047, 4.638325, 5.310156,…</span>
+<span class="co">#&gt; $ mu_0.50    &lt;dbl&gt; 2.735628, 3.130977, 3.579482, 4.071457, 4.657446, 5.332551,…</span>
+<span class="co">#&gt; $ mu_0.75    &lt;dbl&gt; 3.052195, 3.455569, 3.927147, 4.408022, 4.969178, 5.631357,…</span>
+<span class="co">#&gt; $ mu_0.95    &lt;dbl&gt; 3.305713, 3.765812, 4.279633, 4.885128, 5.566922, 6.341548,…</span>
+<span class="co">#&gt; $ mu_0.5     &lt;dbl&gt; 2.735628, 3.130977, 3.579482, 4.071457, 4.657446, 5.332551,…</span>
+<span class="co">#&gt; $ date       &lt;date&gt; 2020-03-01, 2020-03-02, 2020-03-03, 2020-03-04, 2020-03-05…</span></code></pre></div>
 <p>You can plot the output however you would like; however, the covidseir package includes a built-in basic plotting function. The <code>value_column</code> and <code>date_column</code> must both be columns present in the projection and observed data.</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu">covidseir</span><span class="fu">::</span><span class="fu"><a href="../reference/plot_projection.html">plot_projection</a></span><span class="op">(</span><span class="va">tidy_proj</span>, obs_dat <span class="op">=</span> <span class="va">dat</span>,
@@ -370,24 +370,24 @@
 <p>We can also calculate the implied Rt. The output includes the various SEIR states:</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="va">rt</span> <span class="op">&lt;-</span> <span class="fu">covidseir</span><span class="fu">::</span><span class="fu"><a href="../reference/get_rt.html">get_rt</a></span><span class="op">(</span><span class="va">fit</span>, iter <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">50</span><span class="op">)</span>
-<span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://tibble.tidyverse.org/reference/glimpse.html">glimpse</a></span><span class="op">(</span><span class="va">rt</span><span class="op">)</span>
+<span class="fu">dplyr</span><span class="fu">::</span><span class="fu"><a href="https://pillar.r-lib.org/reference/glimpse.html">glimpse</a></span><span class="op">(</span><span class="va">rt</span><span class="op">)</span>
 <span class="co">#&gt; Rows: 41,250</span>
 <span class="co">#&gt; Columns: 15</span>
-<span class="co">#&gt; $ .iteration &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1…</span>
-<span class="co">#&gt; $ time       &lt;dbl&gt; -30.00, -29.75, -29.50, -29.25, -29.00, -28.75, -28.50, -2…</span>
-<span class="co">#&gt; $ S          &lt;dbl&gt; 1090214, 1090214, 1090214, 1090214, 1090214, 1090214, 1090…</span>
-<span class="co">#&gt; $ E1         &lt;dbl&gt; 0.4106392, 0.4719332, 0.5291633, 0.5829634, 0.6339075, 0.6…</span>
-<span class="co">#&gt; $ E2         &lt;dbl&gt; 0.10265971, 0.09954646, 0.09973748, 0.10233685, 0.10667358…</span>
-<span class="co">#&gt; $ I          &lt;dbl&gt; 0.5132986, 0.5066202, 0.5000172, 0.4941709, 0.4895332, 0.4…</span>
-<span class="co">#&gt; $ Q          &lt;dbl&gt; 2.566493e-08, 6.217794e-03, 1.205053e-02, 1.752237e-02, 2.…</span>
-<span class="co">#&gt; $ R          &lt;dbl&gt; 1.026597e-07, 2.565663e-02, 5.127889e-02, 7.687012e-02, 1.…</span>
-<span class="co">#&gt; $ Sd         &lt;dbl&gt; 4009781, 4009781, 4009780, 4009780, 4009780, 4009779, 4009…</span>
-<span class="co">#&gt; $ E1d        &lt;dbl&gt; 1.510320, 1.735758, 1.946249, 2.144125, 2.331496, 2.510264…</span>
-<span class="co">#&gt; $ E2d        &lt;dbl&gt; 0.3775798, 0.3661294, 0.3668319, 0.3763923, 0.3923427, 0.4…</span>
-<span class="co">#&gt; $ Id         &lt;dbl&gt; 1.887899, 1.863336, 1.839050, 1.817548, 1.800491, 1.788922…</span>
-<span class="co">#&gt; $ Qd         &lt;dbl&gt; 9.439496e-08, 2.286889e-02, 4.432153e-02, 6.444685e-02, 8.…</span>
-<span class="co">#&gt; $ Rd         &lt;dbl&gt; 3.775799e-07, 9.436442e-02, 1.886025e-01, 2.827264e-01, 3.…</span>
-<span class="co">#&gt; $ Rt         &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…</span></code></pre></div>
+<span class="co">#&gt; $ .iteration &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…</span>
+<span class="co">#&gt; $ time       &lt;dbl&gt; -30.00, -29.75, -29.50, -29.25, -29.00, -28.75, -28.50, -28…</span>
+<span class="co">#&gt; $ S          &lt;dbl&gt; 1090214, 1090214, 1090214, 1090214, 1090214, 1090214, 10902…</span>
+<span class="co">#&gt; $ E1         &lt;dbl&gt; 0.4106392, 0.4719332, 0.5291633, 0.5829634, 0.6339075, 0.68…</span>
+<span class="co">#&gt; $ E2         &lt;dbl&gt; 0.10265971, 0.09954646, 0.09973748, 0.10233685, 0.10667358,…</span>
+<span class="co">#&gt; $ I          &lt;dbl&gt; 0.5132986, 0.5066202, 0.5000172, 0.4941709, 0.4895332, 0.48…</span>
+<span class="co">#&gt; $ Q          &lt;dbl&gt; 2.566493e-08, 6.217794e-03, 1.205053e-02, 1.752237e-02, 2.2…</span>
+<span class="co">#&gt; $ R          &lt;dbl&gt; 1.026597e-07, 2.565663e-02, 5.127889e-02, 7.687012e-02, 1.0…</span>
+<span class="co">#&gt; $ Sd         &lt;dbl&gt; 4009781, 4009781, 4009780, 4009780, 4009780, 4009779, 40097…</span>
+<span class="co">#&gt; $ E1d        &lt;dbl&gt; 1.510320, 1.735758, 1.946249, 2.144125, 2.331496, 2.510264,…</span>
+<span class="co">#&gt; $ E2d        &lt;dbl&gt; 0.3775798, 0.3661294, 0.3668319, 0.3763923, 0.3923427, 0.41…</span>
+<span class="co">#&gt; $ Id         &lt;dbl&gt; 1.887899, 1.863336, 1.839050, 1.817548, 1.800491, 1.788922,…</span>
+<span class="co">#&gt; $ Qd         &lt;dbl&gt; 9.439496e-08, 2.286889e-02, 4.432153e-02, 6.444685e-02, 8.3…</span>
+<span class="co">#&gt; $ Rd         &lt;dbl&gt; 3.775799e-07, 9.436442e-02, 1.886025e-01, 2.827264e-01, 3.7…</span>
+<span class="co">#&gt; $ Rt         &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,…</span></code></pre></div>
 <div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html">ggplot</a></span><span class="op">(</span><span class="va">rt</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html">aes</a></span><span class="op">(</span><span class="va">time</span>, <span class="va">Rt</span>, group <span class="op">=</span> <span class="va">.iteration</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span> 
   <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html">geom_line</a></span><span class="op">(</span>alpha <span class="op">=</span> <span class="fl">0.2</span>, na.rm <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">+</span>
