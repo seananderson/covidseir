@@ -66,7 +66,7 @@ Imports:
     purrr,
     Rcpp (>= 0.12.0),
     reshape2,
-    rstan (>= 2.18.1),
+    rstan (>= 2.26),
     tibble,
     tidyr
 Suggests:
