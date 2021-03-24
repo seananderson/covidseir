@@ -1,0 +1,207 @@
+---
+title: "Incorporating VoC scenarios in covidseir model"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Incorporating VoC}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.asp = 0.62,
+  fig.width = 5
+)
+options(future.rng.onMisuse = "ignore")
+```
+
+The covidseir R package can be installed from <https://github.com/seananderson/covidseir>.
+
+```{r setup, message=FALSE, warning=FALSE}
+library(covidseir)
+library(dplyr)
+library(ggplot2)
+ymd <- lubridate::ymd
+```
+
+## VoC Introduction
+
+The approach to modeling VoC in [covidseir](https://github.com/seananderson/covidseir) is
+to establish a period where the effective transmission rate is increasing linearly
+until VoC become a the dominant strain. The effective transmissibility can is then
+expressed as a piece-wise linear function with the following definition:
+
+$$
+\beta(t) = \begin{cases}
+ R_0 & t < t_0,\\
+ R_0 + R_0(rr - 1)\frac{t - t_0}{t_1 - t_0} & t_0 \leq t < t_1, \\
+ rrR_0 & t \geq t_1.
+\end{cases}
+$$
+
+Where $R_0$ is the basic reproduction ratio of the wild-type, $rrR_0$ is the basic
+reproduction ratio of the variant. $t_0$ is the time of community establishment of
+the variant and $t_1 - t_0$ is the time to dominance. 
+
+To illustrate how to incorporate this into fitting consider the following faked data,
+
+```{r cases}
+values <- c(330, 745, 382, 866, 481, 668, 494, 275, 584, 514, 321, 745, 375, 301, 
+           531, 590, 319, 572, 511, 699, 569, 613, 672, 397, 582, 845, 565, 497, 
+           613, 984, 725, 603, 627, 732, 518, 889, 929, 821, 1086, 1152, 1211, 
+           1319, 1371, 1483, 1519, 1999, 1610, 2666, 2869, 2898)
+ts <- seq(1,length(values))
+dates <- ymd("2021-02-01") + lubridate::days(ts)
+
+dat <- dplyr::tibble(value=values,t=ts, date=dates)
+
+dat %>% ggplot(aes(x=t,y=value)) +
+  geom_line()
+```
+
+Let's model a single period where the fraction distancing doesn't change and so
+the change in cases in time is due to VoC.
+
+We also create the data for the VoC here including whether they are `present` 
+during the time-period, the time of `establishment` in the community, the time
+to dominance of the new variant `time_to_dominance`, and the relative reproduction
+ratio `rr`. In this example we fix establishment at time 0 and assume 49 days to
+dominance with a 50% increase in transmission (`rr = 1.5`)
+
+```{r setup params}
+f_seg <- c(0,rep(1,length(values) - 1))
+
+samp_frac <- rep(0.37, length(values))
+
+voc_pars <- c(present = TRUE, establishment = 0,
+             time_to_dominance = 49, rr = 1.5)
+no_voc_pars <- c(present = FALSE, establishment = 0,
+             time_to_dominance = 49, rr = 1.5)
+```
+
+
+We'll fit the model with the above parameters (and further assume there is no
+ramp in period where social distancing rates are changing).
+
+As we're starting part way through the pandemic we'll also need to update the
+initial number of infected cases. As a comparison we'll also generate a fit
+where no introduction of VoC is assumed (`no_voc_pars`). We can use this to 
+compare what impact the VoC ramp component has on the posterior as well as
+the projection.
+
+```{r fit1, warning=FALSE}
+fit <- covidseir::fit_seir(
+  daily_cases = values,
+  samp_frac_fixed = samp_frac, 
+  f_seg = f_seg,
+  e_prior = c(0.8, 0.05),
+  use_ramp = FALSE,
+  f_prior = c(0.4, 0.2),
+  R0_prior = c(log(2.6), 0.1),
+  i0_prior = c(log(1000), 1),
+  N_pop = 5.1e6, # BC population
+  voc_pars = voc_pars,
+  iter = 500, # number of posterior samples
+  fit_type = "optimizing" # for speed only
+)
+
+fit_no_voc <- covidseir::fit_seir(
+  daily_cases = values,
+  samp_frac_fixed = samp_frac, 
+  f_seg = f_seg,
+  e_prior = c(0.8, 0.05),
+  use_ramp = FALSE,
+  f_prior = c(0.4, 0.2),
+  R0_prior = c(log(2.6), 0.1),
+  i0_prior = c(log(1000), 1),
+  N_pop = 5.1e6, # BC population
+  voc_pars = no_voc_pars,
+  iter = 500, # number of posterior samples
+  fit_type = "optimizing" # for speed only
+)
+```
+
+```{r print-fit}
+print("VoC fit:")
+print(fit)
+print("No VoC fit:")
+print(fit_no_voc)
+```
+
+# Visualizing the model fit
+
+If you would like, you can choose to use parallel processing for the projections:
+
+```{r future, eval=FALSE}
+future::plan(future::multisession)
+```
+
+Now we will take the fitted model and calculate the corresponding model predictions. This can be slow, especially with future projections, and so we only use the first 50 posterior samples for this quick vignette example:
+
+```{r proj}
+proj <- covidseir::project_seir(fit, forecast_days = 20,
+                                iter = 1:50)
+proj_no_voc <- covidseir::project_seir(fit_no_voc, forecast_days = 20,
+                                       iter = 1:50)
+```
+
+Then we will take the posterior samples, re-sample 20 times from the negative binomial observation model to generate smoother predictions, and transform the output into a tidy data frame for plotting:
+
+```{r tidy-proj}
+tidy_proj <- covidseir::tidy_seir(proj, resample_y_rep = 20)
+tidy_proj_no_voc <- covidseir::tidy_seir(proj_no_voc, resample_y_rep = 20)
+```
+
+For plotting, we need to join a date column back on, since our projections only have a column for a numeric day. Here, we do that by making a look-up-table (`lut`).
+
+```{r join-date1}
+first_day <- ymd("2021-02-01")
+last_day <- length(values) + 20 # how many days to create dates for
+lut <- dplyr::tibble(
+  day = seq_len(last_day),
+  date = seq(first_day, first_day + length(day) - 1, by = "1 day")
+)
+tidy_proj <- dplyr::left_join(tidy_proj, lut, by = "day")
+tidy_proj_no_voc <- dplyr::left_join(tidy_proj_no_voc, lut, by = "day")
+dplyr::glimpse(tidy_proj)
+```
+
+We can plot both the projection under VoC introduction and no VoC introduction.
+
+```{r plot-projection}
+proj_data <- tidy_proj %>% mutate(scenario = "VoC") %>%
+  bind_rows(tidy_proj_no_voc %>% mutate(scenario = "No VoC"))
+
+g <- ggplot(proj_data, aes(x = date))
+
+g <- g + 
+  geom_ribbon(aes_string(ymin = "y_rep_0.05", ymax = "y_rep_0.95", fill = "scenario"),
+  alpha = 0.2
+) +
+  geom_ribbon(aes_string(ymin = "y_rep_0.25", ymax = "y_rep_0.75", fill = "scenario"),
+    alpha = 0.2
+  )
+
+g <- g + geom_line(aes_string(y = "mu_0.50", col = "scenario"), lwd = 0.9) +
+coord_cartesian(expand = FALSE, xlim = range(proj_data[["date"]])) +
+ylab("Cases") +
+theme(axis.title.x = element_blank())
+
+g <- g +
+geom_line(
+  data = dat,
+  col = "black", inherit.aes = FALSE,
+  aes(x = date, y = value),
+  lwd = 0.35, alpha = 0.9
+) +
+geom_point(
+  data = dat,
+  col = "grey30", inherit.aes = FALSE,
+  aes(x = date, y = value),
+  pch = 21, fill = "grey95", size = 1.25
+)
+
+show(g)
+```

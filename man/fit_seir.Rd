@@ -39,6 +39,7 @@ fit_seir(
   init = c("prior_random", "optimizing"),
   init_list = NULL,
   X = NULL,
+  voc_pars = c(present = FALSE, establishment = 0, time_to_dominance = 49, rr = 1.5),
   ...
 )
 }
@@ -154,6 +155,20 @@ the MAP estimate? Can be overridden by the \code{init_list} argument.}
 below.}
 
 \item{X}{An optional model matrix applied additively to log expected cases.}
+
+\item{voc_pars}{A named numeric providing fixed estimates of impact of VoC on
+transmission. Includes the following elements:
+\itemize{
+\item{\code{present}}{Boolean. Used to specify whether VoC have been imported
+yet.}
+\item{\code{establishment}}{Numeric denoting the time in days at which
+variants become established. Note: this is when
+variants begin sustained community spread, not the
+point of their first introduction.}
+\item{\code{time_to_dominance}}{Numeric time in days to dominance of variant.
+Typically 42 - 56 days.}
+\item{\code{rr}}{Numeric denoting relative reproduction ratio of new VoC.}
+}}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}} /
 \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}} / \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}.}

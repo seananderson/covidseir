@@ -1,5 +1,16 @@
 # covidseir
 
+# covidseir 0.0.1.9002
+
+* Added `create_ramp_vector()`, which will be used to specify VoC in future
+  release.
+
+* Added `create_segments_vector()`, which converts dates into vector suitable
+  for specifying `f_seg` or `samp_frac_seg` in `fit_seir()`.
+
+* In `fit_seir()`, optional parameter `voc_pars` can be used to set
+  their introduction, time to dominance, and relative risk ratio (#7).
+
 # covidseir 0.0.1.9001
 
 * Add optional projection plot coloured by Rt.

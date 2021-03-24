@@ -28,6 +28,11 @@ functions{
     real use_ramp = x_r[9]; // yes it's a real; using an old x_r to avoid refactoring
     real imported_cases = x_r[10];
     real imported_window = x_r[11];
+    real voc_present = x_r[12];
+    real voc_establishment = x_r[13];
+    real voc_time_to_dominance = x_r[14];
+    real voc_rr = x_r[15];
+
 
     // real start_decline = x_r[9];
     // real end_decline = x_r[10];
@@ -45,6 +50,8 @@ functions{
 
     real f; // will store the f value for this time point
     real introduced; // will store the introduced cases
+
+    real R0t; //time-dependent transmissibility (incorporates VoC)
 
     real dydt[12];
 
@@ -87,15 +94,31 @@ functions{
       introduced = 0.0;
     }
 
-    dydt[1]  = -(R0/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - ud*S + ur*Sd;
-    dydt[2]  = (R0/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - k1*E1 -ud*E1 + ur*E1d;
+    // create VoC-dependent Rt values
+    if(voc_present == 1.0){
+      if(t < voc_establishment){
+        R0t = R0;
+      }else if(t < (voc_establishment + voc_time_to_dominance)){
+        R0t = R0 + R0*(voc_rr - 1)*(t - voc_establishment)/voc_time_to_dominance;
+
+      }else{
+        R0t = voc_rr*R0;
+      }
+
+    }else{
+      R0t = R0;
+    }
+
+
+    dydt[1]  = -(R0t/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - ud*S + ur*Sd;
+    dydt[2]  = (R0t/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - k1*E1 -ud*E1 + ur*E1d;
     dydt[3]  = k1*E1 - k2*E2 - ud*E2 + ur*E2d + introduced;
     dydt[4]  = k2*E2 - q*I - I/D - ud*I + ur*Id;
     dydt[5]  = q*I - Q/D - ud*Q + ur*Qd;
     dydt[6]  = I/D + Q/D - ud*R + ur*Rd;
 
-    dydt[7]  = -(f*R0/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N + ud*S - ur*Sd;
-    dydt[8]  = (f*R0/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N - k1*E1d +ud*E1 - ur*E1d;
+    dydt[7]  = -(f*R0t/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N + ud*S - ur*Sd;
+    dydt[8]  = (f*R0t/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N - k1*E1d +ud*E1 - ur*E1d;
     dydt[9]  = k1*E1d - k2*E2d + ud*E2 - ur*E2d;
     dydt[10] = k2*E2d - q*Id - Id/D + ud*I - ur*Id;
     dydt[11] = q*Id - Qd/D + ud*Q - ur*Qd;
