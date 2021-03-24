@@ -7,6 +7,8 @@
 #'   data type or a matrix of case data if fitting to multiple data types. Each
 #'   data type should be in its own column. Can have NA values (will be ignored
 #'   in likelihood). A vector will be turned into a one column matrix.
+#' @param stan_model Supply the object created by
+#'   `rstan::stan_model(system.file('stan', 'seir.stan', package = 'covidseir'))`.
 #' @param obs_model Type of observation model.
 #' @param forecast_days Number of days into the future to forecast. The model
 #'   will run faster with fewer forecasted days. It is recommended to set this
@@ -163,6 +165,7 @@
 #' )
 
 fit_seir <- function(daily_cases,
+                     stan_model = NULL,
                      obs_model = c("NB2", "Poisson"),
                      forecast_days = 0,
                      time_increment = 0.25,
@@ -211,6 +214,13 @@ fit_seir <- function(daily_cases,
                      init_list = NULL,
                      X = NULL,
                      ...) {
+
+  if (is.null(stan_model)) {
+  stop("Please supply the object created by ", "
+    `rstan::stan_model(system.file('stan', 'seir.stan', package = 'covidseir'))` ",
+    "to the argument `stan_model`.", call. = FALSE)
+  }
+
   obs_model <- match.arg(obs_model)
   obs_model <-
     if (obs_model == "Poisson") {
@@ -414,12 +424,13 @@ fit_seir <- function(daily_cases,
   init <- match.arg(init)
   .initf <- if (is.null(init_list)) function() initf(stan_data) else init_list
 
+
   opt <- NA
   if ((fit_type == "NUTS" && init == "optimizing") || fit_type == "optimizing") {
     opt <- tryCatch({
       cat("Finding the MAP estimate.\n")
       opt <- rstan::optimizing(
-        stanmodels$seir,
+        stan_model,
         data = stan_data,
         init = .initf,
         seed = seed,
@@ -459,7 +470,7 @@ fit_seir <- function(daily_cases,
   if (fit_type == "NUTS") {
     cat("Sampling with the NUTS HMC sampler.\n")
     fit <- rstan::sampling(
-      stanmodels$seir,
+      stan_model,
       data = stan_data,
       iter = iter,
       chains = chains,
@@ -472,7 +483,7 @@ fit_seir <- function(daily_cases,
   if (fit_type == "VB") {
     cat("Sampling with the VB algorithm.\n")
     fit <- rstan::vb(
-      stanmodels$seir,
+      stan_model,
       data = stan_data,
       iter = iter,
       init = .initf,
