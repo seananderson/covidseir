@@ -24,8 +24,8 @@ Create segments vector
 }
 \examples{
 start_date <- "2020-01-01"
-segments <- c("2020-01-05","2020-01-20")
+segments <- c("2020-01-05", "2020-01-20")
 total_days <- 30
-values <- c(0,0.5,1)
-create_segments_vector(start_date,segments,total_days,values=values)
+values <- c(0, 0.5, 1)
+create_segments_vector(start_date, segments, total_days, values = values)
 }

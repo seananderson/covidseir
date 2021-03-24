@@ -23,9 +23,8 @@ vector of length total_days
 }
 \description{
 Creates a vector of length \code{total_days} starting at 1 and
-increasing to \code{ramp_max} between \code{start_ramp} and \code{end_ramp}.
-Useful for characterizing the change in transmission due to
-Variants of Concern.
+increasing to \code{ramp_max} between \code{start_ramp} and \code{end_ramp}. Useful for
+characterizing the change in transmission due to Variants of Concern.
 }
 \examples{
 start_date <- "2020-01-01"
@@ -33,6 +32,8 @@ start_ramp <- "2020-01-05"
 total_days <- 30
 ramp_length <- 10
 ramp_max <- 2
-create_segments_vector(start_date,total_days,start_ramp,ramp_length,
-                      ramp_max)
+create_ramp_vector(
+  start_date, total_days, start_ramp, ramp_length,
+  ramp_max
+)
 }

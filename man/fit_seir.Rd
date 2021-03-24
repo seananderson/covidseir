@@ -6,6 +6,7 @@
 \usage{
 fit_seir(
   daily_cases,
+  stan_model = NULL,
   obs_model = c("NB2", "Poisson"),
   forecast_days = 0,
   time_increment = 0.25,
@@ -39,7 +40,8 @@ fit_seir(
   init = c("prior_random", "optimizing"),
   init_list = NULL,
   X = NULL,
-  voc_pars = c(present = FALSE, establishment = 0, time_to_dominance = 49, rr = 1.5),
+  voc_pars = c(present = FALSE, transmission_vec = NULL, establishment = 0,
+    time_to_dominance = 49, rr = 1.5),
   ...
 )
 }
@@ -48,6 +50,9 @@ fit_seir(
 data type or a matrix of case data if fitting to multiple data types. Each
 data type should be in its own column. Can have NA values (will be ignored
 in likelihood). A vector will be turned into a one column matrix.}
+
+\item{stan_model}{Supply the object created by
+\code{rstan::stan_model(system.file('stan', 'seir.stan', package = 'covidseir'))}.}
 
 \item{obs_model}{Type of observation model.}
 
@@ -161,6 +166,10 @@ transmission. Includes the following elements:
 \itemize{
 \item{\code{present}}{Boolean. Used to specify whether VoC have been imported
 yet.}
+\item{\code{transmission_vec}}{Vector. If provided then over-rides subsequent
+parameters so an arbitrary transmission vector
+can be used to provide the change in transmission
+due to VoC (or other factors).}
 \item{\code{establishment}}{Numeric denoting the time in days at which
 variants become established. Note: this is when
 variants begin sustained community spread, not the
