@@ -5,7 +5,6 @@
 #' @docType package
 #' @name covidseir-package
 #' @aliases covidseir
-#' @useDynLib covidseir, .registration = TRUE
 #' @import methods
 #' @import Rcpp
 #' @importFrom rstan sampling
