@@ -67,7 +67,7 @@ Imports:
     purrr,
     Rcpp (>= 0.12.0),
     reshape2,
-    rstan (>= 2.26),
+    rstan (>= 2.26.0),
     tibble,
     tidyr,
     lubridate
@@ -82,14 +82,14 @@ LinkingTo:
     BH (>= 1.66.0),
     Rcpp (>= 0.12.0),
     RcppEigen (>= 0.3.3.3.0),
-    rstan (>= 2.21.0),
-    StanHeaders (>= 2.18.0)
+    rstan (>= 2.26.0),
+    StanHeaders (>= 2.26.0)
 VignetteBuilder: 
     knitr
 Biarch: true
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.1.1.9000
+RoxygenNote: 7.1.1
 SystemRequirements: GNU make
 Config/testthat/edition: 3
