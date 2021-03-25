@@ -16,6 +16,10 @@
 #'   1)`. I.e. one value per day after `f_fixed_start` day.
 #' @param f_multi Multiplicative vector of f values. Same structure as `f_fixed`.
 #' @param f_multi_seg Which `f` to use for `f_multi`.
+#' @param transmission_vec vector of length length(cases) + `forecast_days`
+#'   representing the change in transmission due to VoC (see
+#'   [create_ramp_vector]). If not defined will project from last day, which
+#'   may be wrong if incorporated VoC and will throw an warning.
 #' @param imported_cases Number of cases to import starting on first projection day.
 #' @param imported_window Number of days over which to distribute imported cases.
 #' @param iter MCMC iterations to include. Defaults to all.
@@ -113,6 +117,7 @@ project_seir <- function(
                          f_fixed = NULL,
                          f_multi = NULL,
                          f_multi_seg = NULL,
+                         transmission_vec = NULL,
                          iter = seq_along(obj$post$R0),
                          return_states = FALSE,
                          imported_cases = 0,
@@ -221,6 +226,25 @@ project_seir <- function(
   d$x_i[["n_f_s"]] <- length(d$x_i) - 2 # 2 is number of non-f_s x_i values
   d$n_x_i <- length(d$x_i)
 
+  # set transmission vec
+  if(!is.null(transmission_vec)){
+    if(length(transmission_vec) != length(days)){
+      stop(paste0("`transmission_vec` length should be: ",length(days)))
+    }
+    d$transmission_vec <- transmission_vec
+  }else{
+    if((obj$pars[["voc_present"]] == 1)&(forecast_days > 0)){
+      warning("Projecting forwards with VoC present but `transmission_vec` not
+              given. Projecting transmission will remain constant which may
+              not be true if proportion of variants are increasing.")
+
+      .s <- d$transmission_vec[length(d$transmission_vec)]
+      added_length <- nrow(d$daily_cases) + forecast_days -
+        length(d$transmission_vec)
+      d$transmission_vec <- c(d$transmission_vec, rep(.s, added_length))
+    }
+  }
+
   if (!"imported_cases" %in% names(d$x_r)) {
     warning("Adding to `d$x_r`. Looks like an old model.", call. = FALSE)
     d$x_r <- c(d$x_r, "imported_cases" = 0)
@@ -231,8 +255,7 @@ project_seir <- function(
   }
   stopifnot(identical(names(d$x_r), c(
     "N", "D", "k1", "k2", "q", "ud", "ur", "f0", "use_ramp",
-    "imported_cases", "imported_window", "voc_present", "voc_establishment",
-    "voc_time_to_dominance", "voc_rr"
+    "imported_cases", "imported_window", "voc_present"
   )))
   d$x_r[names(d$x_r) == "imported_cases"] <- imported_cases
   d$x_r[names(d$x_r) == "imported_window"] <- imported_window

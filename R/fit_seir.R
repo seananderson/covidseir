@@ -364,9 +364,9 @@ fit_seir <- function(daily_cases,
 
   # add VOC variables to ODE data
   x_r <- c(x_r, "voc_present" = as.double(voc_pars[["present"]]))
-  x_r <- c(x_r, "voc_establishment" = voc_pars[["establishment"]])
-  x_r <- c(x_r, "voc_time_to_dominance" = voc_pars[["time_to_dominance"]])
-  x_r <- c(x_r, "voc_rr" = voc_pars[["rr"]])
+  # x_r <- c(x_r, "voc_establishment" = voc_pars[["establishment"]])
+  # x_r <- c(x_r, "voc_time_to_dominance" = voc_pars[["time_to_dominance"]])
+  # x_r <- c(x_r, "voc_rr" = voc_pars[["rr"]])
 
 
   # if transmission vector not given then create from voc pars

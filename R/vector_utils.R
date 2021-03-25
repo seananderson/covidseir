@@ -78,14 +78,18 @@ create_ramp_vector <- function(start_date, total_days, start_ramp,
   # start of ramp
   s1 <- as.numeric(ymd(start_ramp) - ymd(start_date)) + 1
 
-  # end of ramp (ensure doesn't go past total_days)
-  s2 <- min(s1 + ramp_length, total_days)
+  if (s1 > total_days) {
+    warning("Ramp starts after `total_days`")
+  } else {
+    # end of ramp (ensure doesn't go past total_days)
+    s2 <- min(s1 + ramp_length, total_days)
 
-  vec[seq(s1, s2)] <- 1 + (ramp_max - 1) * (seq(0, s2 - s1)) / ramp_length
+    vec[seq(s1, s2)] <- 1 + (ramp_max - 1) * (seq(0, s2 - s1)) / ramp_length
 
-  # only include if total_days greathr than end of ramp
-  if (total_days > s2) {
-    vec[seq(s2 + 1, total_days)] <- ramp_max
+    # only include if total_days greathr than end of ramp
+    if (total_days > s2) {
+      vec[seq(s2 + 1, total_days)] <- ramp_max
+    }
   }
   vec
 }
