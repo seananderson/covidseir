@@ -373,6 +373,7 @@ fit_seir <- function(daily_cases,
   if(("transmission_vec" %in% names(voc_pars))){
 
     if(is.null(voc_pars[["transmission_vec"]])){
+      message("Creating transmision vector based on voc_pars")
       total_days <- length(days)
       start_date <- "2020-01-01" # fake date
       start_ramp <- lubridate::ymd(start_date) +
@@ -381,8 +382,6 @@ fit_seir <- function(daily_cases,
                                              voc_pars[["time_to_dominance"]],
                                              voc_pars[["rr"]])
     }else{
-      # feature not yet implemented so throw error
-      stop("Transmission_vec not yet incorporated. Use other voc_params instead.")
       if(!is.null(voc_pars[["time_to_dominance"]]) | !is.null(voc_pars[["rr"]]) |
          !is.null(voc_pars[["establishment"]])){
         warning("Over-riding VoC pars with transmission_vec")
@@ -390,6 +389,20 @@ fit_seir <- function(daily_cases,
       transmision_vec <- voc_pars[["transmission_vec"]]
     }
 
+  }else{
+    # otherwise assume transmission based on voc_pars
+    if(voc_pars[["present"]]){
+      message("Creating transmision vector based on voc_pars")
+      total_days <- length(days)
+      start_date <- "2020-01-01" # fake date
+      start_ramp <- lubridate::ymd(start_date) +
+        lubridate::days(voc_pars[["establishment"]])
+      transmission_vec <- create_ramp_vector(start_date,total_days,start_ramp,
+                                             voc_pars[["time_to_dominance"]],
+                                             voc_pars[["rr"]])
+    }else{
+      transmission_vec <- rep(1,length(days))
+    }
   }
 
 
@@ -441,7 +454,8 @@ fit_seir <- function(daily_cases,
     ode_control = ode_control,
     est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L,
     X = X,
-    K = ncol(X)
+    K = ncol(X),
+    transmission_vec = transmission_vec
   )
   initf <- function(stan_data) {
     R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2] / 2)

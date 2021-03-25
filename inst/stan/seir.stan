@@ -3,7 +3,8 @@ functions{
              vector state,  // state
              real[] theta,  // parameters
              real[] x_r,    // data (real)
-             int[]  x_i) {  // data (integer)
+             int[]  x_i,   // data (integer)
+             real[] transmission_vec) {  // transmision vector
     real S     = state[1];
     real E1    = state[2];
     real E2    = state[3];
@@ -96,14 +97,15 @@ functions{
 
     // create VoC-dependent Rt values
     if(voc_present == 1.0){
-      if(t < voc_establishment){
-        R0t = R0;
-      }else if(t < (voc_establishment + voc_time_to_dominance)){
-        R0t = R0 + R0*(voc_rr - 1)*(t - voc_establishment)/voc_time_to_dominance;
-
-      }else{
-        R0t = voc_rr*R0;
-      }
+      // if(t < voc_establishment){
+      //   R0t = R0;
+      // }else if(t < (voc_establishment + voc_time_to_dominance)){
+      //   R0t = R0 + R0*(voc_rr - 1)*(t - voc_establishment)/voc_time_to_dominance;
+      //
+      // }else{
+      //   R0t = voc_rr*R0;
+      // }
+      R0t = R0*transmission_vec[day];
 
     }else{
       R0t = R0;
@@ -168,6 +170,7 @@ data {
   real ode_control[3]; // vector of ODE control numbers
   int<lower=0> K;      // number of linear predictors
   matrix[N,K] X;       // linear predictor matrix
+  real transmission_vec[N]; //transmission vector (for incorporating VoC)
 }
 parameters {
  real<lower=0, upper=x_r[1]> i0; // incidence at initial time point (default -30 days); upper = N
@@ -226,7 +229,8 @@ transformed parameters {
   }
 
   // y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i,
-  y_hat = ode_rk45(sir, to_vector(y0), t0, time, theta, x_r, x_i);
+  y_hat = ode_rk45(sir, to_vector(y0), t0, time, theta, x_r, x_i,
+                  transmission_vec);
   // y_hat = ode_bdf(sir, to_vector(y0), t0, time, theta, x_r, x_i);
   // y_hat = ode_adams(sir, to_vector(y0), t0, time, theta, x_r, x_i);
   // y_hat = integrate_ode_bdf(sir, y0, t0, time, theta, x_r, x_i,

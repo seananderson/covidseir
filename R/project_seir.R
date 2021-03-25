@@ -7,6 +7,7 @@
 #' future date.
 #'
 #' @param obj Output from [fit_seir()].
+#' @param stan_model Compiled stan model.
 #' @param forecast_days Number of projection days.
 #' @param f_fixed_start Optional day to start changing f. Must be set if
 #'   `f_fixed` is set.
@@ -106,6 +107,7 @@
 #'   geom_line(alpha = 0.5)
 project_seir <- function(
                          obj,
+                         stan_model = NULL,
                          forecast_days = 0,
                          f_fixed_start = NULL,
                          f_fixed = NULL,
@@ -123,6 +125,10 @@ project_seir <- function(
   }
   d <- obj$stan_data
   p <- obj$post
+
+  if(!identical(class(stan_mod)[1],"stanmodel")){
+    stop("`stan_model` must be of class `stanmodel`.")
+  }
 
   # stopifnot(
   #   (is.null(f_fixed_start) && is.null(f_fixed_start)) ||
@@ -289,7 +295,7 @@ project_seir <- function(
     # out <- lapply(iter, function(i) {
     # out <- future.apply::future_lapply(iter, function(i) {
     fit <- rstan::sampling(
-      stanmodels$seir,
+      stan_model,
       data = d,
       iter = 1L,
       chains = 1L,

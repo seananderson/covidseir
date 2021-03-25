@@ -3,6 +3,7 @@
 # install.packages("rstan", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
 
 library(rstan)
+library(tidyverse)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores() / 2)
 library(covidseir)
@@ -25,3 +26,10 @@ m <- fit_seir(
   samp_frac_fixed = s1
 )
 print(m)
+
+p <- project_seir(m, stan_model = stan_mod)
+
+
+obs_dat <- data.frame(day = seq_along(cases), value = cases)
+
+tidy_seir(p) %>% plot_projection(obs_dat = obs_dat)
