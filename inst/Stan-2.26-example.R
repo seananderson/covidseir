@@ -1,13 +1,14 @@
-remove.packages(c("StanHeaders", "rstan"))
-install.packages("StanHeaders", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
-install.packages("rstan", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
+# remove.packages(c("StanHeaders", "rstan"))
+# install.packages("StanHeaders", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
+# install.packages("rstan", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
 
 library(rstan)
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores() / 2)
 library(covidseir)
 
-stan_mod <- rstan::stan_model(system.file("stan", "seir.stan", package = "covidseir"))
+# stan_mod <- rstan::stan_model(system.file("stan", "seir.stan", package = "covidseir"))
+stan_mod <- stan_model("inst/stan/seir.stan")
 
 cases <- c(
   0, 0, 1, 3, 1, 8, 0, 6, 5, 0, 7, 7, 18, 9, 22, 38, 53, 45, 40,
@@ -17,8 +18,9 @@ cases <- c(
 s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
 m <- fit_seir(
   cases,
+  chains = 1,
   stan_model = stan_mod,
-  iter = 200,
+  iter = 100,
   fit_type = "optimizing",
   samp_frac_fixed = s1
 )

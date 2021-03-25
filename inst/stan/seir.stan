@@ -1,6 +1,6 @@
 functions{
-  real[] sir(real t,        // time (actual time; not an increment starting at 1)
-             real[] state,  // state
+  vector sir(real t,        // time (actual time; not an increment starting at 1)
+             vector state,  // state
              real[] theta,  // parameters
              real[] x_r,    // data (real)
              int[]  x_i) {  // data (integer)
@@ -53,7 +53,7 @@ functions{
 
     real R0t; //time-dependent transmissibility (incorporates VoC)
 
-    real dydt[12];
+    vector[12] dydt;
 
     real X;
     // integer version of the day for this time point:
@@ -190,7 +190,7 @@ transformed parameters {
   real E2; // from ODE exposed and symptomatic
   real E2d; // from ODE exposed and symptomatic and distancing
   real theta[S + 4]; // gathers parameters (which come with various limits); + 4 is number of thetas before f_s
-  real y_hat[T,12]; // predicted states for each time t from ODE
+  vector[12] y_hat[T]; // predicted states for each time t from ODE
   real this_samp; // holds the sample fraction for a given day
   real y0[12]; // initial states
   real fsi; // fraction social distancing
@@ -225,9 +225,12 @@ transformed parameters {
     theta[s + 4] = f_s[s];
   }
 
-  y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i,
+  // y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i,
+  y_hat = ode_rk45(sir, to_vector(y0), t0, time, theta, x_r, x_i);
+  // y_hat = ode_bdf(sir, to_vector(y0), t0, time, theta, x_r, x_i);
+  // y_hat = ode_adams(sir, to_vector(y0), t0, time, theta, x_r, x_i);
   // y_hat = integrate_ode_bdf(sir, y0, t0, time, theta, x_r, x_i,
-                             ode_control[1], ode_control[2], ode_control[3]);
+                             // ode_control[1], ode_control[2], ode_control[3]);
 
   // Calculating the expected case counts given the delays in reporting:
 
