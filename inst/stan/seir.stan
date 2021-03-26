@@ -29,14 +29,6 @@ functions{
     real use_ramp = x_r[9]; // yes it's a real; using an old x_r to avoid refactoring
     real imported_cases = x_r[10];
     real imported_window = x_r[11];
-    real voc_present = x_r[12];
-    real voc_establishment = x_r[13];
-    real voc_time_to_dominance = x_r[14];
-    real voc_rr = x_r[15];
-
-
-    // real start_decline = x_r[9];
-    // real end_decline = x_r[10];
 
     real last_day_obs = x_i[1];
 
@@ -63,10 +55,6 @@ functions{
     int day;
     day = 1;
     while ((day + 1) < floor(t)) day = day + 1;
-    // int time_int;
-    // time_int = 1;
-    // while ((time_int + 1) < floor(t)) time_int = time_int + 1;
-    // this_time_id = f_seg_id[time_int];
 
     for (i in 1:n_f) {
       // `i + 2` because of number of x_i before `f_seg_id`
@@ -96,21 +84,7 @@ functions{
     }
 
     // create VoC-dependent Rt values
-    if(voc_present == 1.0){
-      // if(t < voc_establishment){
-      //   R0t = R0;
-      // }else if(t < (voc_establishment + voc_time_to_dominance)){
-      //   R0t = R0 + R0*(voc_rr - 1)*(t - voc_establishment)/voc_time_to_dominance;
-      //
-      // }else{
-      //   R0t = voc_rr*R0;
-      // }
-      R0t = R0*transmission_vec[day];
-
-    }else{
-      R0t = R0;
-    }
-
+    R0t = R0 * transmission_vec[day];
 
     dydt[1]  = -(R0t/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - ud*S + ur*Sd;
     dydt[2]  = (R0t/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - k1*E1 -ud*E1 + ur*E1d;
@@ -228,13 +202,9 @@ transformed parameters {
     theta[s + 4] = f_s[s];
   }
 
-  // y_hat = integrate_ode_rk45(sir, y0, t0, time, theta, x_r, x_i,
   y_hat = ode_rk45(sir, to_vector(y0), t0, time, theta, x_r, x_i,
-                  transmission_vec);
+                   transmission_vec);
   // y_hat = ode_bdf(sir, to_vector(y0), t0, time, theta, x_r, x_i);
-  // y_hat = ode_adams(sir, to_vector(y0), t0, time, theta, x_r, x_i);
-  // y_hat = integrate_ode_bdf(sir, y0, t0, time, theta, x_r, x_i,
-                             // ode_control[1], ode_control[2], ode_control[3]);
 
   // Calculating the expected case counts given the delays in reporting:
 

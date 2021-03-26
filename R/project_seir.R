@@ -126,19 +126,19 @@ project_seir <- function(
                          X = obj$stan_data$X,
                          ...) {
   if (!identical(class(obj), "covidseir")) {
-    stop("`obj` must be of class `covidseir`.")
+    stop("`obj` must be of class `covidseir`.", call. = FALSE)
   }
   d <- obj$stan_data
   p <- obj$post
 
-  if(!identical(class(stan_mod)[1],"stanmodel")){
-    stop("`stan_model` must be of class `stanmodel`.")
+  if (is.null(stan_model)) {
+    stop("Please supply the object created by ", "
+    `rstan::stan_model(system.file('stan', 'seir.stan', package = 'covidseir'))` ",
+      "to the argument `stan_model`.", call. = FALSE)
   }
-
-  # stopifnot(
-  #   (is.null(f_fixed_start) && is.null(f_fixed_start)) ||
-  #     (!is.null(f_fixed_start) && !is.null(f_fixed_start))
-  # )
+  if (!identical(class(stan_model)[[1]], "stanmodel")){
+    stop("`stan_model` must be of class `stanmodel`.", call. = FALSE)
+  }
 
   if (!is.null(f_fixed) && !is.null(f_multi)) {
     stop("!is.null(f_fixed) && !is.null(f_multi)", call. = FALSE)
@@ -227,22 +227,18 @@ project_seir <- function(
   d$n_x_i <- length(d$x_i)
 
   # set transmission vec
-  if(!is.null(transmission_vec)){
-    if(length(transmission_vec) != length(days)){
-      stop(paste0("`transmission_vec` length should be: ",length(days)))
+  if (!is.null(transmission_vec)){
+    if (length(transmission_vec) != length(days)){
+      stop(paste0("`transmission_vec` length should be: ",length(days)), call. = FALSE)
     }
     d$transmission_vec <- transmission_vec
-  }else{
-    if((obj$pars[["voc_present"]] == 1)&(forecast_days > 0)){
-      warning("Projecting forwards with VoC present but `transmission_vec` not
-              given. Projecting transmission will remain constant which may
-              not be true if proportion of variants are increasing.")
-
-      .s <- d$transmission_vec[length(d$transmission_vec)]
-      added_length <- nrow(d$daily_cases) + forecast_days -
-        length(d$transmission_vec)
-      d$transmission_vec <- c(d$transmission_vec, rep(.s, added_length))
-    }
+  } else {
+    # warning("Projecting forwards with VoC present but `transmission_vec` ",
+    #   "not given. Projecting transmission will remain constant which may ",
+    #   "not be true if the proportion of variants is increasing.", call. = FALSE)
+    last_transmission <- d$transmission_vec[length(d$transmission_vec)]
+    added_length <- nrow(d$daily_cases) + forecast_days - length(d$transmission_vec)
+    d$transmission_vec <- c(d$transmission_vec, rep(last_transmission, added_length))
   }
 
   if (!"imported_cases" %in% names(d$x_r)) {
@@ -255,7 +251,7 @@ project_seir <- function(
   }
   stopifnot(identical(names(d$x_r), c(
     "N", "D", "k1", "k2", "q", "ud", "ur", "f0", "use_ramp",
-    "imported_cases", "imported_window", "voc_present"
+    "imported_cases", "imported_window"
   )))
   d$x_r[names(d$x_r) == "imported_cases"] <- imported_cases
   d$x_r[names(d$x_r) == "imported_window"] <- imported_window

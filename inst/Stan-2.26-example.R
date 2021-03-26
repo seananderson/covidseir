@@ -16,38 +16,47 @@ cases <- c(
   77, 76, 48, 67, 78, 42, 66, 67, 92, 16, 70, 43, 53, 55, 53, 29,
   26, 37, 25, 45, 34, 40, 35
 )
-#s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
-s1 <- create_segments_vector("2020-01-01",length(cases),
-                             segments = c("2020-01-13"),values = c(0.1,0.2))
+# s1 <- c(rep(0.1, 13), rep(0.2, length(cases) - 13))
+s1 <- create_segments_vector(
+  start_date = "2020-01-01",
+  total_days = length(cases),
+  segments = c("2020-01-13"),
+  values = c(0.1, 0.2)
+)
 
-transmission_vec <- create_ramp_vector("2020-01-01",length(cases),
-                                       start_ramp = "2020-02-12",
-                   ramp_length = 7*6, ramp_max = 1.5)
-
-voc_pars <- list("present" = TRUE,
-                 "transmission_vec" = transmission_vec)
+transmission_vec <- create_ramp_vector(
+  start_date = "2020-01-01",
+  total_days = length(cases),
+  start_ramp = "2020-01-20",
+  ramp_length = 99,
+  ramp_max = 1
+)
+print(transmission_vec)
 
 m <- fit_seir(
   cases,
-  chains = 1,
   stan_model = stan_mod,
   iter = 100,
   fit_type = "optimizing",
   samp_frac_fixed = s1,
-  voc_pars = voc_pars
+  transmission_vec = transmission_vec
 )
 print(m)
 
-transmission_vec <- create_ramp_vector("2020-01-01",length(cases) + 30,
-                                       start_ramp = "2020-02-12",
-                                       ramp_length = 7*4, ramp_max = 10.0)
-
+transmission_vec <- create_ramp_vector(
+  start_date = "2020-01-01",
+  total_days = length(cases) + 30,
+  start_ramp = "2020-02-12",
+  ramp_length = 7 * 4,
+  ramp_max = 10.0
+)
+print(transmission_vec)
 
 p <- project_seir(m,
-                  stan_model = stan_mod,
-                  forecast_days = 30,
-                  transmission_vec = transmission_vec)
-
+  stan_model = stan_mod,
+  forecast_days = 30,
+  transmission_vec = transmission_vec
+)
 
 obs_dat <- data.frame(day = seq_along(cases), value = cases)
 
