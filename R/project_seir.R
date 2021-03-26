@@ -233,10 +233,11 @@ project_seir <- function(
     }
     d$transmission_vec <- transmission_vec
   } else {
-    # warning("Projecting forwards with VoC present but `transmission_vec` ",
-    #   "not given. Projecting transmission will remain constant which may ",
-    #   "not be true if the proportion of variants is increasing.", call. = FALSE)
     last_transmission <- d$transmission_vec[length(d$transmission_vec)]
+    if (last_transmission != 1) {
+      warning("Projecting transmission will remain constant which may ",
+        "not be true if the proportion of variants is increasing.", call. = FALSE)
+    }
     added_length <- nrow(d$daily_cases) + forecast_days - length(d$transmission_vec)
     d$transmission_vec <- c(d$transmission_vec, rep(last_transmission, added_length))
   }
