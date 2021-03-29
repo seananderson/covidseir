@@ -6,11 +6,13 @@
 \usage{
 project_seir(
   obj,
+  stan_model = NULL,
   forecast_days = 0,
   f_fixed_start = NULL,
   f_fixed = NULL,
   f_multi = NULL,
   f_multi_seg = NULL,
+  transmission_vec = NULL,
   iter = seq_along(obj$post$R0),
   return_states = FALSE,
   imported_cases = 0,
@@ -23,6 +25,8 @@ project_seir(
 \arguments{
 \item{obj}{Output from \code{\link[=fit_seir]{fit_seir()}}.}
 
+\item{stan_model}{Compiled stan model.}
+
 \item{forecast_days}{Number of projection days.}
 
 \item{f_fixed_start}{Optional day to start changing f. Must be set if
@@ -34,6 +38,11 @@ Should be length \code{forecast_days - (f_fixed_start - nrow(daily_cases) - 1)}.
 \item{f_multi}{Multiplicative vector of f values. Same structure as \code{f_fixed}.}
 
 \item{f_multi_seg}{Which \code{f} to use for \code{f_multi}.}
+
+\item{transmission_vec}{vector of length length(cases) + \code{forecast_days}
+representing the change in transmission due to VoC (see
+\link{create_ramp_vector}). If not defined will project from last day, which
+may be wrong if incorporated VoC and will throw an warning.}
 
 \item{iter}{MCMC iterations to include. Defaults to all.}
 

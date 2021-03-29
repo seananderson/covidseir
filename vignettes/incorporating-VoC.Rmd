@@ -30,7 +30,7 @@ ymd <- lubridate::ymd
 
 The approach to modeling VoC in [covidseir](https://github.com/seananderson/covidseir) is
 to establish a period where the effective transmission rate is increasing linearly
-until VoC become a the dominant strain. The effective transmissibility can is then
+until VoC become a the dominant strain. The effective transmissibility is then
 expressed as a piece-wise linear function with the following definition:
 
 $$
