@@ -4,7 +4,11 @@ functions{
              real[] theta,  // parameters
              real[] x_r,    // data (real)
              int[]  x_i,   // data (integer)
-             real[] transmission_vec) {  // transmision vector
+             real[] transmission_vec, // transmision vector
+             real[] vaccination_vec, // vaccination rate vector
+             real fsi, // fraction social distancing
+             real nsi) { // fraction not social distancing
+
     real S     = state[1];
     real E1    = state[2];
     real E2    = state[3];
@@ -44,7 +48,9 @@ functions{
     real f; // will store the f value for this time point
     real introduced; // will store the introduced cases
 
-    real R0t; //time-dependent transmissibility (incorporates VoC)
+    real R0t; // time-dependent transmissibility (incorporates VoC)
+    real v_rate; // vaccine rate (non-distancers)
+    real vd_rate; // vaccine rate (distancers)
 
     vector[12] dydt;
 
@@ -86,19 +92,33 @@ functions{
     // create VoC-dependent Rt values
     R0t = R0 * transmission_vec[day];
 
-    dydt[1]  = -(R0t/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - ud*S + ur*Sd;
+    // get vaccine rate for current day (non-distancers)
+    if (S <= 0) {
+      v_rate = 0;
+    } else {
+      v_rate = nsi * vaccination_vec[day];
+    }
+
+    // get vaccine rate for current day (distancers)
+    if (Sd <= 0) {
+      vd_rate = 0;
+    } else {
+      vd_rate = fsi * vaccination_vec[day];
+    }
+
+    dydt[1]  = -(R0t/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - ud*S + ur*Sd - v_rate;
     dydt[2]  = (R0t/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - k1*E1 -ud*E1 + ur*E1d;
     dydt[3]  = k1*E1 - k2*E2 - ud*E2 + ur*E2d + introduced;
     dydt[4]  = k2*E2 - q*I - I/D - ud*I + ur*Id;
     dydt[5]  = q*I - Q/D - ud*Q + ur*Qd;
-    dydt[6]  = I/D + Q/D - ud*R + ur*Rd;
+    dydt[6]  = I/D + Q/D - ud*R + ur*Rd + v_rate;
 
-    dydt[7]  = -(f*R0t/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N + ud*S - ur*Sd;
+    dydt[7]  = -(f*R0t/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N + ud*S - ur*Sd - vd_rate;
     dydt[8]  = (f*R0t/(D+1/k2)) * (I+E2 + f*(Id+E2d)) * Sd/N - k1*E1d +ud*E1 - ur*E1d;
     dydt[9]  = k1*E1d - k2*E2d + ud*E2 - ur*E2d;
     dydt[10] = k2*E2d - q*Id - Id/D + ud*I - ur*Id;
     dydt[11] = q*Id - Qd/D + ud*Q - ur*Qd;
-    dydt[12] = Id/D + Qd/D + ud*R - ur*Rd;
+    dydt[12] = Id/D + Qd/D + ud*R - ur*Rd + vd_rate;
 
     return dydt;
   }
@@ -141,10 +161,14 @@ data {
   int<lower=0, upper=1> obs_model; // observation model: 0 = Poisson, 1 = NB2
   real<lower=0> rw_sigma; // specified random walk standard deviation
   int<lower=0, upper=1> contains_NAs; // Logical: contains NA values?
-  real ode_control[3]; // vector of ODE control numbers
+  //real ode_control[3]; // vector of ODE control numbers
+  real rel_tol;
+  real abs_tol;
+  int max_num_steps;
   int<lower=0> K;      // number of linear predictors
   matrix[N,K] X;       // linear predictor matrix
   real transmission_vec[N]; //transmission vector (for incorporating VoC)
+  real vaccination_vec[N]; //vaccination rate vector
 }
 parameters {
  real<lower=0, upper=x_r[1]> i0; // incidence at initial time point (default -30 days); upper = N
@@ -202,8 +226,10 @@ transformed parameters {
     theta[s + 4] = f_s[s];
   }
 
-  y_hat = ode_rk45(sir, to_vector(y0), t0, time, theta, x_r, x_i,
-                   transmission_vec);
+  y_hat = ode_rk45_tol(sir, to_vector(y0), t0, time,
+                   rel_tol, abs_tol, max_num_steps,
+                   theta, x_r, x_i,
+                   transmission_vec, vaccination_vec, fsi, nsi);
   // y_hat = ode_bdf(sir, to_vector(y0), t0, time, theta, x_r, x_i);
 
   // Calculating the expected case counts given the delays in reporting:

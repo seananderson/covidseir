@@ -20,6 +20,10 @@
 #'   representing the change in transmission due to VoC (see
 #'   [create_ramp_vector]). If not defined will project from last day, which
 #'   may be wrong if incorporated VoC and will throw an warning.
+#' @param vaccination_vec Optional numeric vector. An adjusted vaccination rate
+#'   vector that incorporates adjustments for age-group vaccinated and
+#'   transmission-blocking efficacy (See [create_adjusted_vaccination_rollout()]
+#'   ).
 #' @param imported_cases Number of cases to import starting on first projection day.
 #' @param imported_window Number of days over which to distribute imported cases.
 #' @param iter MCMC iterations to include. Defaults to all.
@@ -118,6 +122,7 @@ project_seir <- function(
                          f_multi = NULL,
                          f_multi_seg = NULL,
                          transmission_vec = NULL,
+                         vaccination_vec = NULL,
                          iter = seq_along(obj$post$R0),
                          return_states = FALSE,
                          imported_cases = 0,
@@ -240,6 +245,23 @@ project_seir <- function(
     }
     added_length <- nrow(d$daily_cases) + forecast_days - length(d$transmission_vec)
     d$transmission_vec <- c(d$transmission_vec, rep(last_transmission, added_length))
+  }
+
+  # set vaccination vec
+
+  if (!is.null(vaccination_vec)){
+    if (length(vaccination_vec) != length(days)){
+      stop(paste0("`vaccination_vec` length should be: ",length(days)), call. = FALSE)
+    }
+    d$vaccination_vec <- vaccination_vec
+  } else {
+    last_vaccination <- d$vaccination_vec[length(d$vaccination_vec)]
+    if (last_vaccination != 0) {
+      warning("Projecting vaccination will remain constant which may ",
+              "not be true if vaccine roll-out is changing.", call. = FALSE)
+    }
+    added_length <- nrow(d$daily_cases) + forecast_days - length(d$vaccination_vec)
+    d$vaccination_vec <- c(d$vaccination_vec, rep(last_vaccination, added_length))
   }
 
   if (!"imported_cases" %in% names(d$x_r)) {

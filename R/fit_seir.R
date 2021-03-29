@@ -87,6 +87,10 @@
 #' @param transmission_vec Optional numeric vector. An arbitrary transmission
 #'   vector can be used to provide the change in transmission due to variants of
 #'   concern (or other factors).
+#' @param vaccination_vec Optional numeric vector. An adjusted vaccination rate
+#'   vector that incorporates adjustments for age-group vaccinated and
+#'   transmission-blocking efficacy (See [create_adjusted_vaccination_rollout()]
+#'   ).
 #' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()] /
 #'   [rstan::vb()] / [rstan::optimizing()].
 #' @export
@@ -217,6 +221,7 @@ fit_seir <- function(daily_cases,
                      init_list = NULL,
                      X = NULL,
                      transmission_vec = NULL,
+                     vaccination_vec = NULL,
                      ...) {
 
   if (is.null(stan_model)) {
@@ -350,6 +355,10 @@ fit_seir <- function(daily_cases,
   if (!identical(length(transmission_vec), length(days)))
     stop("length(transmission_vec) must equal length(days).", call. = FALSE)
 
+  if (is.null(vaccination_vec)) vaccination_vec <- rep(0, length(days))
+  if (!identical(length(vaccination_vec), length(days)))
+    stop("length(vaccination_vec) must equal length(days).", call. = FALSE)
+
   if (length(phi_prior) == 2L) {
     phi_prior2 <- phi_prior
     phi_prior <- 1 # fake
@@ -395,11 +404,15 @@ fit_seir <- function(daily_cases,
     last_day_obs = last_day_obs,
     obs_model = obs_model,
     contains_NAs = contains_NAs,
-    ode_control = ode_control,
+    #ode_control = ode_control,
+    rel_tol = ode_control[1],
+    abs_tol = ode_control[2],
+    max_num_steps = ode_control[3],
     est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L,
     X = X,
     K = ncol(X),
-    transmission_vec = transmission_vec
+    transmission_vec = transmission_vec,
+    vaccination_vec = vaccination_vec
   )
   initf <- function(stan_data) {
     R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2] / 2)
