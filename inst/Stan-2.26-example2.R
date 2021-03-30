@@ -154,7 +154,9 @@ p_voc <- project_seir(fit_voc,
 )
 p_voc_tidy <- tidy_seir(p_voc)
 p_voc_tidy <- dplyr::left_join(p_voc_tidy, lut, by = "day")
-g1 <- p_voc_tidy %>% plot_projection(obs_dat = dat, date_column = "date", value_column = "value_voc")
+g1 <- p_voc_tidy %>%
+  plot_projection(obs_dat = dat, date_column = "date", value_column = "value_voc") +
+  geom_vline(xintercept = ymd("2020-07-01"), lty = 2)
 
 p_voc_ignore <- project_seir(fit_voc_ignore,
   stan_model = stan_mod,
@@ -162,7 +164,9 @@ p_voc_ignore <- project_seir(fit_voc_ignore,
 )
 p_voc_ignore_tidy <- tidy_seir(p_voc_ignore)
 p_voc_ignore_tidy <- dplyr::left_join(p_voc_ignore_tidy, lut, by = "day")
-g2 <- p_voc_ignore_tidy %>% plot_projection(obs_dat = dat, date_column = "date", value_column = "value_voc")
+g2 <- p_voc_ignore_tidy %>%
+  plot_projection(obs_dat = dat, date_column = "date", value_column = "value_voc") +
+  geom_vline(xintercept = ymd("2020-07-01"), lty = 2)
 
 cowplot::plot_grid(g1 + ggtitle("Account for VoC"), g2 + ggtitle("Ignore VoC"), ncol = 1)
 
