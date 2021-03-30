@@ -103,7 +103,7 @@ plot(transmission_vec)
 # fit once, ignoring VoCs:
 fit_voc_ignore <- covidseir::fit_seir(
   daily_cases = dat$value_voc,
-  stan_model = stan_mod,
+  stan_model = stan_mod, # Note that for now you must pass the rstan model here!
   samp_frac_fixed = samp_frac,
   f_seg = f_seg,
   i0_prior = c(log(8), 1),
@@ -121,7 +121,7 @@ fit_voc_ignore <- covidseir::fit_seir(
 # fit with the VoC ramp:
 fit_voc <- covidseir::fit_seir(
   daily_cases = dat$value_voc,
-  stan_model = stan_mod,
+  stan_model = stan_mod, # Note that for now you must pass the rstan model here!
   samp_frac_fixed = samp_frac,
   f_seg = f_seg,
   i0_prior = c(log(8), 1),
@@ -139,7 +139,7 @@ fit_voc <- covidseir::fit_seir(
 
 # plot
 p_voc <- project_seir(fit_voc,
-  stan_model = stan_mod,
+  stan_model = stan_mod, # Note that for now you must pass the rstan model here!
   forecast_days = 0, iter = 1:30
 )
 p_voc_tidy <- tidy_seir(p_voc)
@@ -149,7 +149,7 @@ g1 <- p_voc_tidy %>%
   geom_vline(xintercept = ymd("2020-07-01"), lty = 2)
 
 p_voc_ignore <- project_seir(fit_voc_ignore,
-  stan_model = stan_mod,
+  stan_model = stan_mod, # Note that for now you must pass the rstan model here!
   forecast_days = 0, iter = 1:30
 )
 p_voc_ignore_tidy <- tidy_seir(p_voc_ignore)
