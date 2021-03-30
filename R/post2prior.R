@@ -5,6 +5,7 @@
 #' splitting a time series into multiple blocks.
 #'
 #' @param obj A model fit with [fit_seir()].
+#' @param stan_model Compiled stan model.
 #' @param iter Iterations to use went creating projections to extract the state
 #'   posterior.
 #' @param time_slice When to take the state priors at. Defaults to the
@@ -31,12 +32,18 @@
 #' )
 #' post2prior(m, iter = seq_len(10)) # just 10 for example speed
 
-post2prior <- function(obj, iter = seq_len(100), time_slice = max(proj$time)) {
+post2prior <- function(obj,
+                       stan_model = NULL,
+                       iter = seq_len(100),
+                       time_slice = max(proj$time)) {
   p <- obj$post
   R0 <- p$R0
   R0_hat <- unname(MASS::fitdistr(R0, "lognormal")$estimate)
 
-  proj <- covidseir::project_seir(obj, iter = iter, return_states = TRUE)
+  proj <- covidseir::project_seir(obj,
+                                  stan_model = stan_model,
+                                  iter = iter,
+                                  return_states = TRUE)
   i30 <- dplyr::filter(
     proj,
     variable %in% c("I", "Id", "E1", "E2", "E1d", "E2d") & time == time_slice - 30

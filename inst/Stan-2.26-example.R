@@ -37,6 +37,13 @@ s1 <- create_segments_vector(
   values = c(0.1, 0.2)
 )
 
+f_seg <- create_segments_vector(
+  start_date = "2020-03-01",
+  total_days = length(cases),
+  segments = c("2020-05-01","2020-06-01")
+)
+f_seg[1] <- 0
+
 transmission_vec <- create_ramp_vector(
   start_date = "2020-01-01",
   total_days = length(cases),
@@ -56,11 +63,13 @@ points(cases, col = "green")
 abline(v = 91)
 
 m <- fit_seir(
-  cases_fake,
+  #cases_fake,
+  cases,
   stan_model = stan_mod,
   iter = 100,
   fit_type = "optimizing",
   samp_frac_fixed = s1,
+  f_seg = f_seg,
   transmission_vec = transmission_vec
   # algorithm = "BFGS"
 )
@@ -71,7 +80,7 @@ transmission_vec <- create_ramp_vector(
   total_days = length(cases) + 30,
   start_ramp = "2020-02-12",
   ramp_length = 7 * 4,
-  ramp_max = 10.0
+  ramp_max = 1.001
 )
 print(transmission_vec)
 

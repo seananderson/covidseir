@@ -4,10 +4,17 @@
 \alias{post2prior}
 \title{Extract new priors from a previous fit}
 \usage{
-post2prior(obj, iter = seq_len(100), time_slice = max(proj$time))
+post2prior(
+  obj,
+  stan_model = NULL,
+  iter = seq_len(100),
+  time_slice = max(proj$time)
+)
 }
 \arguments{
 \item{obj}{A model fit with \code{\link[=fit_seir]{fit_seir()}}.}
+
+\item{stan_model}{Compiled stan model.}
 
 \item{iter}{Iterations to use went creating projections to extract the state
 posterior.}

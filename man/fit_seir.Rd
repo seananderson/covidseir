@@ -41,6 +41,7 @@ fit_seir(
   init_list = NULL,
   X = NULL,
   transmission_vec = NULL,
+  vaccination_vec = NULL,
   ...
 )
 }
@@ -163,6 +164,11 @@ below.}
 \item{transmission_vec}{Optional numeric vector. An arbitrary transmission
 vector can be used to provide the change in transmission due to variants of
 concern (or other factors).}
+
+\item{vaccination_vec}{Optional numeric vector. An adjusted vaccination rate
+vector that incorporates adjustments for age-group vaccinated and
+transmission-blocking efficacy (See \code{\link[=create_adjusted_vaccination_rollout]{create_adjusted_vaccination_rollout()}}
+).}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}} /
 \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}} / \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}.}

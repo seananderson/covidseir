@@ -13,6 +13,7 @@ project_seir(
   f_multi = NULL,
   f_multi_seg = NULL,
   transmission_vec = NULL,
+  vaccination_vec = NULL,
   iter = seq_along(obj$post$R0),
   return_states = FALSE,
   imported_cases = 0,
@@ -43,6 +44,11 @@ Should be length \code{forecast_days - (f_fixed_start - nrow(daily_cases) - 1)}.
 representing the change in transmission due to VoC (see
 \link{create_ramp_vector}). If not defined will project from last day, which
 may be wrong if incorporated VoC and will throw an warning.}
+
+\item{vaccination_vec}{Optional numeric vector. An adjusted vaccination rate
+vector that incorporates adjustments for age-group vaccinated and
+transmission-blocking efficacy (See \code{\link[=create_adjusted_vaccination_rollout]{create_adjusted_vaccination_rollout()}}
+).}
 
 \item{iter}{MCMC iterations to include. Defaults to all.}
 
