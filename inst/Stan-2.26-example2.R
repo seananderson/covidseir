@@ -112,7 +112,24 @@ print(transmission_vec)
 plot(dat$value)
 plot(transmission_vec)
 
-fit_voc3 <- covidseir::fit_seir(
+fit_voc_ignore <- covidseir::fit_seir(
+  daily_cases = dat$value_voc,
+  stan_model = stan_mod,
+  samp_frac_fixed = samp_frac,
+  f_seg = f_seg,
+  i0_prior = c(log(8), 1),
+  e_prior = c(0.8, 0.05),
+  start_decline_prior = c(log(15), 0.1),
+  end_decline_prior = c(log(22), 0.1),
+  f_prior = cbind(c(0.4, 0.5, 0.6), c(0.2, 0.2, 0.2)),
+  R0_prior = c(log(2.6), 0.2),
+  N_pop = 5.1e6,
+  iter = 100,
+  fit_type = "optimizing",
+  ode_control = c(1e-08, 1e-07, 1e+07)
+)
+
+fit_voc <- covidseir::fit_seir(
   daily_cases = dat$value_voc,
   stan_model = stan_mod,
   samp_frac_fixed = samp_frac,
@@ -127,20 +144,28 @@ fit_voc3 <- covidseir::fit_seir(
   iter = 100,
   fit_type = "optimizing",
   transmission_vec = transmission_vec,
-  ode_control = c(1e-08, 1e-07, 1e+07),
-  algorithm = "BFGS"
+  ode_control = c(1e-08, 1e-07, 1e+07)
 )
-print(fit_voc3)
+print(fit_voc)
 
-p <- project_seir(fit_voc3,
+p_voc <- project_seir(fit_voc,
   stan_model = stan_mod,
   forecast_days = 0, iter = 1:30
 )
+p_voc_tidy <- tidy_seir(p_voc)
+p_voc_tidy <- dplyr::left_join(p_voc_tidy, lut, by = "day")
+g1 <- p_voc_tidy %>% plot_projection(obs_dat = dat, date_column = "date", value_column = "value_voc")
 
-p <- tidy_seir(p)
-p <- dplyr::left_join(p, lut, by = "day")
-p %>% plot_projection(obs_dat = dat, date_column = "date", value_column = "value_voc")
+p_voc_ignore <- project_seir(fit_voc_ignore,
+  stan_model = stan_mod,
+  forecast_days = 0, iter = 1:30
+)
+p_voc_ignore_tidy <- tidy_seir(p_voc_ignore)
+p_voc_ignore_tidy <- dplyr::left_join(p_voc_ignore_tidy, lut, by = "day")
+g2 <- p_voc_ignore_tidy %>% plot_projection(obs_dat = dat, date_column = "date", value_column = "value_voc")
+
+cowplot::plot_grid(g1 + ggtitle("Account for VoC"), g2 + ggtitle("Ignore VoC"), ncol = 1)
 
 par(mfrow = c(1, 2))
-plot(density(fit_voc3$post$f_s[,3]))
-plot(density(fit$post$f_s[,3]))
+plot(density(fit_voc$post$f_s[,3]), main = "Last f: Account for VoC")
+plot(density(fit_voc_ignore$post$f_s[,3]), main = "Last f: Ignore VoC")
