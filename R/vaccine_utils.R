@@ -38,6 +38,7 @@
 #' )
 #' @return  list of all age groups with a vector of length min_date to max_date
 #' where each day denotes the vaccination rate
+#' @export
 create_vaccine_seqs <- function(vaccination_schedule, population_sizes,
                                 min_date = "2021-02-01", max_date = "2021-10-01",
                                 hesitancy = 0.15, immunity_delay = 14) {
@@ -169,6 +170,9 @@ create_adjusted_vaccination_rollout <- function(vaccination_schedule, population
 
     # get adjusted vaccine rate for age group
     adj_vac <- total_population_size * vaccination_seqs[[age_group]] * contacts * susceptibility / total_contacts
+
+    # adjust to reduce due to imperfect vaccine
+    adj_vac <- vb_eff * adj_vac
 
     # add to total vaccination rate
     total_vac_rate <- total_vac_rate + adj_vac
