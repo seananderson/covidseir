@@ -172,7 +172,7 @@ create_adjusted_vaccination_rollout <- function(vaccination_schedule, population
     adj_vac <- total_population_size * vaccination_seqs[[age_group]] * contacts * susceptibility / total_contacts
 
     # adjust to reduce due to imperfect vaccine
-    adj_vac <- vb_eff * adj_vac
+    adj_vac <- tb_eff * adj_vac
 
     # add to total vaccination rate
     total_vac_rate <- total_vac_rate + adj_vac
