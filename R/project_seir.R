@@ -121,7 +121,7 @@ project_seir <- function(
                          f_fixed = NULL,
                          f_multi = NULL,
                          f_multi_seg = NULL,
-                         transmission_vec = obj$stan_data$transmission_vec,
+                         transmission_vec = obj$transmission_vec,
                          vaccination_vec = NULL,
                          iter = seq_along(obj$post$R0),
                          return_states = FALSE,
@@ -232,13 +232,17 @@ project_seir <- function(
   d$n_x_i <- length(d$x_i)
 
   last_transmission <- d$transmission_vec[length(d$transmission_vec)]
-  if (last_transmission != 1 && length(d$transmission_vec) != d$T) {
+  if (last_transmission != 1 && length(transmission_vec) < length(days)) {
     warning("Projecting transmission will remain constant which may ",
       "not be true if the proportion of variants is increasing.",
       call. = FALSE)
-    added_length <- d$T - length(d$transmission_vec)
-    d$transmission_vec <- c(d$transmission_vec, rep(last_transmission, added_length))
+    added_length <- nrow(d$daily_cases) + forecast_days - length(transmission_vec)
+    transmission_vec <- c(transmission_vec, rep(last_transmission, added_length))
   }
+  # expand to `time` vector by linear interpolation:
+  transmission_time <-
+    stats::approx(x = days, y = transmission_vec, xout = time)$y
+  transmission_time[is.na(transmission_time)] <- transmission_vec[1]
 
   # set vaccination vec
   if (!is.null(vaccination_vec)){

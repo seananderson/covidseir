@@ -541,7 +541,8 @@ fit_seir <- function(daily_cases,
     f2_prior_beta_shape1 = f_seg_prior[, 1],
     f2_prior_beta_shape2 = f_seg_prior[, 2],
     stan_data = stan_data, days_back = days_back,
-    opt = opt, fit_type = fit_type
+    opt = opt, fit_type = fit_type,
+    transmission_vec = transmission_vec
   ), class = "covidseir")
 }
 
