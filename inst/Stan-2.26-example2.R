@@ -10,7 +10,6 @@
 # install.packages("StanHeaders")
 # install.packages("rstan")
 
-
 library(rstan)
 library(tidyverse)
 library(lubridate)
@@ -27,8 +26,8 @@ library(covidseir)
 stan_mod <- rstan::stan_model(system.file("stan", "seir.stan", package = "covidseir"))
 
 ## or we've been developing with this, but you must be in the covidseir working directory locally:
-# file.remove("inst/stan/seir.rds")
-# stan_mod <- stan_model("inst/stan/seir.stan")
+file.remove("inst/stan/seir.rds")
+stan_mod <- stan_model("inst/stan/seir.stan")
 
 # vignette data:
 dat <- structure(list(value = c(1, 1, 4, 6, 4, 6, 1, 3, 5, 11, 20, 12,

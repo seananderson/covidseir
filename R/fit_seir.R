@@ -354,6 +354,12 @@ fit_seir <- function(daily_cases,
   if (is.null(transmission_vec)) transmission_vec <- rep(1, length(days))
   if (!identical(length(transmission_vec), length(days)))
     stop("length(transmission_vec) must equal length(days).", call. = FALSE)
+  stopifnot(sum(is.na(transmission_vec)) == 0L)
+
+  # expand to `time` vector by linear interpolation:
+  transmission_time <-
+    stats::approx(x = days, y = transmission_vec, xout = time)$y
+  transmission_time[is.na(transmission_time)] <- transmission_vec[1]
 
   if (is.null(vaccination_vec)) vaccination_vec <- rep(0, length(days))
   if (!identical(length(vaccination_vec), length(days)))
@@ -411,7 +417,7 @@ fit_seir <- function(daily_cases,
     est_phi = if (obs_model %in% 1L) ncol(daily_cases) else 0L,
     X = X,
     K = ncol(X),
-    transmission_vec = transmission_vec,
+    transmission_vec = transmission_time,
     vaccination_vec = vaccination_vec
   )
   initf <- function(stan_data) {

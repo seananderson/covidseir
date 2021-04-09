@@ -12,7 +12,7 @@ project_seir(
   f_fixed = NULL,
   f_multi = NULL,
   f_multi_seg = NULL,
-  transmission_vec = NULL,
+  transmission_vec = obj$stan_data$transmission_vec,
   vaccination_vec = NULL,
   iter = seq_along(obj$post$R0),
   return_states = FALSE,

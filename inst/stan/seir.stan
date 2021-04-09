@@ -1,9 +1,34 @@
 functions{
+  real linear_interpolate(real x, real[] x_pred, real[] y_pred) {
+    int K = size(x_pred);
+    real ans;
+    int i;
+    if (size(y_pred) != K)
+      reject("x_pred and y_pred aren't of the same size");
+    if (x <= min(x_pred)) {
+      ans = min(y_pred);
+    } else if (x >= max(x_pred)) {
+      ans = max(y_pred);
+  } else {
+    i = 0;
+    for (k in 1:K) {
+      if (x_pred[k] - x <= 0)  i = i + 1;
+    }
+    real x0 = x_pred[i];
+    real x1 = x_pred[i + 1];
+    real y0 = y_pred[i];
+    real y1 = y_pred[i + 1];
+    // https://en.wikipedia.org/wiki/Linear_interpolation
+    ans = (y0 * (x1 - x) + y1 * (x - x0)) / (x1 - x0);
+  }
+    return ans;
+  }
   vector sir(real t,        // time (actual time; not an increment starting at 1)
              vector state,  // state
              real[] theta,  // parameters
              real[] x_r,    // data (real)
              int[]  x_i,   // data (integer)
+             real[] time,
              real[] transmission_vec, // transmision vector
              real[] vaccination_vec, // vaccination rate vector
              real fsi, // fraction social distancing
@@ -90,7 +115,7 @@ functions{
     }
 
     // create VoC-dependent Rt values
-    R0t = R0 * transmission_vec[day];
+    R0t = R0 * linear_interpolate(t, time, transmission_vec);
 
     // get vaccine rate for current day (non-distancers)
     if (S <= 0) {
@@ -167,7 +192,7 @@ data {
   int max_num_steps;
   int<lower=0> K;      // number of linear predictors
   matrix[N,K] X;       // linear predictor matrix
-  real transmission_vec[N]; //transmission vector (for incorporating VoC)
+  real transmission_vec[T]; //transmission vector (for incorporating VoC)
   real vaccination_vec[N]; //vaccination rate vector
 }
 parameters {
@@ -229,7 +254,7 @@ transformed parameters {
   y_hat = ode_rk45_tol(sir, to_vector(y0), t0, time,
                    rel_tol, abs_tol, max_num_steps,
                    theta, x_r, x_i,
-                   transmission_vec, vaccination_vec, fsi, nsi);
+                   time, transmission_vec, vaccination_vec, fsi, nsi);
   // y_hat = ode_bdf(sir, to_vector(y0), t0, time, theta, x_r, x_i);
 
   // Calculating the expected case counts given the delays in reporting:

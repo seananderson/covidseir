@@ -49,7 +49,7 @@ transmission_vec <- create_ramp_vector(
   total_days = length(cases),
   start_ramp = "2020-04-01",
   ramp_length = 50,
-  ramp_max = 1.001
+  ramp_max = 1.5
 )
 print(transmission_vec)
 plot(cases)
