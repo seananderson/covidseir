@@ -243,6 +243,7 @@ project_seir <- function(
   transmission_time <-
     stats::approx(x = days, y = transmission_vec, xout = time)$y
   transmission_time[is.na(transmission_time)] <- transmission_vec[1]
+  d$transmission_vec <- transmission_time
 
   # set vaccination vec
   if (!is.null(vaccination_vec)){
