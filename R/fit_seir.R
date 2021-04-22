@@ -356,14 +356,17 @@ fit_seir <- function(daily_cases,
     stop("length(transmission_vec) must equal length(days).", call. = FALSE)
   stopifnot(sum(is.na(transmission_vec)) == 0L)
 
-  # expand to `time` vector by linear interpolation:
-  transmission_time <-
-    stats::approx(x = days, y = transmission_vec, xout = time)$y
-  transmission_time[is.na(transmission_time)] <- transmission_vec[1]
-
   if (is.null(vaccination_vec)) vaccination_vec <- rep(0, length(days))
   if (!identical(length(vaccination_vec), length(days)))
     stop("length(vaccination_vec) must equal length(days).", call. = FALSE)
+
+  # expand to `time` vector by linear interpolation
+  # this lets us index by `t` in the ODE function
+  transmission_time <- stats::approx(x = days, y = transmission_vec, xout = time)$y
+  transmission_time[is.na(transmission_time)] <- transmission_vec[1]
+
+  vaccination_time <- stats::approx(x = days, y = vaccination_vec, xout = time)$y
+  vaccination_time[is.na(vaccination_time)] <- vaccination_vec[1]
 
   if (length(phi_prior) == 2L) {
     phi_prior2 <- phi_prior
@@ -418,7 +421,7 @@ fit_seir <- function(daily_cases,
     X = X,
     K = ncol(X),
     transmission_vec = transmission_time,
-    vaccination_vec = vaccination_vec
+    vaccination_vec = vaccination_time
   )
   initf <- function(stan_data) {
     R0 <- stats::rlnorm(1, R0_prior[1], R0_prior[2] / 2)
