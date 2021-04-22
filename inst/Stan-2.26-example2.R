@@ -163,3 +163,14 @@ cowplot::plot_grid(g1 + ggtitle("Account for VoC"), g2 + ggtitle("Ignore VoC"), 
 par(mfrow = c(1, 2))
 plot(density(fit_voc$post$f_s[,3]), main = "Last f: Account for VoC")
 plot(density(fit_voc_ignore$post$f_s[,3]), main = "Last f: Ignore VoC")
+
+# with forecast_days > 0
+p_voc2 <- project_seir(fit_voc,
+  stan_model = stan_mod,
+  forecast_days = 10, iter = 1:15
+)
+p_voc_tidy <- tidy_seir(p_voc2)
+p_voc_tidy <- dplyr::left_join(p_voc_tidy, lut, by = "day")
+p_voc_tidy %>%
+  plot_projection(obs_dat = dat, date_column = "date", value_column = "value_voc") +
+  geom_vline(xintercept = ymd("2020-07-01"), lty = 2)
