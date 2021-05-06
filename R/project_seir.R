@@ -240,7 +240,8 @@ project_seir <- function(
     transmission_vec <- c(transmission_vec, rep(last_transmission, added_length))
   }
   # expand to `time` vector by linear interpolation:
-  transmission_time <- stats::approx(x = days, y = transmission_vec, xout = time)$y
+  transmission_time <-
+    stats::approx(x = days, y = transmission_vec, xout = time)$y
   transmission_time[is.na(transmission_time)] <- transmission_vec[1]
   d$transmission_vec <- transmission_time
 
@@ -259,10 +260,6 @@ project_seir <- function(
     added_length <- nrow(d$daily_cases) + forecast_days - length(d$vaccination_vec)
     d$vaccination_vec <- c(d$vaccination_vec, rep(last_vaccination, added_length))
   }
-  # expand to `time` vector by linear interpolation:
-  vaccination_time <- stats::approx(x = days, y = vaccination_vec, xout = time)$y
-  vaccination_time[is.na(vaccination_time)] <- vaccination_vec[1]
-  d$vaccination_vec <- vaccination_time
 
   if (!"imported_cases" %in% names(d$x_r)) {
     warning("Adding to `d$x_r`. Looks like an old model.", call. = FALSE)

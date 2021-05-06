@@ -121,14 +121,14 @@ functions{
     if (S <= 0) {
       v_rate = 0;
     } else {
-      v_rate = nsi * linear_interpolate(t, time, vaccination_vec);
+      v_rate = nsi * vaccination_vec[day];
     }
 
     // get vaccine rate for current day (distancers)
     if (Sd <= 0) {
       vd_rate = 0;
     } else {
-      vd_rate = fsi * linear_interpolate(t, time, vaccination_vec);
+      vd_rate = fsi * vaccination_vec[day];
     }
 
     dydt[1]  = -(R0t/(D+1/k2)) * (I + E2 + f*(Id+E2d)) * S/N - ud*S + ur*Sd - v_rate;
