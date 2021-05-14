@@ -10,7 +10,8 @@ create_vaccine_seqs(
   min_date = "2021-02-01",
   max_date = "2021-10-01",
   hesitancy = 0.15,
-  immunity_delay = 14
+  immunity_delay = 14,
+  use_proportion = FALSE
 )
 }
 \arguments{
@@ -33,7 +34,10 @@ population size in that age group}
 
 \item{hesitancy}{numeric denoting proportion who will not take vaccine}
 
-\item{immunity_delay}{Delay between vaccination and immunological impacts
+\item{immunity_delay}{Delay between vaccination and immunological impacts}
+
+\item{use_proportion}{If true then returns as a proportion of total population
+in each age group.
 (in days)}
 }
 \value{
@@ -62,4 +66,11 @@ vaccination_schedule <- list(
   "65 - 74" = c("2021-05-01", "2021-06-01"),
   "> 75" = c("2021-03-01", "2021-05-01")
 )
+population_sizes <- tibble(age_group = c("< 2","2 - 5","6 - 17","18 - 24",
+                                         "25 - 34","35 - 44","45 - 54",
+                                         "55 - 64","65 - 74","> 75"),
+                           size = c(133550,	186945,	593808,	458672,
+                                    720132,	667441,	676467,	732003,
+                                    552418,	395644))
+seqs <- create_vaccine_seqs(vaccination_schedule, population_sizes)
 }

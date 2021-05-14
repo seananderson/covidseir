@@ -93,3 +93,71 @@ create_ramp_vector <- function(start_date, total_days, start_ramp,
   }
   vec
 }
+
+#' optimize to get appropriate b value for logistic function
+#' @param total_days days from (1-dom_val)/2 to 1 - (1-dom_val)/2
+#' @param dom_val value defined at which dominance occurs (set to 0.9)
+#' @noRd
+optimize_logistic_beta <- function(transition_days,dom_val=0.95){
+
+  op_functional <- function(b,transition_days,dom_val){
+    (1/(1+exp(-b*transition_days/2)) - 1/(1+exp(b*transition_days/2)) - dom_val)^2
+  }
+
+  op_fn <- function(b){
+    op_functional(b,transition_days,dom_val)
+  }
+
+  r_optim <- optim(c(0.01),op_fn,lower=0,upper=1,method="Brent")
+
+  beta <- r_optim$par
+  return(beta)
+}
+
+#' Create ramp vector
+#'
+#' @description Creates a vector of length `total_days` starting at 1 and
+#'   increasing to `ramp_max` between `start_ramp` and `end_ramp`. Useful for
+#'   characterizing the change in transmission due to Variants of Concern.
+#' @param start_date date at start of data (in ymd format)
+#' @param total_days int Number of days in data or projection. Gives total
+#'   length of array
+#' @param start_ramp date at start of ramp (in ymd format)
+#' @param ramp_length length of ramp (in days)
+#' @param ramp_max final value at end of ramp
+#' @returns vector of length total_days
+#' @examples
+#' start_date <- "2020-01-01"
+#' start_ramp <- "2020-01-05"
+#' total_days <- 30
+#' ramp_length <- 10
+#' ramp_max <- 2
+#' create_ramp_vector(
+#'   start_date, total_days, start_ramp, ramp_length,
+#'   ramp_max
+#' )
+#' @importFrom lubridate ymd days
+#' @export
+create_logistic_ramp_vector <- function(start_date, total_days, start_ramp,
+                                        ramp_length, ramp_max) {
+
+  beta <- optimize_logistic_beta(ramp_length)
+
+
+  ts <- seq(1,total_days)
+
+  # start of ramp
+  s1 <- as.numeric(ymd(start_ramp) - ymd(start_date)) + 1
+
+  # mid-point
+  mp <- s1 + ramp_length/2
+
+  # prop in logit-space
+  vec <- beta*(ts - mp)
+  # vec from 0 to 1
+  vec <- 1/(1 + exp(-vec))
+  # vec from 1 to ramp max
+  vec <- 1 + vec*(ramp_max - 1)
+
+  return(vec)
+}

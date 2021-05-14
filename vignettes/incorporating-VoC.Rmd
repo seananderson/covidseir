@@ -26,6 +26,12 @@ library(ggplot2)
 ymd <- lubridate::ymd
 ```
 
+Load in the stan model we'll be using,
+
+```{r stan model load}
+stan_mod <- rstan::stan_model(system.file("stan", "seir.stan", package = "covidseir"))
+```
+
 ## VoC Introduction
 
 The approach to modeling VoC in [covidseir](https://github.com/seananderson/covidseir) is
@@ -53,7 +59,7 @@ values <- c(330, 745, 382, 866, 481, 668, 494, 275, 584, 514, 321, 745, 375, 301
            613, 984, 725, 603, 627, 732, 518, 889, 929, 821, 1086, 1152, 1211, 
            1319, 1371, 1483, 1519, 1999, 1610, 2666, 2869, 2898)
 ts <- seq(1,length(values))
-dates <- ymd("2021-02-01") + lubridate::days(ts)
+dates <- ymd("2021-01-01") + lubridate::days(ts)
 
 dat <- dplyr::tibble(value=values,t=ts, date=dates)
 
@@ -71,14 +77,33 @@ ratio `rr`. In this example we fix establishment at time 0 and assume 49 days to
 dominance with a 50% increase in transmission (`rr = 1.5`)
 
 ```{r setup params}
-f_seg <- c(0,rep(1,length(values) - 1))
+ndays <- length(values)
 
-samp_frac <- rep(0.37, length(values))
+f_seg <- c(0,rep(1,ndays - 1))
+
+samp_frac <- rep(0.37, ndays)
 
 voc_pars <- c(present = TRUE, establishment = 0,
              time_to_dominance = 49, rr = 1.5)
+
 no_voc_pars <- c(present = FALSE, establishment = 0,
              time_to_dominance = 49, rr = 1.5)
+
+start_date <- "2021-01-01"
+establishment_date <- "2021-01-01"
+
+voc_vec <- create_logistic_ramp_vector(start_date,
+                                      total_days = ndays,
+                                      start_ramp = establishment_date,
+                                      ramp_length = 49,
+                                      ramp_max = 1.5)
+
+no_voc_vec <- create_logistic_ramp_vector(start_date,
+                                          total_days = ndays,
+                                          start_ramp = establishment_date,
+                                          ramp_length = 49,
+                                          ramp_max = 1.0)
+
 ```
 
 
@@ -94,6 +119,7 @@ the projection.
 ```{r fit1, warning=FALSE}
 fit <- covidseir::fit_seir(
   daily_cases = values,
+  stan_model = stan_mod,
   samp_frac_fixed = samp_frac, 
   f_seg = f_seg,
   e_prior = c(0.8, 0.05),
@@ -102,13 +128,14 @@ fit <- covidseir::fit_seir(
   R0_prior = c(log(2.6), 0.1),
   i0_prior = c(log(1000), 1),
   N_pop = 5.1e6, # BC population
-  voc_pars = voc_pars,
+  transmission_vec = voc_vec,
   iter = 500, # number of posterior samples
   fit_type = "optimizing" # for speed only
 )
 
 fit_no_voc <- covidseir::fit_seir(
   daily_cases = values,
+  stan_model = stan_mod,
   samp_frac_fixed = samp_frac, 
   f_seg = f_seg,
   e_prior = c(0.8, 0.05),
@@ -117,7 +144,7 @@ fit_no_voc <- covidseir::fit_seir(
   R0_prior = c(log(2.6), 0.1),
   i0_prior = c(log(1000), 1),
   N_pop = 5.1e6, # BC population
-  voc_pars = no_voc_pars,
+  transmission_vec = no_voc_vec,
   iter = 500, # number of posterior samples
   fit_type = "optimizing" # for speed only
 )
@@ -141,9 +168,28 @@ future::plan(future::multisession)
 Now we will take the fitted model and calculate the corresponding model predictions. This can be slow, especially with future projections, and so we only use the first 50 posterior samples for this quick vignette example:
 
 ```{r proj}
-proj <- covidseir::project_seir(fit, forecast_days = 20,
+proj_voc_vec <- create_logistic_ramp_vector(start_date,
+                                      total_days = ndays + 50,
+                                      start_ramp = establishment_date,
+                                      ramp_length = 49,
+                                      ramp_max = 1.5)
+
+proj_no_voc_vec <- create_logistic_ramp_vector(start_date,
+                                          total_days = ndays + 50,
+                                          start_ramp = establishment_date,
+                                          ramp_length = 49,
+                                          ramp_max = 1.0)
+
+proj <- covidseir::project_seir(fit,
+                                stan_model = stan_mod,
+                                transmission_vec = proj_voc_vec,
+                                forecast_days = 50,
                                 iter = 1:50)
-proj_no_voc <- covidseir::project_seir(fit_no_voc, forecast_days = 20,
+
+proj_no_voc <- covidseir::project_seir(fit_no_voc,
+                                       stan_model = stan_mod,
+                                       transmission_vec = proj_no_voc_vec,
+                                       forecast_days = 50,
                                        iter = 1:50)
 ```
 
@@ -157,8 +203,8 @@ tidy_proj_no_voc <- covidseir::tidy_seir(proj_no_voc, resample_y_rep = 20)
 For plotting, we need to join a date column back on, since our projections only have a column for a numeric day. Here, we do that by making a look-up-table (`lut`).
 
 ```{r join-date1}
-first_day <- ymd("2021-02-01")
-last_day <- length(values) + 20 # how many days to create dates for
+first_day <- ymd("2021-01-01")
+last_day <- length(values) + 50 # how many days to create dates for
 lut <- dplyr::tibble(
   day = seq_len(last_day),
   date = seq(first_day, first_day + length(day) - 1, by = "1 day")
@@ -173,6 +219,170 @@ We can plot both the projection under VoC introduction and no VoC introduction.
 ```{r plot-projection}
 proj_data <- tidy_proj %>% mutate(scenario = "VoC") %>%
   bind_rows(tidy_proj_no_voc %>% mutate(scenario = "No VoC"))
+
+g <- ggplot(proj_data, aes(x = date))
+
+g <- g + 
+  geom_ribbon(aes_string(ymin = "y_rep_0.05", ymax = "y_rep_0.95", fill = "scenario"),
+  alpha = 0.2
+) +
+  geom_ribbon(aes_string(ymin = "y_rep_0.25", ymax = "y_rep_0.75", fill = "scenario"),
+    alpha = 0.2
+  )
+
+g <- g + geom_line(aes_string(y = "mu_0.50", col = "scenario"), lwd = 0.9) +
+coord_cartesian(expand = FALSE, xlim = range(proj_data[["date"]])) +
+ylab("Cases") +
+theme(axis.title.x = element_blank())
+
+g <- g +
+geom_line(
+  data = dat,
+  col = "black", inherit.aes = FALSE,
+  aes(x = date, y = value),
+  lwd = 0.35, alpha = 0.9
+) +
+geom_point(
+  data = dat,
+  col = "grey30", inherit.aes = FALSE,
+  aes(x = date, y = value),
+  pch = 21, fill = "grey95", size = 1.25
+)
+
+show(g)
+```
+
+
+## Incorporating vaccination rate into the modeling
+
+The impact of vaccination is dependent on which age groups are vaccinated. Each
+age group will have an underlying rate of exposure related to their number of 
+daily contacts, type of contact, and underlying susceptibility. In addition
+other groups that are targeted for vaccination can also be incorporated into the
+model. The important components for each modeled group are:
+
+* schedule of vaccination
+* population size of group
+* contact rate (proxy for sum of contacts over type of contact and propensity
+  of transmission for contact type)
+* susceptibility for that age group
+
+These are combined together as a weighted sum in order to generate an adjusted
+vaccination rate. The sum of the rate either represents the effective total 
+number or total proportion of the population vaccinated. This is an effective 
+total or proportion as it incorporates the efficacy in blocking transmission.
+
+```{r create vac rate}
+# example vaccination schedule that can be used.
+vaccination_schedule <- list(
+  "< 2" = NULL,
+  "2 - 5" = NULL,
+  "6 - 17" = NULL,
+  "18 - 24" = c("2021-03-20", "2021-04-20"),
+  "25 - 34" = c("2021-03-20", "2021-04-20"),
+  "35 - 44" = c("2021-03-20", "2021-04-20"),
+  "45 - 54" = c("2021-03-20", "2021-04-20"),
+  "55 - 64" = c("2021-02-20", "2021-03-20"),
+  "65 - 74" = c("2021-02-20", "2021-03-20"),
+  "> 75" = c("2021-02-20", "2021-03-20")
+)
+
+population_sizes <- tibble(age_group = c("< 2","2 - 5","6 - 17","18 - 24",
+                                         "25 - 34","35 - 44","45 - 54",
+                                         "55 - 64","65 - 74","> 75"),
+                           size = c(133550,	186945,	593808,	458672,
+                                    720132,	667441,	676467,	732003,
+                                    552418,	395644))
+
+contact_rates <- tribble(
+  ~age_group, ~contacts,
+  "< 2", 5.5280,
+  "2 - 5", 12.4169,
+  "6 - 17", 13.4486,
+  "18 - 24", 43.9558,
+  "25 - 34", 43.8900,
+  "35 - 44", 48.4715,
+  "45 - 54", 47.9437,
+  "55 - 64", 23.8686,
+  "65 - 74", 20.6297,
+  "> 75", 17.4510)
+
+#' Age susceptibility
+age_susceptibility <- tribble(
+  ~age_group, ~susceptibility,
+  "< 2", 0.5,
+  "2 - 5", 0.5,
+  "6 - 17", 0.75,
+  "18 - 24", 1.0,
+  "25 - 34", 1.0,
+  "35 - 44", 1.0,
+  "45 - 54", 1.0,
+  "55 - 64", 1.0,
+  "65 - 74", 1.0,
+  "> 75", 1.0)
+
+adj_vac_rate <- create_adjusted_vaccination_rollout(vaccination_schedule, population_sizes,
+                                                    age_susceptibility, contact_rates)
+```
+
+For the above scenarios we can consider the impact of vaccination on projected
+cases. We can construct an adjusted vector that is 0 over the fitting period
+and the corresponding vaccination rate subsequently.
+
+```{r set vac proj}
+proj_vac_rate <- adj_vac_rate
+proj_vac_rate[1:50] <- 0
+proj_vac_rate <- proj_vac_rate[1:(ndays + 50)]
+```
+
+We now project using this projected vaccination rate for the VoC and non-VoC 
+case.
+
+```{r proj vac}
+
+proj_vac <- covidseir::project_seir(fit,
+                                stan_model = stan_mod,
+                                transmission_vec = proj_voc_vec,
+                                vaccination_vec = proj_vac_rate,
+                                forecast_days = 50,
+                                iter = 1:50)
+
+proj_no_voc_vac <- covidseir::project_seir(fit_no_voc,
+                                       stan_model = stan_mod,
+                                       transmission_vec = proj_no_voc_vec,
+                                       vaccination_vec = proj_vac_rate,
+                                       forecast_days = 50,
+                                       iter = 1:50)
+```
+
+Then we will take the posterior samples, re-sample 20 times from the negative binomial observation model to generate smoother predictions, and transform the output into a tidy data frame for plotting:
+
+```{r tidy-proj}
+tidy_proj_vac <- covidseir::tidy_seir(proj_vac, resample_y_rep = 20)
+tidy_proj_no_voc_vac <- covidseir::tidy_seir(proj_no_voc_vac, resample_y_rep = 20)
+```
+
+For plotting, we need to join a date column back on, since our projections only have a column for a numeric day. Here, we do that by making a look-up-table (`lut`).
+
+```{r join-date1}
+first_day <- ymd("2021-01-01")
+last_day <- length(values) + 50 # how many days to create dates for
+lut <- dplyr::tibble(
+  day = seq_len(last_day),
+  date = seq(first_day, first_day + length(day) - 1, by = "1 day")
+)
+tidy_proj_vac <- dplyr::left_join(tidy_proj_vac, lut, by = "day")
+tidy_proj_no_voc_vac <- dplyr::left_join(tidy_proj_no_voc_vac, lut, by = "day")
+dplyr::glimpse(tidy_proj)
+```
+
+We can plot both the projection under VoC introduction and no VoC introduction.
+
+```{r plot-projection}
+proj_data <- tidy_proj %>% mutate(scenario = "VoC") %>%
+  bind_rows(tidy_proj_no_voc %>% mutate(scenario = "No VoC")) %>%
+  bind_rows(tidy_proj_vac %>% mutate(scenario = "VoC vaccination")) %>%
+  bind_rows(tidy_proj_no_voc_vac %>% mutate(scenario = "No VoC vaccination"))
 
 g <- ggplot(proj_data, aes(x = date))
 

@@ -168,7 +168,7 @@ concern (or other factors).}
 \item{vaccination_vec}{Optional numeric vector. An adjusted vaccination rate
 vector that incorporates adjustments for age-group vaccinated and
 transmission-blocking efficacy (See \code{\link[=create_adjusted_vaccination_rollout]{create_adjusted_vaccination_rollout()}}
-).}
+). Note: updated so must be per-capita rate}
 
 \item{...}{Other arguments to pass to \code{\link[rstan:stanmodel-method-sampling]{rstan::sampling()}} / \code{\link[rstan:stan]{rstan::stan()}} /
 \code{\link[rstan:stanmodel-method-vb]{rstan::vb()}} / \code{\link[rstan:stanmodel-method-optimizing]{rstan::optimizing()}}.}

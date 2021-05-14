@@ -3,6 +3,7 @@
 S3method(print,covidseir)
 export(create_adjusted_outcome_rate)
 export(create_adjusted_vaccination_rollout)
+export(create_logistic_ramp_vector)
 export(create_ramp_vector)
 export(create_segments_vector)
 export(create_vaccine_seqs)

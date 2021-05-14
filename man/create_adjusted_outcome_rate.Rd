@@ -2,9 +2,7 @@
 % Please edit documentation in R/vaccine_utils.R
 \name{create_adjusted_outcome_rate}
 \alias{create_adjusted_outcome_rate}
-\title{function create outcome rate adjusted for who is vaccinated at a given time
-Outcomes can either be hospitalizations or deaths, update the outcome rate
-parameter to change this}
+\title{Create adjusted outcome rate}
 \usage{
 create_adjusted_outcome_rate(
   outcome_rates,

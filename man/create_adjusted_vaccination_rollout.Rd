@@ -13,7 +13,8 @@ create_adjusted_vaccination_rollout(
   max_date = "2021-10-01",
   hesitancy = 0.15,
   immunity_delay = 14,
-  tb_eff = 0.8
+  tb_eff = 0.8,
+  use_proportion = FALSE
 )
 }
 \arguments{
@@ -39,6 +40,9 @@ contact rates in that age group}
 
 \item{immunity_delay}{Delay between vaccination and immunological impacts
 (in days)}
+
+\item{use_proportion}{If true then returns adjusted per-capita rate (as
+opposed to a total population rate)}
 }
 \value{
 list of all age groups with a vector of length min_date to max_date
@@ -46,4 +50,53 @@ where each day denotes the vaccination rate
 }
 \description{
 function create vaccine sequence
+}
+\examples{
+# example vaccination schedule that can be used.
+vaccination_schedule <- list(
+  "< 2" = NULL,
+  "2 - 5" = NULL,
+  "6 - 17" = NULL,
+  "18 - 24" = c("2021-09-01", "2021-10-01"),
+  "25 - 34" = c("2021-08-01", "2021-09-01"),
+  "35 - 44" = c("2021-07-01", "2021-08-01"),
+  "45 - 54" = c("2021-07-01", "2021-08-01"),
+  "55 - 64" = c("2021-06-01", "2021-08-01"),
+  "65 - 74" = c("2021-05-01", "2021-06-01"),
+  "> 75" = c("2021-03-01", "2021-05-01")
+)
+population_sizes <- tibble(age_group = c("< 2","2 - 5","6 - 17","18 - 24",
+                                         "25 - 34","35 - 44","45 - 54",
+                                         "55 - 64","65 - 74","> 75"),
+                           size = c(133550,	186945,	593808,	458672,
+                                    720132,	667441,	676467,	732003,
+                                    552418,	395644))
+contact_rates <- tribble(
+  ~age_group, ~contacts,
+  "< 2", 5.5280,
+  "2 - 5", 12.4169,
+  "6 - 17", 13.4486,
+  "18 - 24", 43.9558,
+  "25 - 34", 43.8900,
+  "35 - 44", 48.4715,
+  "45 - 54", 47.9437,
+  "55 - 64", 23.8686,
+  "65 - 74", 20.6297,
+  "> 75", 17.4510)
+
+#' Age susceptibility
+age_susceptibility <- tribble(
+  ~age_group, ~susceptibility,
+  "< 2", 0.5,
+  "2 - 5", 0.5,
+  "6 - 17", 0.75,
+  "18 - 24", 1.0,
+  "25 - 34", 1.0,
+  "35 - 44", 1.0,
+  "45 - 54", 1.0,
+  "55 - 64", 1.0,
+  "65 - 74", 1.0,
+  "> 75", 1.0)
+adj_vac_rate <- create_adjusted_vaccination_rollout(vaccination_schedule, population_sizes,
+                                                    age_susceptibility, contact_rates)
 }

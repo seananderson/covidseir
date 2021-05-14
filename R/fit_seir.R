@@ -90,7 +90,7 @@
 #' @param vaccination_vec Optional numeric vector. An adjusted vaccination rate
 #'   vector that incorporates adjustments for age-group vaccinated and
 #'   transmission-blocking efficacy (See [create_adjusted_vaccination_rollout()]
-#'   ).
+#'   ). Note: updated so must be per-capita rate
 #' @param ... Other arguments to pass to [rstan::sampling()] / [rstan::stan()] /
 #'   [rstan::vb()] / [rstan::optimizing()].
 #' @export

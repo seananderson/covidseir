@@ -21,6 +21,8 @@
 #' @param max_date string in ymd for max date
 #' @param hesitancy numeric denoting proportion who will not take vaccine
 #' @param immunity_delay Delay between vaccination and immunological impacts
+#' @param use_proportion If true then returns as a proportion of total population
+#'        in each age group.
 #'   (in days)
 #' @examples
 #' # example vaccination schedule that can be used.
@@ -36,15 +38,34 @@
 #'   "65 - 74" = c("2021-05-01", "2021-06-01"),
 #'   "> 75" = c("2021-03-01", "2021-05-01")
 #' )
+#' population_sizes <- tibble(age_group = c("< 2","2 - 5","6 - 17","18 - 24",
+#'                                          "25 - 34","35 - 44","45 - 54",
+#'                                          "55 - 64","65 - 74","> 75"),
+#'                            size = c(133550,	186945,	593808,	458672,
+#'                                     720132,	667441,	676467,	732003,
+#'                                     552418,	395644))
+#' seqs <- create_vaccine_seqs(vaccination_schedule, population_sizes)
 #' @return  list of all age groups with a vector of length min_date to max_date
 #' where each day denotes the vaccination rate
 #' @export
 create_vaccine_seqs <- function(vaccination_schedule, population_sizes,
                                 min_date = "2021-02-01", max_date = "2021-10-01",
-                                hesitancy = 0.15, immunity_delay = 14) {
+                                hesitancy = 0.15, immunity_delay = 14,
+                                use_proportion = FALSE) {
   dates <- seq(lubridate::ymd(min_date), lubridate::ymd(max_date), by = "day")
   vaccination_seqs <- list()
   for (age_group in names(vaccination_schedule)) {
+
+    # get population size
+    if(!use_proportion){
+      pop_size <- population_sizes %>%
+        dplyr::filter(age_group == !!age_group) %>%
+        dplyr::pull(size)
+    }else{
+      # if using proportion ignore population size.
+      pop_size <- 1
+    }
+
     if (typeof(vaccination_schedule[[age_group]]) == "character") {
 
       # age group vaccine start date (adjusting for dealy in immunity build up)
@@ -53,10 +74,6 @@ create_vaccine_seqs <- function(vaccination_schedule, population_sizes,
       end_date <- lubridate::ymd(vaccination_schedule[[age_group]][2]) +
         lubridate::days(immunity_delay)
 
-      # get population size
-      pop_size <- population_sizes %>%
-        dplyr::filter(age_group == !!age_group) %>%
-        dplyr::pull(size)
 
       # create when vaccination is occurring
       vaccine_rollout <- (dates >= start_date) & (dates <= end_date)
@@ -73,10 +90,7 @@ create_vaccine_seqs <- function(vaccination_schedule, population_sizes,
       # get list of vaccine schedule for specific age_group
       age_group_schedule <- vaccination_schedule[[age_group]]
 
-      # get population size
-      pop_size <- population_sizes %>%
-        dplyr::filter(age_group == !!age_group) %>%
-        dplyr::pull(size)
+
 
       # create empty vaccine roll-out to populate with age-specific schedule
       vaccine_rollout <- rep(0, length(dates))
@@ -86,7 +100,7 @@ create_vaccine_seqs <- function(vaccination_schedule, population_sizes,
         end_date <- age_group_schedule[[i]]$end_date
         proportion <- age_group_schedule[[i]]$proportion
 
-        # age group vaccine start date (adjusting for dealy in immunity build up)
+        # age group vaccine start date (adjusting for delay in immunity build up)
         start_date <- lubridate::ymd(start_date) + lubridate::days(immunity_delay)
         end_date <- lubridate::ymd(end_date) + lubridate::days(immunity_delay)
 
@@ -123,8 +137,58 @@ create_vaccine_seqs <- function(vaccination_schedule, population_sizes,
 #' @param hesitancy numeric denoting proportion who will not take vaccine
 #' @param immunity_delay Delay between vaccination and immunological impacts
 #'   (in days)
+#' @param use_proportion If true then returns adjusted per-capita rate (as
+#'   opposed to a total population rate)
 #' @return  list of all age groups with a vector of length min_date to max_date
 #'   where each day denotes the vaccination rate
+#' @examples
+#' # example vaccination schedule that can be used.
+#' vaccination_schedule <- list(
+#'   "< 2" = NULL,
+#'   "2 - 5" = NULL,
+#'   "6 - 17" = NULL,
+#'   "18 - 24" = c("2021-09-01", "2021-10-01"),
+#'   "25 - 34" = c("2021-08-01", "2021-09-01"),
+#'   "35 - 44" = c("2021-07-01", "2021-08-01"),
+#'   "45 - 54" = c("2021-07-01", "2021-08-01"),
+#'   "55 - 64" = c("2021-06-01", "2021-08-01"),
+#'   "65 - 74" = c("2021-05-01", "2021-06-01"),
+#'   "> 75" = c("2021-03-01", "2021-05-01")
+#' )
+#' population_sizes <- tibble(age_group = c("< 2","2 - 5","6 - 17","18 - 24",
+#'                                          "25 - 34","35 - 44","45 - 54",
+#'                                          "55 - 64","65 - 74","> 75"),
+#'                            size = c(133550,	186945,	593808,	458672,
+#'                                     720132,	667441,	676467,	732003,
+#'                                     552418,	395644))
+#' contact_rates <- tribble(
+#'   ~age_group, ~contacts,
+#'   "< 2", 5.5280,
+#'   "2 - 5", 12.4169,
+#'   "6 - 17", 13.4486,
+#'   "18 - 24", 43.9558,
+#'   "25 - 34", 43.8900,
+#'   "35 - 44", 48.4715,
+#'   "45 - 54", 47.9437,
+#'   "55 - 64", 23.8686,
+#'   "65 - 74", 20.6297,
+#'   "> 75", 17.4510)
+#'
+#' #' Age susceptibility
+#' age_susceptibility <- tribble(
+#'   ~age_group, ~susceptibility,
+#'   "< 2", 0.5,
+#'   "2 - 5", 0.5,
+#'   "6 - 17", 0.75,
+#'   "18 - 24", 1.0,
+#'   "25 - 34", 1.0,
+#'   "35 - 44", 1.0,
+#'   "45 - 54", 1.0,
+#'   "55 - 64", 1.0,
+#'   "65 - 74", 1.0,
+#'   "> 75", 1.0)
+#' adj_vac_rate <- create_adjusted_vaccination_rollout(vaccination_schedule, population_sizes,
+#'                                                     age_susceptibility, contact_rates)
 #' @export
 create_adjusted_vaccination_rollout <- function(vaccination_schedule, population_sizes,
                                                 age_susceptibility, contact_rates,
@@ -132,14 +196,16 @@ create_adjusted_vaccination_rollout <- function(vaccination_schedule, population
                                                 max_date = "2021-10-01",
                                                 hesitancy = 0.15,
                                                 immunity_delay = 14,
-                                                tb_eff = 0.8) {
+                                                tb_eff = 0.8,
+                                                use_proportion = FALSE) {
 
   # get vaccination sequence
   vaccination_seqs <- create_vaccine_seqs(vaccination_schedule, population_sizes,
     min_date = min_date,
     max_date = max_date,
     hesitancy = hesitancy,
-    immunity_delay = immunity_delay
+    immunity_delay = immunity_delay,
+    use_proportion = use_proportion
   )
 
   # create empty array of correct size
@@ -169,7 +235,13 @@ create_adjusted_vaccination_rollout <- function(vaccination_schedule, population
       dplyr::pull(contacts)
 
     # get adjusted vaccine rate for age group
-    adj_vac <- total_population_size * vaccination_seqs[[age_group]] * contacts * susceptibility / total_contacts
+    if(use_proportion){
+      adj_vac <- pop_size * vaccination_seqs[[age_group]] * contacts * susceptibility / total_contacts
+
+    }else{
+      adj_vac <- total_population_size * vaccination_seqs[[age_group]] * contacts * susceptibility / total_contacts
+
+    }
 
     # adjust to reduce due to imperfect vaccine
     adj_vac <- tb_eff * adj_vac
@@ -182,6 +254,8 @@ create_adjusted_vaccination_rollout <- function(vaccination_schedule, population
 }
 
 #' get proportion not vaccinated in each age group
+#' @note vaccination_seqs should be in terms of population rate not per capita
+#'  rate
 #' @inheritParams create_adjusted_vaccination_rollout
 #' @return  list of all age groups with a vector of length min_date to max_date
 #' where each day denotes the proportion not vaccinated
@@ -203,6 +277,8 @@ get_prop_not_vaccinated <- function(vaccination_seqs, population_sizes) {
 }
 
 
+#' Create adjusted outcome rate
+#'
 #' function create outcome rate adjusted for who is vaccinated at a given time
 #' Outcomes can either be hospitalizations or deaths, update the outcome rate
 #' parameter to change this
