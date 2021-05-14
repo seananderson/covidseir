@@ -16,7 +16,8 @@ create_adjusted_outcome_rate(
   max_date = "2021-10-01",
   hesitancy = 0.15,
   immunity_delay = 14,
-  ve_outcome = 0.95
+  ve_outcome = 0.95,
+  voc_severity = NULL
 )
 }
 \arguments{
@@ -47,6 +48,9 @@ contact rates in that age group}
 (in days)}
 
 \item{ve_outcome}{Vaccine efficacy for outcome}
+
+\item{voc_severity}{risk ratio on each day describing increase in severity
+due to voc. vector is 1 if no voc.}
 }
 \value{
 list of all age groups with a vector of length min_date to max_date

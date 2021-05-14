@@ -210,6 +210,8 @@ get_prop_not_vaccinated <- function(vaccination_seqs, population_sizes) {
 #'   deaths by age group
 #' @inheritParams create_adjusted_vaccination_rollout
 #' @param ve_outcome Vaccine efficacy for outcome
+#' @param voc_severity risk ratio on each day describing increase in severity
+#'   due to voc. vector is 1 if no voc.
 #' @return  list of all age groups with a vector of length min_date to max_date
 #' where each day denotes the vaccination rate
 #' @export
@@ -219,7 +221,8 @@ create_adjusted_outcome_rate <- function(outcome_rates, vaccination_schedule,
                                          min_date = "2021-02-01",
                                          max_date = "2021-10-01",
                                          hesitancy = 0.15, immunity_delay = 14,
-                                         ve_outcome = 0.95) {
+                                         ve_outcome = 0.95,
+                                         voc_severity = NULL) {
 
   # get vaccination sequence
   vaccination_seqs <- create_vaccine_seqs(vaccination_schedule, population_sizes,
@@ -228,8 +231,10 @@ create_adjusted_outcome_rate <- function(outcome_rates, vaccination_schedule,
     immunity_delay = immunity_delay
   )
 
+  ndays <- length(vaccination_seqs[[1]])
+
   # create empty array of correct size
-  total_rate <- rep(0, length(vaccination_seqs[[1]]))
+  total_rate <- rep(0, ndays)
 
   # get proportion not vaccinated for each age group
   prop_not_vaccinated <- get_prop_not_vaccinated(vaccination_seqs, population_sizes)
@@ -239,6 +244,11 @@ create_adjusted_outcome_rate <- function(outcome_rates, vaccination_schedule,
 
   # get total population size
   total_population_size <- sum(population_sizes$size)
+
+  # set voc_prop to zero if NULL
+  if(is.null(voc_severity)){
+    voc_severity <- rep(1,ndays)
+  }
 
   for (age_group in names(vaccination_seqs)) {
     # get population size
@@ -267,6 +277,9 @@ create_adjusted_outcome_rate <- function(outcome_rates, vaccination_schedule,
     # adjusted rate composition of prop vaccinated and vac efficacy
     adjusted_outcome_rate <- outcome_rate * prop_not_vac +
       (1 - ve_outcome) * (1 - prop_not_vac) * outcome_rate
+
+    # adjust for increase in severity due to voc
+    adjusted_outcome_rate <- voc_severity*adjusted_outcome_rate
 
     # get adjusted vaccine rate for age group
     adj_rate <- adjusted_outcome_rate * pop_size * contacts * susceptibility / total_contacts
