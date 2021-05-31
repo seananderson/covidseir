@@ -29,7 +29,7 @@ Anderson, S. C., Mulberry, N., Edwards, A. M., Stockdale, J. E., Iyaniwura, S. A
 
 ## Installation
 
-Before installation, you will need a C++ compiler installed to compile the Stan model. If you are on a Mac or Linux, follow [these instructions](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started). If you are on Windows, follow the 'Configuration' section [here](https://github.com/stan-dev/rstan/wiki/Installing-RStan-from-source-on-Windows) (you do not need to follow the rest of the instructions from that page to install rstan itself from source).
+Before installation, you will need a C++ compiler installed to compile the Stan model. Follow the relevant instructions on configuring a C++ toolchain for your operating system [on the rstan wiki](https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started).
 
 The following must return `TRUE` before continuing:
 
