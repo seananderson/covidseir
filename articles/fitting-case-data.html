@@ -453,7 +453,7 @@
 <span class="co">#&gt; The following object is masked from 'package:dplyr':</span>
 <span class="co">#&gt; </span>
 <span class="co">#&gt;     collapse</span>
-<span class="co">#&gt; This is mgcv 1.8-33. For overview type 'help("mgcv-package")'.</span>
+<span class="co">#&gt; This is mgcv 1.8-35. For overview type 'help("mgcv-package")'.</span>
 <span class="va">dow</span><span class="op">$</span><span class="va">day_of_week</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/numeric.html">as.numeric</a></span><span class="op">(</span><span class="va">dow</span><span class="op">$</span><span class="va">day_of_week</span><span class="op">)</span>
 <span class="va">dow</span><span class="op">$</span><span class="va">cases</span> <span class="op">&lt;-</span> <span class="va">dat</span><span class="op">$</span><span class="va">value</span>
 <span class="va">mgam</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/pkg/mgcv/man/gam.html">gam</a></span><span class="op">(</span><span class="va">cases</span> <span class="op">~</span> <span class="fl">0</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/pkg/mgcv/man/s.html">s</a></span><span class="op">(</span><span class="va">day_of_week</span>, bs <span class="op">=</span> <span class="st">"cc"</span>, k <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>, 
