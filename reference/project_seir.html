@@ -168,7 +168,10 @@ future date.</p>
     <tr>
       <th>f_fixed_start</th>
       <td><p>Optional day to start changing f. Must be set if
-<code>f_fixed</code> is set.</p></td>
+<code>f_fixed</code> or <code>f_multi</code> is set. This is the day number to start, not the
+number of days into the projection. E.g., if 100 days were fitted to
+and <code>f_fixed</code> should start 5 days into the future, then
+<code>f_fixed_start = 105</code>.</p></td>
     </tr>
     <tr>
       <th>f_fixed</th>
