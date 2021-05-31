@@ -9,7 +9,10 @@
 #' @param obj Output from [fit_seir()].
 #' @param forecast_days Number of projection days.
 #' @param f_fixed_start Optional day to start changing f. Must be set if
-#'   `f_fixed` is set.
+#'   `f_fixed` or `f_multi` is set. This is the day number to start, not the
+#'   number of days into the projection. E.g., if 100 days were fitted to
+#'   and `f_fixed` should start 5 days into the future, then
+#'   `f_fixed_start = 105`.
 #' @param f_fixed An optional vector of fixed f values for the projection.
 #'   Should be length `forecast_days - (f_fixed_start - nrow(daily_cases) -
 #'   1)`. I.e. one value per day after `f_fixed_start` day.
@@ -138,6 +141,14 @@ project_seir <- function(
 
   if (!is.null(f_multi)) {
     stopifnot(length(f_multi) == forecast_days - (f_fixed_start - nrow(d$daily_cases) - 1))
+  }
+
+  if (!is.null(f_fixed_start)) {
+    if (f_fixed_start < nrow(d$daily_cases)) {
+      stop("f_fixed_start is the day number to start specified f values in the",
+        "projection (not the number of days into the projection). It must be a",
+        "value at least as large as the number of fitted days.", call. = FALSE)
+    }
   }
 
   days <- seq(1L, nrow(d$daily_cases) + forecast_days)

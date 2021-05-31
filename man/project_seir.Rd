@@ -26,7 +26,10 @@ project_seir(
 \item{forecast_days}{Number of projection days.}
 
 \item{f_fixed_start}{Optional day to start changing f. Must be set if
-\code{f_fixed} is set.}
+\code{f_fixed} or \code{f_multi} is set. This is the day number to start, not the
+number of days into the projection. E.g., if 100 days were fitted to
+and \code{f_fixed} should start 5 days into the future, then
+\code{f_fixed_start = 105}.}
 
 \item{f_fixed}{An optional vector of fixed f values for the projection.
 Should be length \code{forecast_days - (f_fixed_start - nrow(daily_cases) - 1)}. I.e. one value per day after \code{f_fixed_start} day.}
